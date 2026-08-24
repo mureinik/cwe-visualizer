@@ -1,5 +1,68 @@
+import { useCallback, useEffect, useState } from 'react';
+import { buildGraph, type CweData, type Graph } from './lib/graph';
+import { Tree } from './components/Tree';
+import { SearchBox } from './components/SearchBox';
+import { DetailPanel } from './components/DetailPanel';
+
+type LoadState =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'ready'; graph: Graph };
+
+function readSelectedIdFromUrl(): string | null {
+  return new URLSearchParams(window.location.search).get('cwe');
+}
+
 export function App() {
-  return <h1>CWE Visualizer</h1>;
+  const [state, setState] = useState<LoadState>({ status: 'loading' });
+  const [selectedId, setSelectedId] = useState<string | null>(() => readSelectedIdFromUrl());
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/data/cwe.json')
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json() as Promise<CweData>;
+      })
+      .then((data) => {
+        if (!cancelled) setState({ status: 'ready', graph: buildGraph(data) });
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setState({ status: 'error', message: err instanceof Error ? err.message : 'Unknown error' });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selectNode = useCallback((id: string) => {
+    setSelectedId(id);
+    const params = new URLSearchParams(window.location.search);
+    params.set('cwe', id);
+    window.history.replaceState(null, '', `?${params.toString()}`);
+  }, []);
+
+  if (state.status === 'loading') {
+    return <div className="app-status">Loading CWE data…</div>;
+  }
+  if (state.status === 'error') {
+    return <div className="app-status app-status--error">Failed to load CWE data: {state.message}</div>;
+  }
+
+  return (
+    <div className="app">
+      <header className="app-header">
+        <h1>CWE Visualizer</h1>
+        <SearchBox graph={state.graph} onSelect={selectNode} />
+      </header>
+      <main className="app-main">
+        <Tree graph={state.graph} selectedId={selectedId} onSelect={selectNode} />
+        <DetailPanel graph={state.graph} selectedId={selectedId} onSelect={selectNode} />
+      </main>
+    </div>
+  );
 }
 
 export default App;
