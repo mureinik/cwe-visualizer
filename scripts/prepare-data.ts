@@ -105,3 +105,68 @@ export async function writeOutput(outDir: string, data: CweData): Promise<void> 
   await fs.writeFile(path.join(outDir, 'cwe.json'), JSON.stringify(data, null, 2));
   await fs.writeFile(path.join(outDir, 'meta.json'), JSON.stringify({ meta: data.meta }, null, 2));
 }
+
+const SOURCE_URL = 'https://cwe.mitre.org/data/xml/cwec_latest.xml.zip';
+
+export async function readLocalMeta(outDir: string): Promise<CweMeta | null> {
+  try {
+    const raw = await fs.readFile(path.join(outDir, 'meta.json'), 'utf-8');
+    return (JSON.parse(raw) as { meta: CweMeta }).meta;
+  } catch {
+    return null;
+  }
+}
+
+interface RunOptions {
+  sourceUrl?: string;
+  outDir?: string;
+  fetchImpl?: typeof fetch;
+}
+
+export async function run({
+  sourceUrl = SOURCE_URL,
+  outDir = path.join(process.cwd(), 'public', 'data'),
+  fetchImpl = fetch,
+}: RunOptions = {}): Promise<{ updated: boolean; meta: CweMeta }> {
+  const localMeta = await readLocalMeta(outDir);
+
+  let currentEtag: string | null;
+  try {
+    const headResponse = await fetchImpl(sourceUrl, { method: 'HEAD' });
+    if (!headResponse.ok) {
+      throw new Error(`HTTP ${headResponse.status}`);
+    }
+    currentEtag = headResponse.headers.get('etag');
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (localMeta) {
+      console.warn(`Could not reach CWE source (${message}); reusing cached data from ${localMeta.generatedAt}.`);
+      return { updated: false, meta: localMeta };
+    }
+    throw new Error(`Could not reach CWE source and no cached data exists: ${message}`, { cause: err });
+  }
+
+  if (localMeta && currentEtag && localMeta.etag === currentEtag) {
+    console.log(`CWE data already up to date (etag ${currentEtag}). Skipping download.`);
+    return { updated: false, meta: localMeta };
+  }
+
+  const getResponse = await fetchImpl(sourceUrl);
+  if (!getResponse.ok) {
+    throw new Error(`Failed to download CWE data (HTTP ${getResponse.status}): ${sourceUrl}`);
+  }
+  const zipBuffer = Buffer.from(await getResponse.arrayBuffer());
+  const xmlText = extractXmlFromZip(zipBuffer);
+  const data = parseCatalog(xmlText, currentEtag ?? '');
+
+  await writeOutput(outDir, data);
+  console.log(`CWE data updated to version ${data.meta.cweVersion} (etag ${currentEtag}).`);
+  return { updated: true, meta: data.meta };
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  run().catch((err: unknown) => {
+    console.error(err instanceof Error ? err.message : String(err));
+    process.exitCode = 1;
+  });
+}

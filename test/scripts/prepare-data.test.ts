@@ -1,12 +1,12 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import AdmZip from 'adm-zip';
-import { extractXmlFromZip, parseCatalog, writeOutput, type CweData } from '../../scripts/prepare-data.ts';
+import { extractXmlFromZip, parseCatalog, writeOutput, run, type CweData } from '../../scripts/prepare-data.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURE_XML = path.join(__dirname, '..', 'fixtures', 'cwec-sample.xml');
@@ -82,5 +82,75 @@ describe('writeOutput', () => {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+});
+
+function zipBuffer() {
+  const zip = new AdmZip();
+  zip.addFile('cwec_latest.xml', readFileSync(FIXTURE_XML));
+  return zip.toBuffer();
+}
+
+function fakeFetch({ etag = '"v1"' }: { etag?: string } = {}) {
+  return vi.fn(async (_url: string, options?: { method?: string }) => {
+    if (options?.method === 'HEAD') {
+      return { ok: true, status: 200, headers: { get: (name: string) => (name === 'etag' ? etag : null) } };
+    }
+    return { ok: true, status: 200, arrayBuffer: async () => zipBuffer().buffer };
+  });
+}
+
+describe('run', () => {
+  let dir: string;
+
+  beforeEach(async () => {
+    dir = await mkdtemp(path.join(tmpdir(), 'cwe-visualizer-test-'));
+  });
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('downloads and writes data on a fresh run with no cache', async () => {
+    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ etag: '"v1"' }) as unknown as typeof fetch });
+    expect(result.updated).toBe(true);
+    expect(result.meta.etag).toBe('"v1"');
+    const cweJson = JSON.parse(await readFile(path.join(dir, 'cwe.json'), 'utf-8'));
+    expect(Object.keys(cweJson.nodes)).toContain('79');
+  });
+
+  it('skips the download when the cached etag matches', async () => {
+    await run({ outDir: dir, fetchImpl: fakeFetch({ etag: '"v1"' }) as unknown as typeof fetch });
+    const fetchSpy = fakeFetch({ etag: '"v1"' });
+    const result = await run({ outDir: dir, fetchImpl: fetchSpy as unknown as typeof fetch });
+    expect(result.updated).toBe(false);
+    const getCalls = fetchSpy.mock.calls.filter(([, options]) => options?.method !== 'HEAD');
+    expect(getCalls).toHaveLength(0);
+  });
+
+  it('re-downloads when the etag has changed', async () => {
+    await run({ outDir: dir, fetchImpl: fakeFetch({ etag: '"v1"' }) as unknown as typeof fetch });
+    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ etag: '"v2"' }) as unknown as typeof fetch });
+    expect(result.updated).toBe(true);
+    expect(result.meta.etag).toBe('"v2"');
+  });
+
+  it('reuses cached data when the source is unreachable and a cache exists', async () => {
+    await run({ outDir: dir, fetchImpl: fakeFetch({ etag: '"v1"' }) as unknown as typeof fetch });
+    const failingFetch = vi.fn(async () => {
+      throw new Error('network down');
+    });
+    const result = await run({ outDir: dir, fetchImpl: failingFetch as unknown as typeof fetch });
+    expect(result.updated).toBe(false);
+    expect(result.meta.etag).toBe('"v1"');
+  });
+
+  it('throws when the source is unreachable and there is no cache', async () => {
+    const failingFetch = vi.fn(async () => {
+      throw new Error('network down');
+    });
+    await expect(
+      run({ outDir: dir, fetchImpl: failingFetch as unknown as typeof fetch })
+    ).rejects.toThrow(/no cached data/);
   });
 });
