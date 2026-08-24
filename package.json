@@ -1,0 +1,58 @@
+{
+  "name": "cwe-visualizer",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "A visual explorer for the full CWE (Common Weakness Enumeration) corpus.",
+  "author": "Allon Mureinik",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mureinik/cwe-visualizer.git"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "prepare": "husky",
+    "prepare-data": "node scripts/prepare-data.ts",
+    "predev": "npm run prepare-data",
+    "prebuild": "npm run prepare-data"
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.0",
+    "fast-xml-parser": "^5.11.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.6",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^6.1.0",
+    "eslint": "^10.9.0",
+    "eslint-plugin-n": "^18.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.4",
+    "globals": "^17.11.0",
+    "husky": "^9.1.7",
+    "jsdom": "^30.0.1",
+    "lint-staged": "^17.3.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.67.0",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs}": "eslint --fix"
+  }
+}

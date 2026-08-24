@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Weakness_Catalog Name="CWE" Version="4.15" Date="2024-11-19">
+  <Weaknesses>
+    <Weakness ID="74" Name="Injection" Abstraction="Class" Status="Incomplete">
+      <Description>The product constructs all or part of a command using externally-influenced input.</Description>
+    </Weakness>
+    <Weakness ID="79" Name="Cross-site Scripting" Abstraction="Base" Status="Stable">
+      <Description>The product does not neutralize user-controllable input before it is placed in output.</Description>
+      <Related_Weaknesses>
+        <Related_Weakness Nature="ChildOf" CWE_ID="74" View_ID="1000"/>
+        <Related_Weakness Nature="PeerOf" CWE_ID="80" View_ID="1000"/>
+      </Related_Weaknesses>
+    </Weakness>
+    <Weakness ID="80" Name="Improper Neutralization of Script-Related HTML Tags" Abstraction="Base" Status="Stable">
+      <Description>The product receives input and neutralizes special characters, but the neutralization is incomplete.</Description>
+      <Related_Weaknesses>
+        <Related_Weakness Nature="ChildOf" CWE_ID="74" View_ID="1000"/>
+        <Related_Weakness Nature="PeerOf" CWE_ID="79" View_ID="1000"/>
+      </Related_Weaknesses>
+    </Weakness>
+    <Weakness ID="89" Name="SQL Injection" Abstraction="Base" Status="Stable">
+      <Description>The product constructs SQL commands using externally-influenced input.</Description>
+      <Related_Weaknesses>
+        <Related_Weakness Nature="ChildOf" CWE_ID="74" View_ID="1000"/>
+        <Related_Weakness Nature="CanFollow" CWE_ID="20" View_ID="1000"/>
+      </Related_Weaknesses>
+    </Weakness>
+  </Weaknesses>
+</Weakness_Catalog>

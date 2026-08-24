@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  validate-issue-link:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: read
+    steps:
+      - name: Validate PR references an open issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          ISSUE_NUM=$(printf '%s' "$PR_BODY" | grep -ioE '(closes|fixes|resolves)[[:space:]]+#[0-9]+' | head -1 | grep -oE '[0-9]+' || true)
+          if [ -z "$ISSUE_NUM" ]; then
+            echo "::error::PR description must reference an issue via 'Closes #N' (or Fixes/Resolves #N), per this repo's contribution flow (README.md)."
+            exit 1
+          fi
+          STATE=$(gh issue view "$ISSUE_NUM" --repo "${{ github.repository }}" --json state -q .state)
+          if [ "$STATE" != "OPEN" ]; then
+            echo "::error::Issue #$ISSUE_NUM is not open (state: $STATE) — reference an open issue."
+            exit 1
+          fi
+          echo "PR references open issue #$ISSUE_NUM."
