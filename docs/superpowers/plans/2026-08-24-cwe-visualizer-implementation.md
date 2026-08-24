@@ -18,7 +18,8 @@
 - Zip extraction uses the `adm-zip` dependency (not a hand-rolled zip reader). XML parsing uses `fast-xml-parser`.
 - `package.json` lists `"author": "Allon Mureinik"` and a `"repository"` pointing at `https://github.com/mureinik/cwe-visualizer.git`.
 - Every commit message in this repo ends with only `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` — never add a `Claude-Session:` line.
-- **Tasks 1–15 commit directly to `main`** (this is the initial bootstrap of an empty repo — there is no reviewer yet and no protected branch to route around). **Task 16 turns on branch protection**; from that point forward, every change — including the CWE Categories/Views follow-up work noted in the spec's Future Work — must go through an issue, a branch, a PR, passing CI, and manual review, per the spec's Contribution Workflow.
+- Commit messages follow **Conventional Commits**: `<type>(<optional scope>): <description>`, using `feat`, `fix`, `chore`, `docs`, `ci`, or `test` as the type. The exact subject line given in each task's "Commit" step is already in this format and must be used verbatim; any commit not dictated verbatim by a task (e.g. a fix-round commit made in response to review findings) must still follow this format — pick the type that matches what actually changed (`fix` for a review-driven correction, `test` for a test-only addition, etc.).
+- **All 16 tasks execute on the `feat/cwe-visualizer` branch, in the git worktree at `.worktrees/feat-cwe-visualizer`** — not on `main`. This supersedes the plan's original "Tasks 1–15 commit directly to main" bootstrap assumption (ruled by the user during execution setup, 2026-08-24). The branch merges into `main` only at the end, via `superpowers:finishing-a-development-branch`. This changes Task 16's Step 4 (which read "commit and push to main directly" — it now just commits to the branch like every other task) and pushes Task 16's Steps 5–8 (Vercel project creation, the `DEPLOYED_SITE_URL`/`VERCEL_DEPLOY_HOOK_URL` repo variable/secret, branch protection, and the live workflow-dispatch check) to run **after** the branch has merged into `main` and been pushed — those steps need `main` to actually carry the CI workflow and the deployed site, which only exist once the merge has happened.
 - CWE **Categories** and **Views** are out of scope for this plan (spec's Future Work item — file a follow-up issue once Task 16 lands and the repo is protected).
 - No automated LLM PR reviewer in this iteration — review is manual.
 - ESLint's flat config uses `ecmaVersion: 2025` throughout. `scripts/**/*.ts` and any other Node-only backend code additionally gets `eslint-plugin-n`'s `flat/recommended-module` rules (not applied to `src/**` browser code, which never runs under Node).
@@ -2187,8 +2188,9 @@ git add .github/ISSUE_TEMPLATE/change.md README.md
 git commit -m "docs: add issue template and README
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
-git push -u origin main
 ```
+
+**This is the end of Task 16's implementer work — commit and stop here.** Steps 5–8 below are post-merge, controller-run steps (not part of this task's dispatch): they need `main` to actually carry the merged CI workflow, and they're outward-facing/security-sensitive (a live Vercel deployment, a repo secret, branch protection), so the controller confirms with the user before running them, after `feat/cwe-visualizer` has been merged into `main` via `superpowers:finishing-a-development-branch`.
 
 - [ ] **Step 5 (manual — Vercel dashboard): Create the Vercel project**
 
