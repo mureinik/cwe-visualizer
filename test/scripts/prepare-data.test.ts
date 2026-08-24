@@ -32,7 +32,7 @@ describe('parseCatalog', () => {
 
   it('extracts catalog metadata', () => {
     expect(data.meta.cweVersion).toBe('4.15');
-    expect(data.meta.etag).toBe('"abc123"');
+    expect(data.meta.lastModified).toBe('"abc123"');
     expect(data.meta.generatedAt).toEqual(expect.any(String));
   });
 
@@ -70,7 +70,7 @@ describe('writeOutput', () => {
     const dir = await mkdtemp(path.join(tmpdir(), 'cwe-visualizer-test-'));
     try {
       const data: CweData = {
-        meta: { cweVersion: '4.15', etag: '"abc"', generatedAt: '2026-01-01T00:00:00.000Z' },
+        meta: { cweVersion: '4.15', lastModified: '"abc"', generatedAt: '2026-01-01T00:00:00.000Z' },
         nodes: {},
         edges: [],
       };
@@ -91,10 +91,10 @@ function zipBuffer() {
   return zip.toBuffer();
 }
 
-function fakeFetch({ etag = '"v1"' }: { etag?: string } = {}) {
+function fakeFetch({ lastModified = '"v1"' }: { lastModified?: string } = {}) {
   return vi.fn(async (_url: string, options?: { method?: string }) => {
     if (options?.method === 'HEAD') {
-      return { ok: true, status: 200, headers: { get: (name: string) => (name === 'etag' ? etag : null) } };
+      return { ok: true, status: 200, headers: { get: (name: string) => (name === 'last-modified' ? lastModified : null) } };
     }
     return { ok: true, status: 200, arrayBuffer: async () => zipBuffer().buffer };
   });
@@ -112,37 +112,37 @@ describe('run', () => {
   });
 
   it('downloads and writes data on a fresh run with no cache', async () => {
-    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ etag: '"v1"' }) as unknown as typeof fetch });
+    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
     expect(result.updated).toBe(true);
-    expect(result.meta.etag).toBe('"v1"');
+    expect(result.meta.lastModified).toBe('"v1"');
     const cweJson = JSON.parse(await readFile(path.join(dir, 'cwe.json'), 'utf-8'));
     expect(Object.keys(cweJson.nodes)).toContain('79');
   });
 
-  it('skips the download when the cached etag matches', async () => {
-    await run({ outDir: dir, fetchImpl: fakeFetch({ etag: '"v1"' }) as unknown as typeof fetch });
-    const fetchSpy = fakeFetch({ etag: '"v1"' });
+  it('skips the download when the cached last-modified matches', async () => {
+    await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    const fetchSpy = fakeFetch({ lastModified: '"v1"' });
     const result = await run({ outDir: dir, fetchImpl: fetchSpy as unknown as typeof fetch });
     expect(result.updated).toBe(false);
     const getCalls = fetchSpy.mock.calls.filter(([, options]) => options?.method !== 'HEAD');
     expect(getCalls).toHaveLength(0);
   });
 
-  it('re-downloads when the etag has changed', async () => {
-    await run({ outDir: dir, fetchImpl: fakeFetch({ etag: '"v1"' }) as unknown as typeof fetch });
-    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ etag: '"v2"' }) as unknown as typeof fetch });
+  it('re-downloads when the last-modified has changed', async () => {
+    await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v2"' }) as unknown as typeof fetch });
     expect(result.updated).toBe(true);
-    expect(result.meta.etag).toBe('"v2"');
+    expect(result.meta.lastModified).toBe('"v2"');
   });
 
   it('reuses cached data when the source is unreachable and a cache exists', async () => {
-    await run({ outDir: dir, fetchImpl: fakeFetch({ etag: '"v1"' }) as unknown as typeof fetch });
+    await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
     const failingFetch = vi.fn(async () => {
       throw new Error('network down');
     });
     const result = await run({ outDir: dir, fetchImpl: failingFetch as unknown as typeof fetch });
     expect(result.updated).toBe(false);
-    expect(result.meta.etag).toBe('"v1"');
+    expect(result.meta.lastModified).toBe('"v1"');
   });
 
   it('throws when the source is unreachable and there is no cache', async () => {

@@ -20,7 +20,7 @@ export interface CweEdge {
 
 export interface CweMeta {
   cweVersion: string;
-  etag: string;
+  lastModified: string;
   generatedAt: string;
 }
 
@@ -53,7 +53,7 @@ export function extractXmlFromZip(buffer: Buffer): string {
   return entries[0].getData().toString('utf-8');
 }
 
-export function parseCatalog(xmlText: string, etag: string | null): CweData {
+export function parseCatalog(xmlText: string, lastModified: string | null): CweData {
   const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
   const doc = parser.parse(xmlText);
   const catalog = doc.Weakness_Catalog;
@@ -92,7 +92,7 @@ export function parseCatalog(xmlText: string, etag: string | null): CweData {
   return {
     meta: {
       cweVersion: String(catalog['@_Version']),
-      etag: etag ?? '',
+      lastModified: lastModified ?? '',
       generatedAt: new Date().toISOString(),
     },
     nodes,
@@ -130,13 +130,13 @@ export async function run({
 }: RunOptions = {}): Promise<{ updated: boolean; meta: CweMeta }> {
   const localMeta = await readLocalMeta(outDir);
 
-  let currentEtag: string | null;
+  let currentLastModified: string | null;
   try {
     const headResponse = await fetchImpl(sourceUrl, { method: 'HEAD' });
     if (!headResponse.ok) {
       throw new Error(`HTTP ${headResponse.status}`);
     }
-    currentEtag = headResponse.headers.get('etag');
+    currentLastModified = headResponse.headers.get('last-modified');
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     if (localMeta) {
@@ -146,8 +146,8 @@ export async function run({
     throw new Error(`Could not reach CWE source and no cached data exists: ${message}`, { cause: err });
   }
 
-  if (localMeta && currentEtag && localMeta.etag === currentEtag) {
-    console.log(`CWE data already up to date (etag ${currentEtag}). Skipping download.`);
+  if (localMeta && currentLastModified && localMeta.lastModified === currentLastModified) {
+    console.log(`CWE data already up to date (last-modified ${currentLastModified}). Skipping download.`);
     return { updated: false, meta: localMeta };
   }
 
@@ -157,10 +157,10 @@ export async function run({
   }
   const zipBuffer = Buffer.from(await getResponse.arrayBuffer());
   const xmlText = extractXmlFromZip(zipBuffer);
-  const data = parseCatalog(xmlText, currentEtag ?? '');
+  const data = parseCatalog(xmlText, currentLastModified ?? '');
 
   await writeOutput(outDir, data);
-  console.log(`CWE data updated to version ${data.meta.cweVersion} (etag ${currentEtag}).`);
+  console.log(`CWE data updated to version ${data.meta.cweVersion} (last-modified ${currentLastModified}).`);
   return { updated: true, meta: data.meta };
 }
 
