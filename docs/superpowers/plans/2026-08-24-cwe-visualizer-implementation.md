@@ -519,13 +519,17 @@ Add a top-level key:
 - [ ] **Step 5: Verify the hook blocks a bad commit**
 
 ```bash
-echo "export const bad = ( ) =>    { return   1 }" > /tmp/lint-staged-check.ts
-cp /tmp/lint-staged-check.ts src/lint-staged-check.ts
+cat > src/lint-staged-check.ts <<'EOF'
+export function bad() {
+  const unused = 1;
+  return 2;
+}
+EOF
 git add src/lint-staged-check.ts
 git commit -m "test: verify pre-commit hook blocks bad code"
 ```
 
-Expected: the commit is rejected (`eslint --fix` either fails or lint-staged/ESLint reports an error such as an unused-variable or formatting rule violation on `src/lint-staged-check.ts`).
+Expected: the commit is rejected — `eslint --fix` cannot autofix an unused local variable, so it reports `'unused' is assigned a value but never used  @typescript-eslint/no-unused-vars`, `lint-staged` fails, and the hook exits non-zero with no commit created. (An earlier draft of this step used a merely badly-*formatted* snippet — `eslint --fix` silently reformats that and the commit succeeds, which defeats the point of this check. Verified empirically during Task 5's execution: use a real, non-autofixable lint error like the unused-variable example above.)
 
 - [ ] **Step 6: Remove the throwaway file and unstage**
 
