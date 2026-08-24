@@ -4,7 +4,7 @@
 
 **Goal:** Build the CWE Visualizer end-to-end: a data pipeline that turns MITRE's published CWE corpus into a static JSON graph, a Vite + React SPA that lets a user browse and search that graph as a collapsible tree, and the GitHub Actions/Vercel pipeline that builds, tests, and auto-redeploys it — with the pre-commit lint+test gate working before any of that application code exists.
 
-**Architecture:** A build-time-only Node.js script (`scripts/prepare-data.ts`, run natively — no build step) downloads and parses MITRE's CWE XML into `public/data/cwe.json` — the running app never talks to MITRE or parses XML. A Vite + React + TypeScript SPA reads that static JSON, builds in-memory parent/child indices once on load, and renders a lazily-expanded tree with search and a detail panel. GitHub Actions runs lint/test/build on every PR and, on a daily schedule, compares MITRE's live ETag against the deployed site's own `meta.json` and pokes a Vercel deploy hook when they differ — no git state involved.
+**Architecture:** A build-time-only Node.js script (`scripts/prepare-data.ts`, run natively — no build step) downloads and parses MITRE's CWE XML into `public/data/cwe.json` — the running app never talks to MITRE or parses XML. A Vite + React + TypeScript SPA reads that static JSON, builds in-memory parent/child indices once on load, and renders a lazily-expanded tree with search and a detail panel. GitHub Actions runs lint/test/build on every PR and, on a daily schedule, compares MITRE's live Last-Modified header against the deployed site's own `meta.json` and pokes a Vercel deploy hook when they differ — no git state involved.
 
 **Tech Stack:** Node.js (>=24), Vite, React 18, TypeScript, `fast-xml-parser`, `adm-zip`, Vitest, React Testing Library, ESLint (flat config), Husky + lint-staged, GitHub Actions, Vercel (zero-config).
 
@@ -568,10 +568,10 @@ Expected: `npx lint-staged` and `npm test` both run and pass as part of this com
 - Produces (named exports from `scripts/prepare-data.ts`, used by Task 7 and by the CLI entrypoint):
   - `interface CweNode { id: string; name: string; abstraction: string; status: string; description: string; url: string }`
   - `interface CweEdge { from: string; to: string; type: string }`
-  - `interface CweMeta { cweVersion: string; etag: string; generatedAt: string }`
+  - `interface CweMeta { cweVersion: string; lastModified: string; generatedAt: string }`
   - `interface CweData { meta: CweMeta; nodes: Record<string, CweNode>; edges: CweEdge[] }`
   - `extractXmlFromZip(buffer: Buffer): string`
-  - `parseCatalog(xmlText: string, etag: string | null): CweData`
+  - `parseCatalog(xmlText: string, lastModified: string | null): CweData`
   - `writeOutput(outDir: string, data: CweData): Promise<void>` — writes `cwe.json` (the full `data`) and `meta.json` (`{ meta: data.meta }`) into `outDir`, creating it if needed.
 
   These interfaces are declared locally in this file rather than imported from `src/lib/graph.ts` (Task 9 defines an identically-shaped set there): the two files run in different environments (a plain Node script vs. a Vite-bundled browser app) and keeping them decoupled avoids any cross-resolution coupling between Node's strict ESM loader and Vite's bundler resolution. They agree by contract — `prepare-data.ts`'s output is exactly `src/lib/graph.ts`'s `CweData` input — not by import.
@@ -669,7 +669,7 @@ describe('parseCatalog', () => {
 
   it('extracts catalog metadata', () => {
     expect(data.meta.cweVersion).toBe('4.15');
-    expect(data.meta.etag).toBe('"abc123"');
+    expect(data.meta.lastModified).toBe('"abc123"');
     expect(data.meta.generatedAt).toEqual(expect.any(String));
   });
 
@@ -707,7 +707,7 @@ describe('writeOutput', () => {
     const dir = await mkdtemp(path.join(tmpdir(), 'cwe-visualizer-test-'));
     try {
       const data: CweData = {
-        meta: { cweVersion: '4.15', etag: '"abc"', generatedAt: '2026-01-01T00:00:00.000Z' },
+        meta: { cweVersion: '4.15', lastModified: '"abc"', generatedAt: '2026-01-01T00:00:00.000Z' },
         nodes: {},
         edges: [],
       };
@@ -753,7 +753,7 @@ export interface CweEdge {
 
 export interface CweMeta {
   cweVersion: string;
-  etag: string;
+  lastModified: string;
   generatedAt: string;
 }
 
@@ -786,7 +786,7 @@ export function extractXmlFromZip(buffer: Buffer): string {
   return entries[0].getData().toString('utf-8');
 }
 
-export function parseCatalog(xmlText: string, etag: string | null): CweData {
+export function parseCatalog(xmlText: string, lastModified: string | null): CweData {
   const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
   const doc = parser.parse(xmlText);
   const catalog = doc.Weakness_Catalog;
@@ -825,7 +825,7 @@ export function parseCatalog(xmlText: string, etag: string | null): CweData {
   return {
     meta: {
       cweVersion: String(catalog['@_Version']),
-      etag: etag ?? '',
+      lastModified: lastModified ?? '',
       generatedAt: new Date().toISOString(),
     },
     nodes,
@@ -894,10 +894,10 @@ function zipBuffer() {
   return zip.toBuffer();
 }
 
-function fakeFetch({ etag = '"v1"' }: { etag?: string } = {}) {
+function fakeFetch({ lastModified = '"v1"' }: { lastModified?: string } = {}) {
   return vi.fn(async (_url: string, options?: { method?: string }) => {
     if (options?.method === 'HEAD') {
-      return { ok: true, status: 200, headers: { get: (name: string) => (name === 'etag' ? etag : null) } };
+      return { ok: true, status: 200, headers: { get: (name: string) => (name === 'last-modified' ? lastModified : null) } };
     }
     return { ok: true, status: 200, arrayBuffer: async () => zipBuffer().buffer };
   });
@@ -915,37 +915,37 @@ describe('run', () => {
   });
 
   it('downloads and writes data on a fresh run with no cache', async () => {
-    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ etag: '"v1"' }) as unknown as typeof fetch });
+    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
     expect(result.updated).toBe(true);
-    expect(result.meta.etag).toBe('"v1"');
+    expect(result.meta.lastModified).toBe('"v1"');
     const cweJson = JSON.parse(await readFile(path.join(dir, 'cwe.json'), 'utf-8'));
     expect(Object.keys(cweJson.nodes)).toContain('79');
   });
 
-  it('skips the download when the cached etag matches', async () => {
-    await run({ outDir: dir, fetchImpl: fakeFetch({ etag: '"v1"' }) as unknown as typeof fetch });
-    const fetchSpy = fakeFetch({ etag: '"v1"' });
+  it('skips the download when the cached last-modified value matches', async () => {
+    await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    const fetchSpy = fakeFetch({ lastModified: '"v1"' });
     const result = await run({ outDir: dir, fetchImpl: fetchSpy as unknown as typeof fetch });
     expect(result.updated).toBe(false);
     const getCalls = fetchSpy.mock.calls.filter(([, options]) => options?.method !== 'HEAD');
     expect(getCalls).toHaveLength(0);
   });
 
-  it('re-downloads when the etag has changed', async () => {
-    await run({ outDir: dir, fetchImpl: fakeFetch({ etag: '"v1"' }) as unknown as typeof fetch });
-    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ etag: '"v2"' }) as unknown as typeof fetch });
+  it('re-downloads when the last-modified value has changed', async () => {
+    await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v2"' }) as unknown as typeof fetch });
     expect(result.updated).toBe(true);
-    expect(result.meta.etag).toBe('"v2"');
+    expect(result.meta.lastModified).toBe('"v2"');
   });
 
   it('reuses cached data when the source is unreachable and a cache exists', async () => {
-    await run({ outDir: dir, fetchImpl: fakeFetch({ etag: '"v1"' }) as unknown as typeof fetch });
+    await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
     const failingFetch = vi.fn(async () => {
       throw new Error('network down');
     });
     const result = await run({ outDir: dir, fetchImpl: failingFetch as unknown as typeof fetch });
     expect(result.updated).toBe(false);
-    expect(result.meta.etag).toBe('"v1"');
+    expect(result.meta.lastModified).toBe('"v1"');
   });
 
   it('throws when the source is unreachable and there is no cache', async () => {
@@ -991,13 +991,13 @@ export async function run({
 }: RunOptions = {}): Promise<{ updated: boolean; meta: CweMeta }> {
   const localMeta = await readLocalMeta(outDir);
 
-  let currentEtag: string | null;
+  let currentLastModified: string | null;
   try {
     const headResponse = await fetchImpl(sourceUrl, { method: 'HEAD' });
     if (!headResponse.ok) {
       throw new Error(`HTTP ${headResponse.status}`);
     }
-    currentEtag = headResponse.headers.get('etag');
+    currentLastModified = headResponse.headers.get('last-modified');
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     if (localMeta) {
@@ -1007,8 +1007,8 @@ export async function run({
     throw new Error(`Could not reach CWE source and no cached data exists: ${message}`, { cause: err });
   }
 
-  if (localMeta && currentEtag && localMeta.etag === currentEtag) {
-    console.log(`CWE data already up to date (etag ${currentEtag}). Skipping download.`);
+  if (localMeta && currentLastModified && localMeta.lastModified === currentLastModified) {
+    console.log(`CWE data already up to date (last-modified ${currentLastModified}). Skipping download.`);
     return { updated: false, meta: localMeta };
   }
 
@@ -1018,10 +1018,10 @@ export async function run({
   }
   const zipBuffer = Buffer.from(await getResponse.arrayBuffer());
   const xmlText = extractXmlFromZip(zipBuffer);
-  const data = parseCatalog(xmlText, currentEtag ?? '');
+  const data = parseCatalog(xmlText, currentLastModified ?? '');
 
   await writeOutput(outDir, data);
-  console.log(`CWE data updated to version ${data.meta.cweVersion} (etag ${currentEtag}).`);
+  console.log(`CWE data updated to version ${data.meta.cweVersion} (last-modified ${currentLastModified}).`);
   return { updated: true, meta: data.meta };
 }
 
@@ -1033,7 +1033,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 }
 ```
 
-This differs from a first-draft version in three small, lint-driven ways, all verified during Task 7's real execution against this repo's actual `eslint.config.js` (`js.configs.recommended` + `tseslint.configs.recommended` + `eslint-plugin-n`'s `flat/recommended-module`, all applied to `scripts/**/*.ts` per Task 3): `currentEtag` has no initializer (`no-useless-assignment` — TypeScript's control-flow analysis still proves it's assigned by the time it's read, since every `catch` path returns or throws first); the "no cached data" error attaches `{ cause: err }` (`preserve-caught-error`); and the CLI entrypoint sets `process.exitCode = 1` instead of calling `process.exit(1)` (`n/no-process-exit` — equivalent here, since nothing else is pending on the event loop).
+This differs from a first-draft version in four small ways, all verified during real execution against this repo's actual tooling: `currentLastModified` has no initializer (`no-useless-assignment` — TypeScript's control-flow analysis still proves it's assigned by the time it's read, since every `catch` path returns or throws first); the "no cached data" error attaches `{ cause: err }` (`preserve-caught-error`); the CLI entrypoint sets `process.exitCode = 1` instead of calling `process.exit(1)` (`n/no-process-exit` — equivalent here, since nothing else is pending on the event loop); and the freshness check reads the `Last-Modified` response header instead of `ETag` — MITRE's zip download sends no `ETag` header at all (verified directly against the live endpoint during Task 8), only `Last-Modified`, which is why `CweMeta`'s field is `lastModified`, not `etag`, throughout this plan.
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
@@ -1085,7 +1085,7 @@ public/data/
 - [ ] **Step 3: Manual verification against the real MITRE source**
 
 Run: `npm run prepare-data`
-Expected: succeeds, network permitting; prints `CWE data updated to version <X> (etag "...").`; creates `public/data/cwe.json` and `public/data/meta.json`.
+Expected: succeeds, network permitting; prints `CWE data updated to version <X> (last-modified "...").`; creates `public/data/cwe.json` and `public/data/meta.json`.
 
 Run: `node -e "console.log(Object.keys(JSON.parse(require('fs').readFileSync('public/data/cwe.json')).nodes).length)"`
 Expected: a number in the high hundreds to low thousands (the real CWE corpus size) — confirms the end-to-end pipeline works against live data, not just the fixture.
@@ -1120,7 +1120,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 - Produces (consumed by Tasks 10–13):
   - `interface CweNode { id: string; name: string; abstraction: string; status: string; description: string; url: string }`
   - `interface CweEdge { from: string; to: string; type: string }`
-  - `interface CweMeta { cweVersion: string; etag: string; generatedAt: string }`
+  - `interface CweMeta { cweVersion: string; lastModified: string; generatedAt: string }`
   - `interface CweData { meta: CweMeta; nodes: Record<string, CweNode>; edges: CweEdge[] }`
   - `interface Graph { meta: CweMeta; nodes: Record<string, CweNode>; childrenOf: Map<string, string[]>; parentsOf: Map<string, string[]>; relatedTo: Map<string, CweEdge[]>; roots: string[]; all: CweNode[] }`
   - `buildGraph(data: CweData): Graph`
@@ -1134,7 +1134,7 @@ import { describe, it, expect } from 'vitest';
 import { buildGraph, ancestorsOf, searchNodes, type CweData } from '../../src/lib/graph';
 
 const sampleData: CweData = {
-  meta: { cweVersion: '4.15', etag: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
+  meta: { cweVersion: '4.15', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
   nodes: {
     '74': { id: '74', name: 'Injection', abstraction: 'Class', status: 'Incomplete', description: 'd74', url: 'https://cwe.mitre.org/data/definitions/74.html' },
     '79': { id: '79', name: 'Cross-site Scripting', abstraction: 'Base', status: 'Stable', description: 'd79', url: 'https://cwe.mitre.org/data/definitions/79.html' },
@@ -1241,7 +1241,7 @@ export interface CweEdge {
 
 export interface CweMeta {
   cweVersion: string;
-  etag: string;
+  lastModified: string;
   generatedAt: string;
 }
 
@@ -1366,7 +1366,7 @@ import { Tree } from '../../src/components/Tree';
 import { buildGraph, type CweData } from '../../src/lib/graph';
 
 const data: CweData = {
-  meta: { cweVersion: '4.15', etag: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
+  meta: { cweVersion: '4.15', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
   nodes: {
     '74': { id: '74', name: 'Injection', abstraction: 'Class', status: 'Incomplete', description: '', url: '' },
     '79': { id: '79', name: 'Cross-site Scripting', abstraction: 'Base', status: 'Stable', description: '', url: '' },
@@ -1573,7 +1573,7 @@ import { SearchBox } from '../../src/components/SearchBox';
 import { buildGraph, type CweData } from '../../src/lib/graph';
 
 const data: CweData = {
-  meta: { cweVersion: '4.15', etag: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
+  meta: { cweVersion: '4.15', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
   nodes: {
     '79': { id: '79', name: 'Cross-site Scripting', abstraction: 'Base', status: 'Stable', description: '', url: '' },
     '89': { id: '89', name: 'SQL Injection', abstraction: 'Base', status: 'Stable', description: '', url: '' },
@@ -1712,7 +1712,7 @@ import { DetailPanel } from '../../src/components/DetailPanel';
 import { buildGraph, type CweData } from '../../src/lib/graph';
 
 const data: CweData = {
-  meta: { cweVersion: '4.15', etag: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
+  meta: { cweVersion: '4.15', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
   nodes: {
     '74': { id: '74', name: 'Injection', abstraction: 'Class', status: 'Incomplete', description: 'Base description', url: 'https://cwe.mitre.org/data/definitions/74.html' },
     '79': { id: '79', name: 'Cross-site Scripting', abstraction: 'Base', status: 'Stable', description: 'XSS description', url: 'https://cwe.mitre.org/data/definitions/79.html' },
@@ -1863,7 +1863,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { App } from '../src/App';
 
 const sampleData = {
-  meta: { cweVersion: '4.15', etag: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
+  meta: { cweVersion: '4.15', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
   nodes: {
     '74': { id: '74', name: 'Injection', abstraction: 'Class', status: 'Incomplete', description: 'd', url: '' },
   },
@@ -1992,7 +1992,7 @@ Expected: all three pass (the build step runs `prebuild` → `prepare-data`, so 
 - [ ] **Step 6: Manual end-to-end check**
 
 Run: `npm run preview -- --port 4173 &`, then `curl -s http://localhost:4173/data/meta.json`, then kill the preview server.
-Expected: valid JSON with a `meta.etag` field — confirms `public/data/meta.json` is served at the path the update-data workflow (Task 15) will check.
+Expected: valid JSON with a `meta.lastModified` field — confirms `public/data/meta.json` is served at the path the update-data workflow (Task 15) will check.
 
 - [ ] **Step 7: Commit**
 
@@ -2062,7 +2062,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: MITRE's zip URL (`https://cwe.mitre.org/data/xml/cwec_latest.xml.zip`), the deployed site's `/data/meta.json` (written by `prepare-data.ts`'s `writeOutput`, Task 6), a `DEPLOYED_SITE_URL` repository variable and a `VERCEL_DEPLOY_HOOK_URL` repository secret (both created manually in Task 16).
-- Produces: a POST to the Vercel deploy hook only when the upstream ETag and the deployed site's recorded ETag differ. Never commits or pushes anything.
+- Produces: a POST to the Vercel deploy hook only when the upstream Last-Modified value and the deployed site's recorded Last-Modified value differ. Never commits or pushes anything.
 
 - [ ] **Step 1: Create .github/workflows/update-data.yml**
 
@@ -2082,11 +2082,11 @@ jobs:
         id: check
         run: |
           set -euo pipefail
-          SOURCE_ETAG=$(curl -sI 'https://cwe.mitre.org/data/xml/cwec_latest.xml.zip' | tr -d '\r' | grep -i '^etag:' | sed -E 's/^[Ee][Tt][Aa][Gg]: *//')
-          DEPLOYED_ETAG=$(curl -sf '${{ vars.DEPLOYED_SITE_URL }}/data/meta.json' | jq -r '.meta.etag')
-          echo "Upstream ETag: $SOURCE_ETAG"
-          echo "Deployed ETag: $DEPLOYED_ETAG"
-          if [ "$SOURCE_ETAG" = "$DEPLOYED_ETAG" ]; then
+          SOURCE_LAST_MODIFIED=$(curl -sI 'https://cwe.mitre.org/data/xml/cwec_latest.xml.zip' | tr -d '\r' | grep -i '^last-modified:' | sed -E 's/^[^:]*: *//')
+          DEPLOYED_LAST_MODIFIED=$(curl -sf '${{ vars.DEPLOYED_SITE_URL }}/data/meta.json' | jq -r '.meta.lastModified')
+          echo "Upstream Last-Modified: $SOURCE_LAST_MODIFIED"
+          echo "Deployed Last-Modified: $DEPLOYED_LAST_MODIFIED"
+          if [ "$SOURCE_LAST_MODIFIED" = "$DEPLOYED_LAST_MODIFIED" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -2241,13 +2241,13 @@ Expected: `main` now requires a passing `build` check and at least one approving
 - [ ] **Step 8: Verify the daily workflow end-to-end**
 
 Run: `gh workflow run update-data.yml` then, after it completes, `gh run list --workflow=update-data.yml --limit 1`
-Expected: the run succeeds; since the just-deployed site's `meta.json` etag matches the upstream etag (Step 5.2 deployed current data), it should log `changed=false` and skip the deploy-hook POST. Check the run's log (`gh run view --log`) to confirm.
+Expected: the run succeeds; since the just-deployed site's `meta.json` last-modified value matches the upstream last-modified value (Step 5.2 deployed current data), it should log `changed=false` and skip the deploy-hook POST. Check the run's log (`gh run view --log`) to confirm.
 
 ---
 
 ## Self-Review Notes
 
-- **Spec coverage:** full-corpus graph (Task 6/9), tree-first UI with search (Tasks 10/11), no runtime fetch/parse (Task 13 only fetches the prebuilt JSON), fast-path ETag check (Task 7), zero-commit daily update check (Task 15), issue→PR→CI→review flow with branch protection (Task 16), pre-commit lint+test (Task 5), Categories/Views and automated review explicitly deferred (Global Constraints) — all covered.
+- **Spec coverage:** full-corpus graph (Task 6/9), tree-first UI with search (Tasks 10/11), no runtime fetch/parse (Task 13 only fetches the prebuilt JSON), fast-path Last-Modified check (Task 7), zero-commit daily update check (Task 15), issue→PR→CI→review flow with branch protection (Task 16), pre-commit lint+test (Task 5), Categories/Views and automated review explicitly deferred (Global Constraints) — all covered.
 - **Placeholder scan:** every step carries real, complete code or an exact command; no "TBD"/"add appropriate handling"/deferred-detail steps remain.
 - **Type consistency:** `Graph`, `CweNode`, `CweEdge`, `CweMeta`, `CweData` are defined once in Task 9 (`src/lib/graph.ts`) and referenced identically (same field names and types) by Tasks 10–13. `scripts/prepare-data.ts` (Task 6) independently declares its own `CweNode`/`CweEdge`/`CweMeta`/`CweData` with the same shape — deliberate duplication, not an inconsistency: see Task 6's Interfaces note on why the two aren't imported from one shared file. `run()`'s option names (`sourceUrl`, `outDir`, `fetchImpl`) match between their Task 7 definition and Task 8's usage.
 - **Claims checked against real behavior, not assumed**, in this environment, before writing the affected tasks: (1) downloaded MITRE's actual current CWE catalog and confirmed all 969 `Weakness/Description` elements are plain text with no child elements, which is why Task 6 no longer does markup-flattening (an earlier draft of this plan guessed, incorrectly, that it needed to); (2) ran a real multi-file TypeScript program through plain `node file.ts` — interfaces, `Buffer`/`fs`/`path` typings, real `adm-zip` + `fast-xml-parser` parsing — with zero flags and no transpile step, confirming Node 24's type-stripping is safe to build Task 6/7 on; (3) built the exact `eslint.config.js` from Task 3 (all four glob blocks, including `eslint-plugin-n`'s `flat/recommended-module` merged into the `scripts/**` block) against matching dummy files and confirmed `npx eslint .` exits clean and `n/no-missing-import` genuinely fires on a broken import.
