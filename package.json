@@ -1,0 +1,19 @@
+{
+  "name": "cwe-visualizer",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "A visual explorer for the full CWE (Common Weakness Enumeration) corpus.",
+  "author": "Allon Mureinik",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mureinik/cwe-visualizer.git"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {},
+  "dependencies": {},
+  "devDependencies": {}
+}
