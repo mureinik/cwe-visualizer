@@ -439,7 +439,15 @@ export default defineConfig({
 
 ```ts
 import '@testing-library/jest-dom/vitest';
+import { afterEach } from 'vitest';
+import { cleanup } from '@testing-library/react';
+
+afterEach(() => {
+  cleanup();
+});
 ```
+
+The `afterEach(cleanup)` matters as soon as any test file calls `render()` more than once: `@testing-library/react` only auto-registers its own cleanup when it detects a *global* `afterEach` (`if (typeof afterEach === 'function') afterEach(cleanup)`), and this project's `vite.config.ts` deliberately doesn't set `test.globals: true` (Global Constraints — explicit Vitest imports everywhere), so that auto-registration never fires. Without this, a second `render()` in the same test file leaves the first render's DOM mounted, and `getByText`/`getByRole` queries start throwing "found multiple elements." This project's only test file so far (`test/App.test.tsx`, below) happens to call `render()` once per test, so the gap is invisible until a later task's test file renders more than once per test or reuses matching text across tests — register it here now so nothing downstream has to discover and fix it later.
 
 - [ ] **Step 4: Write the smoke test — test/App.test.tsx**
 
@@ -1413,7 +1421,7 @@ Expected: FAIL — `src/components/Tree.tsx` does not exist yet.
 - [ ] **Step 3: Implement src/components/Tree.tsx**
 
 ```tsx
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Graph } from '../lib/graph';
 import { ancestorsOf } from '../lib/graph';
 
@@ -1426,16 +1434,15 @@ interface TreeProps {
 export function Tree({ graph, selectedId, onSelect }: TreeProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (!selectedId) return;
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      for (const ancestor of ancestorsOf(graph, selectedId)) {
-        next.add(ancestor);
-      }
-      return next;
-    });
-  }, [graph, selectedId]);
+  // Ancestors of the current selection are always treated as expanded, in
+  // addition to whatever the user has manually toggled open. Computed at
+  // render time (rather than synced into state via an effect) to avoid the
+  // extra render pass a setState-in-effect would trigger, and to satisfy
+  // this project's `react-hooks/set-state-in-effect` lint rule (part of
+  // `eslint-plugin-react-hooks`'s `recommended` config, wired in Task 3).
+  const effectiveExpanded = selectedId
+    ? new Set([...expanded, ...ancestorsOf(graph, selectedId)])
+    : expanded;
 
   function toggle(id: string) {
     setExpanded((prev) => {
@@ -1456,7 +1463,7 @@ export function Tree({ graph, selectedId, onSelect }: TreeProps) {
           key={id}
           id={id}
           graph={graph}
-          expanded={expanded}
+          expanded={effectiveExpanded}
           selectedId={selectedId}
           onToggle={toggle}
           onSelect={onSelect}
