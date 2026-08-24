@@ -991,7 +991,7 @@ export async function run({
 }: RunOptions = {}): Promise<{ updated: boolean; meta: CweMeta }> {
   const localMeta = await readLocalMeta(outDir);
 
-  let currentEtag: string | null = null;
+  let currentEtag: string | null;
   try {
     const headResponse = await fetchImpl(sourceUrl, { method: 'HEAD' });
     if (!headResponse.ok) {
@@ -1004,7 +1004,7 @@ export async function run({
       console.warn(`Could not reach CWE source (${message}); reusing cached data from ${localMeta.generatedAt}.`);
       return { updated: false, meta: localMeta };
     }
-    throw new Error(`Could not reach CWE source and no cached data exists: ${message}`);
+    throw new Error(`Could not reach CWE source and no cached data exists: ${message}`, { cause: err });
   }
 
   if (localMeta && currentEtag && localMeta.etag === currentEtag) {
@@ -1028,15 +1028,17 @@ export async function run({
 if (import.meta.url === `file://${process.argv[1]}`) {
   run().catch((err: unknown) => {
     console.error(err instanceof Error ? err.message : String(err));
-    process.exit(1);
+    process.exitCode = 1;
   });
 }
 ```
 
+This differs from a first-draft version in three small, lint-driven ways, all verified during Task 7's real execution against this repo's actual `eslint.config.js` (`js.configs.recommended` + `tseslint.configs.recommended` + `eslint-plugin-n`'s `flat/recommended-module`, all applied to `scripts/**/*.ts` per Task 3): `currentEtag` has no initializer (`no-useless-assignment` — TypeScript's control-flow analysis still proves it's assigned by the time it's read, since every `catch` path returns or throws first); the "no cached data" error attaches `{ cause: err }` (`preserve-caught-error`); and the CLI entrypoint sets `process.exitCode = 1` instead of calling `process.exit(1)` (`n/no-process-exit` — equivalent here, since nothing else is pending on the event loop).
+
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `npx vitest run test/scripts/prepare-data.test.ts`
-Expected: PASS, all tests green (9 tests total across the file).
+Expected: PASS, all tests green (13 tests total across the file: 8 from Task 6 plus 5 new `run` tests).
 
 - [ ] **Step 5: Lint and full suite**
 
