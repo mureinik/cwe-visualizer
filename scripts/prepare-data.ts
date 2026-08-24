@@ -32,11 +32,11 @@ export interface CweData {
 
 interface RawRelatedWeakness {
   '@_Nature': string;
-  '@_CWE_ID': string | number;
+  '@_CWE_ID': string;
 }
 
 interface RawWeakness {
-  '@_ID': string | number;
+  '@_ID': string;
   '@_Name'?: string;
   '@_Abstraction'?: string;
   '@_Status'?: string;
@@ -50,6 +50,11 @@ export function extractXmlFromZip(buffer: Buffer): string {
   if (entries.length === 0) {
     throw new Error('No XML entry found in CWE zip archive');
   }
+  if (entries.length > 1) {
+    throw new Error(
+      `Expected exactly one XML entry in CWE zip archive, found ${entries.length}: ${entries.map((e) => e.entryName).join(', ')}`
+    );
+  }
   return entries[0].getData().toString('utf-8');
 }
 
@@ -57,7 +62,7 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
   const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
   const doc = parser.parse(xmlText);
   const catalog = doc.Weakness_Catalog;
-  if (!catalog || !catalog['@_Version']) {
+  if (!catalog?.['@_Version']) {
     throw new Error('Unexpected CWE catalog format: missing Weakness_Catalog/Version');
   }
 

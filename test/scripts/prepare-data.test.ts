@@ -24,6 +24,13 @@ describe('extractXmlFromZip', () => {
     zip.addFile('readme.txt', Buffer.from('no xml here'));
     expect(() => extractXmlFromZip(zip.toBuffer())).toThrow(/No XML entry/);
   });
+
+  it('throws when the zip has more than one XML entry', () => {
+    const zip = new AdmZip();
+    zip.addFile('cwec_latest.xml', readFileSync(FIXTURE_XML));
+    zip.addFile('extra.xml', readFileSync(FIXTURE_XML));
+    expect(() => extractXmlFromZip(zip.toBuffer())).toThrow(/Expected exactly one XML entry/);
+  });
 });
 
 describe('parseCatalog', () => {

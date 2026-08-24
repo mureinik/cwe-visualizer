@@ -5,9 +5,11 @@ on:
     - cron: '17 4 * * *'
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   check-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Compare upstream and deployed CWE data versions
         id: check
