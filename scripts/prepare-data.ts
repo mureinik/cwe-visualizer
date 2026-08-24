@@ -164,7 +164,14 @@ export async function run({
   return { updated: true, meta: data.meta };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// import.meta.main works unflagged on Node >=22.18 / >=24.2 (this project
+// requires >=24) and is what actually reflects whether this file is the CLI
+// entrypoint, unlike comparing the percent-encoded import.meta.url against
+// the raw process.argv[1] path. eslint-plugin-n's builtin-support data still
+// classifies it as experimental (Node hasn't graduated its stability index
+// yet), so the unsupported-features rule needs an explicit opt-out here.
+// eslint-disable-next-line n/no-unsupported-features/node-builtins
+if (import.meta.main) {
   run().catch((err: unknown) => {
     console.error(err instanceof Error ? err.message : String(err));
     process.exitCode = 1;

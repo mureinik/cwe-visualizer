@@ -35,6 +35,23 @@ export interface Graph {
   all: CweNode[];
 }
 
+// MITRE's source XML encodes most non-hierarchy relations one-sided (only on
+// the node that lists them in Related_Weaknesses), so buildGraph synthesizes
+// the missing direction. This maps a relation's type to the name its inverse
+// should carry; anything not listed falls back to a generic "(inverse)"
+// label so it's never silently dropped or mislabeled as the original.
+function inverseNature(type: string): string {
+  const inverses: Record<string, string> = {
+    PeerOf: 'PeerOf',
+    CanAlsoBe: 'CanAlsoBe',
+    CanPrecede: 'CanFollow',
+    CanFollow: 'CanPrecede',
+    Requires: 'RequiredBy',
+    RequiredBy: 'Requires',
+  };
+  return inverses[type] ?? `${type} (inverse)`;
+}
+
 function addUnique(map: Map<string, string[]>, key: string, value: string) {
   const list = map.get(key);
   if (!list) {
@@ -66,6 +83,7 @@ export function buildGraph(data: CweData): Graph {
       addUnique(parentsOf, edge.to, edge.from);
     } else {
       relatedTo.get(edge.from)?.push(edge);
+      relatedTo.get(edge.to)?.push({ from: edge.to, to: edge.from, type: inverseNature(edge.type) });
     }
   }
 

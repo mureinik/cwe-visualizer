@@ -35,7 +35,46 @@ describe('buildGraph', () => {
   });
 
   it('does not put ChildOf edges in relatedTo', () => {
-    expect(graph.relatedTo.get('80')).toEqual([]);
+    // '74' is the target of three ChildOf edges (from 79, 80 and 89) and has
+    // no non-hierarchy edge pointing at it in either direction, so it's a
+    // clean check that ChildOf never populates relatedTo on either side.
+    // ('80' is not used here: it also has a PeerOf edge from 79, so since
+    // non-hierarchy edges are now indexed on both endpoints, 80 legitimately
+    // gains an inverse PeerOf entry — see 'synthesizes an inverse edge...'.)
+    expect(graph.relatedTo.get('74')).toEqual([]);
+  });
+
+  it('synthesizes an inverse edge on the target side of a one-sided relation', () => {
+    // The fixture only encodes 79 -> 80 (PeerOf); MITRE's real data rarely
+    // encodes the reverse direction, so buildGraph must synthesize it.
+    expect(graph.relatedTo.get('80')).toEqual([{ from: '80', to: '79', type: 'PeerOf' }]);
+  });
+
+  it('labels a synthesized CanPrecede inverse as CanFollow', () => {
+    const data: CweData = {
+      meta: sampleData.meta,
+      nodes: {
+        '1': { id: '1', name: 'A', abstraction: '', status: '', description: '', url: '' },
+        '2': { id: '2', name: 'B', abstraction: '', status: '', description: '', url: '' },
+      },
+      edges: [{ from: '1', to: '2', type: 'CanPrecede' }],
+    };
+    const graph = buildGraph(data);
+    expect(graph.relatedTo.get('1')).toEqual([{ from: '1', to: '2', type: 'CanPrecede' }]);
+    expect(graph.relatedTo.get('2')).toEqual([{ from: '2', to: '1', type: 'CanFollow' }]);
+  });
+
+  it('falls back to a generic "(inverse)" label for relation types with no known inverse', () => {
+    const data: CweData = {
+      meta: sampleData.meta,
+      nodes: {
+        '1': { id: '1', name: 'A', abstraction: '', status: '', description: '', url: '' },
+        '2': { id: '2', name: 'B', abstraction: '', status: '', description: '', url: '' },
+      },
+      edges: [{ from: '1', to: '2', type: 'StartsWith' }],
+    };
+    const graph = buildGraph(data);
+    expect(graph.relatedTo.get('2')).toEqual([{ from: '2', to: '1', type: 'StartsWith (inverse)' }]);
   });
 });
 

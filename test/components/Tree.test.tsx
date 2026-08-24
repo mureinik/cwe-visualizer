@@ -41,4 +41,12 @@ describe('Tree', () => {
     render(<Tree graph={graph} selectedId="79" onSelect={() => {}} />);
     expect(screen.getByText('CWE-79: Cross-site Scripting')).toBeInTheDocument();
   });
+
+  it('lets the user collapse an auto-expanded ancestor of the selected node', async () => {
+    const graph = buildGraph(data);
+    render(<Tree graph={graph} selectedId="79" onSelect={() => {}} />);
+    expect(screen.getByText('CWE-79: Cross-site Scripting')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse CWE-74' }));
+    expect(screen.queryByText('CWE-79: Cross-site Scripting')).not.toBeInTheDocument();
+  });
 });

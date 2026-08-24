@@ -10,25 +10,42 @@ interface TreeProps {
 
 export function Tree({ graph, selectedId, onSelect }: TreeProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // Nodes the user has explicitly collapsed. This is what lets a manual
+  // toggle override the auto-expand-ancestors behavior below: without it, an
+  // ancestor of the current selection could never actually be collapsed,
+  // since effectiveExpanded would keep re-adding it via ancestorsOf on every
+  // render regardless of what `expanded` said.
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   // Ancestors of the current selection are always treated as expanded, in
-  // addition to whatever the user has manually toggled open. Computed at
-  // render time (rather than synced into state via an effect) to avoid the
-  // extra render pass a setState-in-effect would trigger.
-  const effectiveExpanded = selectedId
-    ? new Set([...expanded, ...ancestorsOf(graph, selectedId)])
-    : expanded;
+  // addition to whatever the user has manually toggled open — unless the
+  // user has explicitly collapsed them. Computed at render time (rather than
+  // synced into state via an effect) to avoid the extra render pass a
+  // setState-in-effect would trigger.
+  const ancestors = selectedId ? ancestorsOf(graph, selectedId) : new Set<string>();
+  const effectiveExpanded = new Set(
+    [...expanded, ...ancestors].filter((id) => !collapsed.has(id))
+  );
 
   function toggle(id: string) {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
+    if (effectiveExpanded.has(id)) {
+      // Collapsing: drop any manual "expanded" flag and record an explicit
+      // collapse so it overrides auto-expand-via-ancestry too.
+      setExpanded((prev) => {
+        const next = new Set(prev);
         next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+        return next;
+      });
+      setCollapsed((prev) => new Set(prev).add(id));
+    } else {
+      // Expanding: clear any explicit collapse and record a manual expand.
+      setCollapsed((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      setExpanded((prev) => new Set(prev).add(id));
+    }
   }
 
   return (
