@@ -19,7 +19,10 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest run",
-    "prepare": "husky"
+    "prepare": "husky",
+    "prepare-data": "node scripts/prepare-data.ts",
+    "predev": "npm run prepare-data",
+    "prebuild": "npm run prepare-data"
   },
   "dependencies": {
     "adm-zip": "^0.6.0",
