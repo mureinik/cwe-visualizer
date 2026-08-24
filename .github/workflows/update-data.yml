@@ -1,0 +1,27 @@
+name: Update CWE Data
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compare upstream and deployed CWE data versions
+        id: check
+        run: |
+          set -euo pipefail
+          SOURCE_LAST_MODIFIED=$(curl -sI 'https://cwe.mitre.org/data/xml/cwec_latest.xml.zip' | tr -d '\r' | grep -i '^last-modified:' | sed -E 's/^[^:]*: *//')
+          DEPLOYED_LAST_MODIFIED=$(curl -sf '${{ vars.DEPLOYED_SITE_URL }}/data/meta.json' | jq -r '.meta.lastModified')
+          echo "Upstream Last-Modified: $SOURCE_LAST_MODIFIED"
+          echo "Deployed Last-Modified: $DEPLOYED_LAST_MODIFIED"
+          if [ "$SOURCE_LAST_MODIFIED" = "$DEPLOYED_LAST_MODIFIED" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Trigger Vercel redeploy
+        if: steps.check.outputs.changed == 'true'
+        run: curl -sf -X POST "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}"
