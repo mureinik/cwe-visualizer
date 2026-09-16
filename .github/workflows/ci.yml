@@ -37,7 +37,7 @@ jobs:
           set -euo pipefail
           ISSUE_NUM=$(printf '%s' "$PR_BODY" | grep -ioE '(closes|fixes|resolves)[[:space:]]+#[0-9]+' | head -1 | grep -oE '[0-9]+' || true)
           if [ -z "$ISSUE_NUM" ]; then
-            echo "::error::PR description must reference an issue via 'Closes #N' (or Fixes/Resolves #N), per this repo's contribution flow (README.md)."
+            echo "::error::PR description must reference an issue via 'Closes #N' (or Fixes/Resolves #N), per this repo's contribution flow (CONTRIBUTING.md)."
             exit 1
           fi
           STATE=$(gh issue view "$ISSUE_NUM" --repo "${{ github.repository }}" --json state -q .state)
