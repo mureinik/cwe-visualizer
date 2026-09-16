@@ -33,6 +33,18 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'CWE Visualizer' })).toBeInTheDocument();
   });
 
+  it('credits MITRE for the CWE content once data has loaded', async () => {
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('contentinfo')).toBeInTheDocument());
+    expect(screen.getByRole('contentinfo')).toHaveTextContent(
+      /not original to this project.*The MITRE Corporation/
+    );
+    expect(screen.getByRole('link', { name: 'Terms of Use' })).toHaveAttribute(
+      'href',
+      'https://cwe.mitre.org/about/termsofuse.html'
+    );
+  });
+
   it('shows an error message when the fetch fails', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })));
     render(<App />);
