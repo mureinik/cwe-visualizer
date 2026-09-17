@@ -16,6 +16,12 @@ export interface CweEdge {
   from: string;
   to: string;
   type: string;
+  /**
+   * MITRE scopes each relation to a view (1000 = Research Concepts, and so
+   * on). Nothing reads this yet; it is carried so that adding Categories and
+   * Views later is additive rather than a pipeline change.
+   */
+  viewId?: string;
 }
 
 export interface CweMeta {
@@ -33,6 +39,7 @@ export interface CweData {
 interface RawRelatedWeakness {
   '@_Nature': string;
   '@_CWE_ID': string;
+  '@_View_ID'?: string;
 }
 
 interface RawWeakness {
@@ -86,11 +93,17 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
     const rawRelated = w.Related_Weaknesses?.Related_Weakness;
     const relatedList = Array.isArray(rawRelated) ? rawRelated : rawRelated ? [rawRelated] : [];
     for (const rel of relatedList) {
-      edges.push({
+      const edge: CweEdge = {
         from: id,
         to: String(rel['@_CWE_ID']),
         type: rel['@_Nature'],
-      });
+      };
+      // Assigned conditionally so viewId stays genuinely absent, rather than
+      // present-and-undefined, when MITRE omits the attribute.
+      if (rel['@_View_ID'] !== undefined) {
+        edge.viewId = String(rel['@_View_ID']);
+      }
+      edges.push(edge);
     }
   }
 

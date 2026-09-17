@@ -58,9 +58,17 @@ describe('parseCatalog', () => {
   it('builds an edge per Related_Weakness with its nature as the type', () => {
     const edgesFrom79 = data.edges.filter((e) => e.from === '79');
     expect(edgesFrom79).toEqual([
-      { from: '79', to: '74', type: 'ChildOf' },
-      { from: '79', to: '80', type: 'PeerOf' },
+      { from: '79', to: '74', type: 'ChildOf', viewId: '1000' },
+      { from: '79', to: '80', type: 'PeerOf', viewId: '1000' },
     ]);
+  });
+
+  it('leaves viewId undefined when a relation declares no View_ID', () => {
+    const xml = `<Weakness_Catalog Version="4.15" Date="2024-11-19"><Weaknesses>
+      <Weakness ID="1" Name="A" Abstraction="Base" Status="Draft"><Description>d</Description>
+        <Related_Weaknesses><Related_Weakness Nature="ChildOf" CWE_ID="2"/></Related_Weaknesses>
+      </Weakness></Weaknesses></Weakness_Catalog>`;
+    expect(parseCatalog(xml, '"x"').edges[0].viewId).toBeUndefined();
   });
 
   it('has no edges for a weakness with no Related_Weaknesses element', () => {

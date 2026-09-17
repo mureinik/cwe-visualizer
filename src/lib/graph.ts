@@ -11,6 +11,8 @@ export interface CweEdge {
   from: string;
   to: string;
   type: string;
+  /** See the matching comment in scripts/prepare-data.ts. */
+  viewId?: string;
 }
 
 export interface CweMeta {
