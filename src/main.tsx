@@ -6,6 +6,7 @@ import './styles/base.css';
 import './styles/app.css';
 import './styles/tree.css';
 import './styles/detail.css';
+import './styles/search.css';
 
 const container = document.getElementById('root');
 if (!container) {
