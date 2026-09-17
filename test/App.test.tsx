@@ -47,6 +47,16 @@ describe('App', () => {
     );
   });
 
+  it('still renders the shell when the viewport reports as narrow', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+    );
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'CWE Visualizer' })).toBeInTheDocument());
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+  });
+
   it('shows an error message when the fetch fails', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })));
     render(<App />);

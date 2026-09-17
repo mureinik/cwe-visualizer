@@ -89,3 +89,19 @@
   line-height: 1;
   padding: var(--space-1) var(--space-2);
 }
+
+@media (max-width: 900px) {
+  .app-header {
+    flex-wrap: wrap;
+  }
+
+  .app-header__version {
+    display: none;
+  }
+
+  .app-header__search {
+    order: 1;
+    flex-basis: 100%;
+    max-width: none;
+  }
+}

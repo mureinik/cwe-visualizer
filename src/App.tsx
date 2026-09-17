@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { buildGraph, type CweData, type Graph } from './lib/graph';
 import { TreeDrawer } from './components/TreeDrawer';
 import { GraphStage } from './components/GraphStage';
+import { NARROW_QUERY, useMediaQuery } from './lib/media';
 import { DetailPanel } from './components/DetailPanel';
 import { AppHeader } from './components/AppHeader';
 import { Attribution } from './components/Attribution';
@@ -19,6 +20,7 @@ export function App() {
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [selectedId, setSelectedId] = useState<string | null>(() => readSelectedIdFromUrl());
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const narrow = useMediaQuery(NARROW_QUERY);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,7 +70,7 @@ export function App() {
           selectedId={selectedId}
           onSelect={selectNode}
           onShowChildren={() => setDrawerOpen(true)}
-          hops={2}
+          hops={narrow ? 1 : 2}
         />
         <DetailPanel graph={state.graph} selectedId={selectedId} onSelect={selectNode} />
         <TreeDrawer
