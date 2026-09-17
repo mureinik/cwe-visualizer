@@ -136,11 +136,3 @@ export function ancestorsOf(graph: Graph, id: string): Set<string> {
   }
   return ancestors;
 }
-
-export function searchNodes(graph: Graph, query: string): CweNode[] {
-  const trimmed = query.trim().toLowerCase();
-  if (trimmed === '') return [];
-  return graph.all.filter(
-    (node) => node.id.includes(trimmed) || node.name.toLowerCase().includes(trimmed)
-  );
-}

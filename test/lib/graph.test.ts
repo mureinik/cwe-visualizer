@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildGraph, ancestorsOf, searchNodes, type CweData } from '../../src/lib/graph';
+import { buildGraph, ancestorsOf, type CweData } from '../../src/lib/graph';
 
 const sampleData: CweData = {
   meta: { cweVersion: '4.15', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
@@ -103,22 +103,6 @@ describe('ancestorsOf', () => {
 
   it('returns an empty set for a root node', () => {
     expect(ancestorsOf(graph, '74')).toEqual(new Set());
-  });
-});
-
-describe('searchNodes', () => {
-  const graph = buildGraph(sampleData);
-
-  it('matches by id substring', () => {
-    expect(searchNodes(graph, '89').map((n) => n.id)).toEqual(['89']);
-  });
-
-  it('matches by name substring, case-insensitively', () => {
-    expect(searchNodes(graph, 'injection').map((n) => n.id).sort()).toEqual(['74', '89']);
-  });
-
-  it('returns an empty array for a blank query', () => {
-    expect(searchNodes(graph, '   ')).toEqual([]);
   });
 });
 

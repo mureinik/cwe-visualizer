@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Graph } from '../lib/graph';
-import { searchNodes } from '../lib/graph';
+import { searchNodes } from '../lib/search';
 
 interface SearchBoxProps {
   graph: Graph;
