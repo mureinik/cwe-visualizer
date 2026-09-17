@@ -14,9 +14,10 @@ interface GraphNodeProps {
   label: string;
   selected: boolean;
   onSelect: (id: string) => void;
+  onKeyDown: (event: React.KeyboardEvent<SVGGElement>, id: string) => void;
 }
 
-export function GraphNode({ node, cweNode, label, selected, onSelect }: GraphNodeProps) {
+export function GraphNode({ node, cweNode, label, selected, onSelect, onKeyDown }: GraphNodeProps) {
   const deprecated = cweNode.status === 'Deprecated';
   const r = selected ? 13 : 9;
 
@@ -30,6 +31,7 @@ export function GraphNode({ node, cweNode, label, selected, onSelect }: GraphNod
       aria-label={label}
       aria-current={selected ? 'true' : undefined}
       onClick={() => onSelect(node.id)}
+      onKeyDown={(event) => onKeyDown(event, node.id)}
     >
       {selected && <circle className="graph-node__halo" r={r + 7} />}
       <GlyphShape abstraction={cweNode.abstraction} r={r} deprecated={deprecated} />

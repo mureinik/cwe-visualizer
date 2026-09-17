@@ -56,8 +56,56 @@ export function GraphStage({ graph, selectedId, onSelect, onShowChildren, hops }
   );
   const layout = useMemo(() => (ego ? layoutEgoGraph(ego, size) : null), [ego, size]);
 
+  function focusNode(id: string) {
+    // CWE ids are numeric strings, so they need no selector escaping.
+    const target = stageRef.current?.querySelector<SVGGElement>(`[data-node-id="${id}"]`);
+    target?.focus();
+  }
+
+  /**
+   * Arrow keys follow the layout's own axes rather than DOM order: up and
+   * down move through the hierarchy, left and right along the current band.
+   */
+  function onNodeKeyDown(event: React.KeyboardEvent<SVGGElement>, id: string) {
+    if (!layout) return;
+    const current = layout.nodes.find((n) => n.id === id);
+    if (!current) return;
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onSelect(id);
+      return;
+    }
+
+    const vertical = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0;
+    if (vertical !== 0) {
+      event.preventDefault();
+      const candidates = layout.nodes
+        .filter((n) => (vertical < 0 ? n.y < current.y : n.y > current.y))
+        .sort(
+          (a, b) =>
+            Math.abs(a.y - current.y) - Math.abs(b.y - current.y) ||
+            Math.abs(a.x - current.x) - Math.abs(b.x - current.x)
+        );
+      if (candidates[0]) focusNode(candidates[0].id);
+      return;
+    }
+
+    const horizontal = event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0;
+    if (horizontal !== 0) {
+      event.preventDefault();
+      const sameBand = layout.nodes
+        .filter((n) => n.band === current.band && (horizontal < 0 ? n.x < current.x : n.x > current.x))
+        .sort((a, b) => Math.abs(a.x - current.x) - Math.abs(b.x - current.x));
+      if (sameBand[0]) focusNode(sameBand[0].id);
+    }
+  }
+
   return (
     <div className="graph-stage" ref={stageRef}>
+      <p className="visually-hidden" role="status" aria-live="polite">
+        {selectedId && graph.nodes[selectedId] ? `Centred on ${describeNode(graph, selectedId)}` : ''}
+      </p>
       {!layout || layout.nodes.length === 0 ? (
         <p className="graph-stage__empty">Select a CWE to see its neighbourhood.</p>
       ) : (
@@ -86,6 +134,7 @@ export function GraphStage({ graph, selectedId, onSelect, onShowChildren, hops }
                 label={describeNode(graph, node.id)}
                 selected={node.id === ego?.centerId}
                 onSelect={onSelect}
+                onKeyDown={onNodeKeyDown}
               />
             ))}
             {layout.overflow && (

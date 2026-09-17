@@ -83,3 +83,34 @@ describe('GraphStage', () => {
     expect(onShowChildren).toHaveBeenCalledWith('79');
   });
 });
+
+describe('GraphStage keyboard model', () => {
+  it('moves focus up the hierarchy with ArrowUp', async () => {
+    renderStage('79');
+    const centre = screen.getByRole('button', { name: /^CWE-79/ });
+    centre.focus();
+    await userEvent.keyboard('{ArrowUp}');
+    expect(screen.getByRole('button', { name: /^CWE-74/ })).toHaveFocus();
+  });
+
+  it('moves focus down the hierarchy with ArrowDown', async () => {
+    renderStage('79');
+    screen.getByRole('button', { name: /^CWE-79/ }).focus();
+    await userEvent.keyboard('{ArrowDown}');
+    expect(screen.getByRole('button', { name: /^CWE-80/ })).toHaveFocus();
+  });
+
+  it('re-centres on Enter', async () => {
+    const onSelect = renderStage('79');
+    screen.getByRole('button', { name: /^CWE-79/ }).focus();
+    await userEvent.keyboard('{ArrowUp}{Enter}');
+    expect(onSelect).toHaveBeenCalledWith('74');
+  });
+
+  it('announces the new centre politely', () => {
+    renderStage('79');
+    const status = screen.getByRole('status');
+    expect(status).toHaveAttribute('aria-live', 'polite');
+    expect(status).toHaveTextContent('Centred on CWE-79: Cross-site Scripting. Base, Draft. 1 parent, 1 child.');
+  });
+});
