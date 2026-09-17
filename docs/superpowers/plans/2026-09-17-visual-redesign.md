@@ -2046,7 +2046,7 @@ git add src/components/TreeDrawer.tsx src/components/Tree.tsx src/components/App
 git commit -m "$(cat <<'EOF'
 feat: move the tree into a drawer and restyle its rows
 
-Rows now carry an abstraction glyph, a monospace id, and a marker on the 279
+Rows now carry an abstraction glyph, a monospace id, and a marker on the 200
 nodes that appear under more than one parent — the hierarchy is a DAG, and
 the tree never admitted it.
 
@@ -3074,9 +3074,9 @@ feat: extract the ego graph around a selected CWE
 
 Asymmetric radius on purpose: two hops up, one hop down capped at ten
 children, one hop lateral. A symmetric two-hop radius explodes on a pillar —
-CWE-284 alone has 45 children — while ancestors top out at five across the
+CWE-284 alone has 43 children — while ancestors top out at five across the
 whole corpus. Against the real 4.20 data this yields a median of 4 nodes and
-a p99 of 22.
+a p99 of 14.
 
 Pure and deterministic, so band assignment, the cap, the lone-node case and
 side placement are all ordinary unit tests.
@@ -4349,7 +4349,7 @@ EOF
 After Task 16, confirm the whole thing before taking PR #30 out of draft:
 
 - [ ] `npm run lint && npx tsc --noEmit && npm test` — all green
-- [ ] `npm run dev`, then check by hand: the tree opens onto 10 Pillars with `Deprecated (25)` collapsed at the bottom; selecting CWE-79 draws a readable neighbourhood; selecting CWE-284 (45 children) shows the `+35 more` chip; selecting CWE-71 shows the lone-node state
+- [ ] `npm run dev`, then check by hand: the tree opens onto 10 Pillars with `Deprecated (25)` collapsed at the bottom; selecting CWE-79 draws a readable neighbourhood; selecting CWE-284 (43 children) shows the `+33 more` chip; selecting CWE-71 shows the lone-node state
 - [ ] Toggle the theme both ways, and confirm the OS setting is honoured with no stored preference
 - [ ] Tab through the app with the mouse untouched: header, search, graph nodes, panel chips, drawer
 - [ ] Confirm the MITRE attribution is visible at the bottom on both a wide and a narrow viewport
@@ -4360,4 +4360,4 @@ After Task 16, confirm the whole thing before taking PR #30 out of draft:
 - **Do not rewrite `Tree.tsx`'s expand/collapse state machine.** Tasks 8 changes row markup and root sources only.
 - **`noUnusedLocals` is on.** A leftover import after a refactor fails `tsc`, not just lint.
 - **`public/data/` is gitignored.** If a test needs corpus-shaped data, build a fixture object in the test file the way every existing test does.
-- **The spec's measured numbers** (969 nodes, 35 roots, 279 multi-parent, ego median 4 / p99 22, cap engaging for 37 nodes) came from CWE 4.20. Re-running `npm run prepare-data` after MITRE publishes a new version may shift them; they are context, not assertions, and no test depends on them.
+- **The spec's measured numbers** (969 nodes, 35 roots, 200 multi-parent, ego median 4 / p99 14, cap engaging for 27 nodes) came from CWE 4.20. Re-running `npm run prepare-data` after MITRE publishes a new version may shift them; they are context, not assertions, and no test depends on them.

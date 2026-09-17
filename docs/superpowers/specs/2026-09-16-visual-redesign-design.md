@@ -19,7 +19,11 @@ This document supersedes only its **Frontend** section.
 
 ## What's actually wrong today
 
-Measured against the real CWE 4.20 corpus (969 weaknesses, 1,602 edges):
+Measured against the real CWE 4.20 corpus (969 weaknesses, 1,602 raw edges).
+Note that 158 of those edges are duplicates — MITRE states 118 parent/child
+links from both sides, once as `ChildOf` on one entry and once as `ParentOf`
+on the other — so every per-node count below is taken after `buildGraph`
+deduplicates them, not from the raw edge list:
 
 - **No visual design at all.** No tokens, no spacing scale, no color, no
   layout. `App.tsx` stacks header, main, and footer in normal document flow.
@@ -27,7 +31,7 @@ Measured against the real CWE 4.20 corpus (969 weaknesses, 1,602 edges):
   Pillars). The other 25 are orphaned `DEPRECATED:` entries, and because
   roots sort by ID, the first thing on screen is `71 DEPRECATED`,
   `92 DEPRECATED`, `132 DEPRECATED`… before anything useful.
-- **The hierarchy is a DAG drawn as a tree.** 279 nodes have more than one
+- **The hierarchy is a DAG drawn as a tree.** 200 nodes have more than one
   parent, so the same CWE appears in several branches with no indication.
 - **Rich structure is invisible.** Five abstraction levels (Pillar 10,
   Class 114, Base 539, Variant 299, Compound 7), four statuses, and five
@@ -179,7 +183,7 @@ and the graph drops from two ancestor hops to one.
 carries `{ id, band, index }`.
 
 **The radius is deliberately asymmetric.** A symmetric two-hop radius
-explodes on a pillar — CWE-284 alone has 45 children. Instead:
+explodes on a pillar — CWE-284 alone has 43 children. Instead:
 
 - **ancestors: 2 hops up** — the whole corpus has at most 5 grandparents for
   any node, so this is cheap and gives real orientation
@@ -189,12 +193,12 @@ explodes on a pillar — CWE-284 alone has 45 children. Instead:
 - **lateral relations: 1 hop** — `PeerOf`, `CanPrecede`, `CanFollow`,
   `CanAlsoBe`, `Requires`, `StartsWith`
 
-Measured against the real corpus, the resulting ego graph has a median of 4
-nodes, a p90 of 8, and a p99 of 22; only 37 of 969 nodes exceed 12. The child
-cap engages for 37 of them. Beyond the cap, the remainder renders as a
-**`+35 more` chip** in the children band, which opens the tree drawer
-expanded at that node — so the graph stays bounded and the overflow still has
-somewhere real to go.
+Measured by running the implementation over the real corpus, the resulting
+ego graph has a median of 4 nodes, a p90 of 8, a p99 of 14, and a maximum of
+26. The child cap engages for 27 of the 969 entries. Beyond the cap, the
+remainder renders as a **`+33 more` chip** in the children band, which opens
+the tree drawer expanded at that node — so the graph stays bounded and the
+overflow still has somewhere real to go.
 
 ### Layout
 
@@ -258,7 +262,7 @@ roots:
   bottom.
 - Rows gain indent guides, the abstraction shape, a mono ID, and a
   selected-row highlight.
-- **Multi-parent nodes get an affordance.** The 279 nodes appearing in more
+- **Multi-parent nodes get an affordance.** The 200 nodes appearing in more
   than one branch carry a `⧉` marker, and the detail panel lists every
   parent.
 
