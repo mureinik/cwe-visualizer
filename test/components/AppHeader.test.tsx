@@ -13,17 +13,17 @@ const data: CweData = {
 
 describe('AppHeader', () => {
   it('shows the product name', () => {
-    render(<AppHeader graph={buildGraph(data)} onSelect={() => {}} />);
+    render(<AppHeader graph={buildGraph(data)} onSelect={() => {}} drawerOpen={false} onToggleDrawer={() => {}} />);
     expect(screen.getByRole('heading', { name: 'CWE Visualizer' })).toBeInTheDocument();
   });
 
   it('shows which corpus version is loaded', () => {
-    render(<AppHeader graph={buildGraph(data)} onSelect={() => {}} />);
+    render(<AppHeader graph={buildGraph(data)} onSelect={() => {}} drawerOpen={false} onToggleDrawer={() => {}} />);
     expect(screen.getByText('CWE 4.20')).toBeInTheDocument();
   });
 
   it('includes the search box and the theme toggle', () => {
-    render(<AppHeader graph={buildGraph(data)} onSelect={() => {}} />);
+    render(<AppHeader graph={buildGraph(data)} onSelect={() => {}} drawerOpen={false} onToggleDrawer={() => {}} />);
     expect(screen.getByLabelText('Search CWEs')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Switch to (light|dark) theme/ })).toBeInTheDocument();
   });

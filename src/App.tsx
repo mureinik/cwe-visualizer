@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { buildGraph, type CweData, type Graph } from './lib/graph';
-import { Tree } from './components/Tree';
+import { TreeDrawer } from './components/TreeDrawer';
 import { DetailPanel } from './components/DetailPanel';
 import { AppHeader } from './components/AppHeader';
 import { Attribution } from './components/Attribution';
@@ -17,6 +17,7 @@ function readSelectedIdFromUrl(): string | null {
 export function App() {
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [selectedId, setSelectedId] = useState<string | null>(() => readSelectedIdFromUrl());
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,10 +55,21 @@ export function App() {
 
   return (
     <div className="app">
-      <AppHeader graph={state.graph} onSelect={selectNode} />
+      <AppHeader
+        graph={state.graph}
+        onSelect={selectNode}
+        drawerOpen={drawerOpen}
+        onToggleDrawer={() => setDrawerOpen((open) => !open)}
+      />
       <main className="app-stage">
-        <Tree graph={state.graph} selectedId={selectedId} onSelect={selectNode} />
         <DetailPanel graph={state.graph} selectedId={selectedId} onSelect={selectNode} />
+        <TreeDrawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          graph={state.graph}
+          selectedId={selectedId}
+          onSelect={selectNode}
+        />
       </main>
       <Attribution />
     </div>

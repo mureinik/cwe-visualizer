@@ -78,3 +78,14 @@
 .app-status--error {
   color: var(--abs-compound);
 }
+
+.app-header__drawer-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: inherit;
+  cursor: pointer;
+  font-size: var(--text-base);
+  line-height: 1;
+  padding: var(--space-1) var(--space-2);
+}
