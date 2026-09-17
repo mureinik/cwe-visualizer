@@ -35,8 +35,28 @@ function shapeElements(shape: ShapeName, r: number) {
   }
 }
 
-export function Glyph({ abstraction, size = 16, deprecated = false }: GlyphProps) {
+/**
+ * The shape elements alone, for embedding in an existing <svg> — the graph
+ * canvas can't nest a second one.
+ */
+export function GlyphShape({
+  abstraction,
+  r,
+  deprecated = false,
+}: {
+  abstraction: string;
+  r: number;
+  deprecated?: boolean;
+}) {
   const glyph = glyphFor(abstraction);
+  return (
+    <g style={{ color: deprecated ? 'var(--status-deprecated)' : `var(${glyph.token})` }}>
+      {shapeElements(glyph.shape, r)}
+    </g>
+  );
+}
+
+export function Glyph({ abstraction, size = 16, deprecated = false }: GlyphProps) {
   const r = size / 2;
   return (
     <svg
@@ -45,9 +65,8 @@ export function Glyph({ abstraction, size = 16, deprecated = false }: GlyphProps
       height={size}
       viewBox={`${-r} ${-r} ${size} ${size}`}
       aria-hidden="true"
-      style={{ color: deprecated ? 'var(--status-deprecated)' : `var(${glyph.token})` }}
     >
-      {shapeElements(glyph.shape, r)}
+      <GlyphShape abstraction={abstraction} r={r} deprecated={deprecated} />
     </svg>
   );
 }

@@ -3342,9 +3342,9 @@ EOF
 - Produces:
   - `export function GlyphShape({ abstraction, r, deprecated }: { abstraction: string; r: number; deprecated?: boolean })` — the shape elements alone, for embedding in an existing `<svg>`.
   - `<GraphStage graph={Graph} selectedId={string | null} onSelect={(id: string) => void} onShowChildren={(parentId: string) => void} hops={number} />`
-  - `<GraphNode node={PositionedNode} cweNode={CweNode} selected={boolean} onSelect={(id) => void} />`
+  - `<GraphNode node={PositionedNode} cweNode={CweNode} label={string} selected={boolean} onSelect={(id) => void} />`
   - `<GraphEdge edge={PositionedEdge} />`
-  - `export const DEFAULT_STAGE: StageSize` — `{ width: 960, height: 600 }`
+  - `truncate` and `DEFAULT_STAGE` stay module-local: `react-refresh/only-export-components` warns on a component file that also exports a constant or function, and nothing outside these files needs them.
 
 - [ ] **Step 1: Extract `GlyphShape` from `Glyph.tsx`**
 

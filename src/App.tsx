@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { buildGraph, type CweData, type Graph } from './lib/graph';
 import { TreeDrawer } from './components/TreeDrawer';
+import { GraphStage } from './components/GraphStage';
 import { DetailPanel } from './components/DetailPanel';
 import { AppHeader } from './components/AppHeader';
 import { Attribution } from './components/Attribution';
@@ -62,6 +63,13 @@ export function App() {
         onToggleDrawer={() => setDrawerOpen((open) => !open)}
       />
       <main className="app-stage">
+        <GraphStage
+          graph={state.graph}
+          selectedId={selectedId}
+          onSelect={selectNode}
+          onShowChildren={() => setDrawerOpen(true)}
+          hops={2}
+        />
         <DetailPanel graph={state.graph} selectedId={selectedId} onSelect={selectNode} />
         <TreeDrawer
           open={drawerOpen}
