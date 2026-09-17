@@ -13,17 +13,19 @@ interface GraphNodeProps {
   cweNode: CweNode;
   label: string;
   selected: boolean;
+  dimmed: boolean;
   onSelect: (id: string) => void;
   onKeyDown: (event: React.KeyboardEvent<SVGGElement>, id: string) => void;
+  onHover: (id: string | null) => void;
 }
 
-export function GraphNode({ node, cweNode, label, selected, onSelect, onKeyDown }: GraphNodeProps) {
+export function GraphNode({ node, cweNode, label, selected, dimmed, onSelect, onKeyDown, onHover }: GraphNodeProps) {
   const deprecated = cweNode.status === 'Deprecated';
   const r = selected ? 13 : 9;
 
   return (
     <g
-      className={`graph-node${selected ? ' graph-node--selected' : ''}`}
+      className={`graph-node${selected ? ' graph-node--selected' : ''}${dimmed ? ' graph-node--dimmed' : ''}`}
       data-node-id={node.id}
       transform={`translate(${node.x} ${node.y})`}
       role="button"
@@ -32,6 +34,10 @@ export function GraphNode({ node, cweNode, label, selected, onSelect, onKeyDown 
       aria-current={selected ? 'true' : undefined}
       onClick={() => onSelect(node.id)}
       onKeyDown={(event) => onKeyDown(event, node.id)}
+      onMouseEnter={() => onHover(node.id)}
+      onMouseLeave={() => onHover(null)}
+      onFocus={() => onHover(node.id)}
+      onBlur={() => onHover(null)}
     >
       {selected && <circle className="graph-node__halo" r={r + 7} />}
       <GlyphShape abstraction={cweNode.abstraction} r={r} deprecated={deprecated} />

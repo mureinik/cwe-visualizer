@@ -114,3 +114,39 @@ describe('GraphStage keyboard model', () => {
     expect(status).toHaveTextContent('Centred on CWE-79: Cross-site Scripting. Base, Draft. 1 parent, 1 child.');
   });
 });
+
+describe('GraphStage highlighting', () => {
+  it('shows no edge labels at rest', () => {
+    const { container } = render(
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} hops={2} />
+    );
+    expect(container.querySelectorAll('.graph-edge__label')).toHaveLength(0);
+  });
+
+  it('labels the incident edges when a node is hovered', async () => {
+    const { container } = render(
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} hops={2} />
+    );
+    await userEvent.hover(screen.getByRole('button', { name: /^CWE-74/ }));
+    expect(container.querySelectorAll('.graph-edge__label').length).toBeGreaterThan(0);
+  });
+
+  it('dims the nodes that are not incident to the hovered one', async () => {
+    const { container } = render(
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} hops={2} />
+    );
+    await userEvent.hover(screen.getByRole('button', { name: /^CWE-74/ }));
+    expect(container.querySelector('[data-node-id="80"]')).toHaveClass('graph-node--dimmed');
+    expect(container.querySelector('[data-node-id="74"]')).not.toHaveClass('graph-node--dimmed');
+  });
+
+  it('clears the highlight when the pointer leaves', async () => {
+    const { container } = render(
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} hops={2} />
+    );
+    const target = screen.getByRole('button', { name: /^CWE-74/ });
+    await userEvent.hover(target);
+    await userEvent.unhover(target);
+    expect(container.querySelectorAll('.graph-node--dimmed')).toHaveLength(0);
+  });
+});

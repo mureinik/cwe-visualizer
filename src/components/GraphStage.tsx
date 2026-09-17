@@ -48,6 +48,7 @@ function describeNode(graph: Graph, id: string): string {
 
 export function GraphStage({ graph, selectedId, onSelect, onShowChildren, hops }: GraphStageProps) {
   const stageRef = useRef<HTMLDivElement>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
   const size = useStageSize(stageRef);
 
   const ego = useMemo(
@@ -55,6 +56,17 @@ export function GraphStage({ graph, selectedId, onSelect, onShowChildren, hops }
     [graph, selectedId, hops]
   );
   const layout = useMemo(() => (ego ? layoutEgoGraph(ego, size) : null), [ego, size]);
+
+  const incident = useMemo(() => {
+    if (!layout || !hovered) return null;
+    const edges = layout.edges.filter((e) => e.from === hovered || e.to === hovered);
+    const nodes = new Set<string>([hovered]);
+    for (const edge of edges) {
+      nodes.add(edge.from);
+      nodes.add(edge.to);
+    }
+    return { nodes, edges: new Set(edges.map((e) => `${e.from}-${e.to}-${e.type}`)) };
+  }, [layout, hovered]);
 
   function focusNode(id: string) {
     // CWE ids are numeric strings, so they need no selector escaping.
@@ -123,9 +135,11 @@ export function GraphStage({ graph, selectedId, onSelect, onShowChildren, hops }
                 <path d="M 0 0 L 8 4 L 0 8 z" fill="var(--rel-sequence)" />
               </marker>
             </defs>
-            {layout.edges.map((edge) => (
-              <GraphEdge key={`${edge.from}-${edge.to}-${edge.type}`} edge={edge} />
-            ))}
+            {layout.edges.map((edge) => {
+              const key = `${edge.from}-${edge.to}-${edge.type}`;
+              const lit = !incident || incident.edges.has(key);
+              return <GraphEdge key={key} edge={edge} dimmed={!lit} label={incident && lit ? edge.type : null} />;
+            })}
             {layout.nodes.map((node) => (
               <GraphNode
                 key={node.id}
@@ -133,8 +147,10 @@ export function GraphStage({ graph, selectedId, onSelect, onShowChildren, hops }
                 cweNode={graph.nodes[node.id]}
                 label={describeNode(graph, node.id)}
                 selected={node.id === ego?.centerId}
+                dimmed={!!incident && !incident.nodes.has(node.id)}
                 onSelect={onSelect}
                 onKeyDown={onNodeKeyDown}
+                onHover={setHovered}
               />
             ))}
             {layout.overflow && (
