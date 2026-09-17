@@ -33,8 +33,24 @@ export interface Graph {
   childrenOf: Map<string, string[]>;
   parentsOf: Map<string, string[]>;
   relatedTo: Map<string, CweEdge[]>;
+  /** Top-level entries to display. Deprecated orphans are not here. */
   roots: string[];
+  /**
+   * Parentless entries MITRE has deprecated. Kept separate so they can be
+   * shown in one collapsed group instead of interleaved by ID at the top of
+   * the tree, which is what they do today.
+   */
+  deprecatedRoots: string[];
   all: CweNode[];
+}
+
+export interface BuildGraphOptions {
+  /**
+   * Declared top-level entries. A view supplies its members here; with no
+   * options, roots are derived as "has no parent", which is what the
+   * Research Concepts hierarchy amounts to.
+   */
+  rootIds?: string[];
 }
 
 // MITRE's source XML encodes most non-hierarchy relations one-sided (only on
@@ -65,7 +81,7 @@ function addUnique(map: Map<string, string[]>, key: string, value: string) {
   }
 }
 
-export function buildGraph(data: CweData): Graph {
+export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
   const childrenOf = new Map<string, string[]>();
   const parentsOf = new Map<string, string[]>();
   const relatedTo = new Map<string, CweEdge[]>();
@@ -89,13 +105,24 @@ export function buildGraph(data: CweData): Graph {
     }
   }
 
-  const roots = Object.keys(data.nodes)
-    .filter((id) => (parentsOf.get(id) ?? []).length === 0)
-    .sort((a, b) => Number(a) - Number(b));
+  const byId = (a: string, b: string) => Number(a) - Number(b);
+  const isDeprecated = (id: string) => data.nodes[id]?.status === 'Deprecated';
+
+  let roots: string[];
+  let deprecatedRoots: string[];
+
+  if (options?.rootIds) {
+    roots = options.rootIds.filter((id) => id in data.nodes).sort(byId);
+    deprecatedRoots = [];
+  } else {
+    const parentless = Object.keys(data.nodes).filter((id) => (parentsOf.get(id) ?? []).length === 0);
+    roots = parentless.filter((id) => !isDeprecated(id)).sort(byId);
+    deprecatedRoots = parentless.filter(isDeprecated).sort(byId);
+  }
 
   const all = Object.values(data.nodes).sort((a, b) => Number(a.id) - Number(b.id));
 
-  return { meta: data.meta, nodes: data.nodes, childrenOf, parentsOf, relatedTo, roots, all };
+  return { meta: data.meta, nodes: data.nodes, childrenOf, parentsOf, relatedTo, roots, deprecatedRoots, all };
 }
 
 export function ancestorsOf(graph: Graph, id: string): Set<string> {

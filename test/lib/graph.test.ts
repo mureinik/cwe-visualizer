@@ -121,3 +121,45 @@ describe('searchNodes', () => {
     expect(searchNodes(graph, '   ')).toEqual([]);
   });
 });
+
+describe('buildGraph roots', () => {
+  const withDeprecated: CweData = {
+    meta: sampleData.meta,
+    nodes: {
+      '284': { id: '284', name: 'Improper Access Control', abstraction: 'Pillar', status: 'Draft', description: '', url: '' },
+      '285': { id: '285', name: 'Improper Authorization', abstraction: 'Class', status: 'Draft', description: '', url: '' },
+      '71': { id: '71', name: "DEPRECATED: Apple '.DS_Store'", abstraction: 'Variant', status: 'Deprecated', description: '', url: '' },
+    },
+    edges: [{ from: '285', to: '284', type: 'ChildOf' }],
+  };
+
+  it('keeps live parentless nodes in roots', () => {
+    expect(buildGraph(withDeprecated).roots).toEqual(['284']);
+  });
+
+  it('moves parentless deprecated nodes into deprecatedRoots', () => {
+    expect(buildGraph(withDeprecated).deprecatedRoots).toEqual(['71']);
+  });
+
+  it('sorts both root lists numerically', () => {
+    const data: CweData = {
+      meta: sampleData.meta,
+      nodes: {
+        '1000': { id: '1000', name: 'A', abstraction: 'Pillar', status: 'Draft', description: '', url: '' },
+        '99': { id: '99', name: 'B', abstraction: 'Pillar', status: 'Draft', description: '', url: '' },
+      },
+      edges: [],
+    };
+    expect(buildGraph(data).roots).toEqual(['99', '1000']);
+  });
+
+  it('accepts an explicit root set, which a view would supply', () => {
+    const graph = buildGraph(withDeprecated, { rootIds: ['285'] });
+    expect(graph.roots).toEqual(['285']);
+    expect(graph.deprecatedRoots).toEqual([]);
+  });
+
+  it('ignores explicit root ids that are not in the corpus', () => {
+    expect(buildGraph(withDeprecated, { rootIds: ['285', '99999'] }).roots).toEqual(['285']);
+  });
+});
