@@ -75,3 +75,20 @@ describe('DetailPanel', () => {
     expect(screen.getByRole('status')).toHaveTextContent('MITRE has deprecated this entry.');
   });
 });
+
+describe('DetailPanel as a bottom sheet', () => {
+  it('starts collapsed, with a control that says it will expand', () => {
+    render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} />);
+    const grabber = screen.getByRole('button', { name: 'Expand details' });
+    expect(grabber).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('expands and collapses again when the grabber is used', async () => {
+    render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Expand details' }));
+    const expanded = screen.getByRole('button', { name: 'Collapse details' });
+    expect(expanded).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.click(expanded);
+    expect(screen.getByRole('button', { name: 'Expand details' })).toBeInTheDocument();
+  });
+});

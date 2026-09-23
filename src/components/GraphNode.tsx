@@ -2,16 +2,13 @@ import type { CweNode } from '../lib/graph';
 import type { PositionedNode } from '../lib/layout';
 import { GlyphShape } from './Glyph';
 
-const MAX_LABEL = 24;
-
-function truncate(text: string, max = MAX_LABEL): string {
-  return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
-}
-
 interface GraphNodeProps {
   node: PositionedNode;
   cweNode: CweNode;
+  /** Accessible label — the full name, always. */
   label: string;
+  /** What's drawn under the node: shared prefix elided, fitted to its slot. */
+  displayName: string;
   selected: boolean;
   dimmed: boolean;
   onSelect: (id: string) => void;
@@ -19,9 +16,22 @@ interface GraphNodeProps {
   onHover: (id: string | null) => void;
 }
 
-export function GraphNode({ node, cweNode, label, selected, dimmed, onSelect, onKeyDown, onHover }: GraphNodeProps) {
+export function GraphNode({
+  node,
+  cweNode,
+  label,
+  displayName,
+  selected,
+  dimmed,
+  onSelect,
+  onKeyDown,
+  onHover,
+}: GraphNodeProps) {
   const deprecated = cweNode.status === 'Deprecated';
   const r = selected ? 13 : 9;
+  // Clear the selection halo as well as the glyph, so the label's knockout
+  // stroke doesn't cut a gap through the ring.
+  const labelTop = (selected ? r + 7 : r) + 16;
 
   return (
     <g
@@ -41,11 +51,11 @@ export function GraphNode({ node, cweNode, label, selected, dimmed, onSelect, on
     >
       {selected && <circle className="graph-node__halo" r={r + 7} />}
       <GlyphShape abstraction={cweNode.abstraction} r={r} deprecated={deprecated} />
-      <text className="graph-node__id" y={r + 16} textAnchor="middle">
+      <text className="graph-node__id" y={labelTop} textAnchor="middle">
         CWE-{node.id}
       </text>
-      <text className="graph-node__name" y={r + 30} textAnchor="middle">
-        {truncate(cweNode.name)}
+      <text className="graph-node__name" y={labelTop + 14} textAnchor="middle">
+        {displayName}
       </text>
       <title>{`CWE-${node.id}: ${cweNode.name}`}</title>
     </g>

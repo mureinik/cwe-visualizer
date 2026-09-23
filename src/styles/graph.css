@@ -18,6 +18,17 @@
   }
 }
 
+/*
+ * Same reasoning below the breakpoint, in the other axis: the sheet peeks
+ * over the bottom of the stage, so the layout must be handed a shorter one
+ * or the children band is drawn underneath it.
+ */
+@media (max-width: 900px) {
+  .graph-stage {
+    padding-block-end: 34dvh;
+  }
+}
+
 .graph-stage__canvas {
   width: 100%;
   height: 100%;

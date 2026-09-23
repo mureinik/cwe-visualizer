@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Graph } from '../lib/graph';
 import { RELATION_GROUPS, relationGroup, type RelationGroup } from '../lib/relations';
 import { Glyph } from './Glyph';
@@ -50,6 +51,11 @@ function RelationChip({ graph, id, onSelect }: { graph: Graph; id: string; onSel
 }
 
 export function DetailPanel({ graph, selectedId, onSelect }: DetailPanelProps) {
+  // Narrow screens show this as a bottom sheet with two heights: a peek
+  // showing the title and badges, and an expanded read. The grabber is
+  // hidden by CSS on wide screens, where the card is simply a card.
+  const [expanded, setExpanded] = useState(false);
+
   if (!selectedId) {
     return <div className="detail-panel detail-panel--empty">Select a CWE to see its details.</div>;
   }
@@ -63,7 +69,14 @@ export function DetailPanel({ graph, selectedId, onSelect }: DetailPanelProps) {
   const sections = relationSections(graph, selectedId);
 
   return (
-    <div className="detail-panel">
+    <div className={`detail-panel${expanded ? ' detail-panel--expanded' : ''}`}>
+      <button
+        type="button"
+        className="detail-panel__grabber"
+        onClick={() => setExpanded((open) => !open)}
+        aria-expanded={expanded}
+        aria-label={expanded ? 'Collapse details' : 'Expand details'}
+      />
       <h2 className="detail-panel__title" aria-label={`CWE-${node.id}: ${node.name}`}>
         <Glyph abstraction={node.abstraction} size={18} deprecated={deprecated} />
         <span className="detail-panel__id">CWE-{node.id}</span>

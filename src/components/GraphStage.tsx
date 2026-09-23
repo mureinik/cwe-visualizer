@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Graph } from '../lib/graph';
 import { buildEgoGraph } from '../lib/ego';
-import { layoutEgoGraph, type StageSize } from '../lib/layout';
+import { EDGE_MARGIN, layoutEgoGraph, type StageSize } from '../lib/layout';
+import { elideSharedPrefix, fitLabel, labelBudget } from '../lib/labels';
 import { GraphEdge } from './GraphEdge';
 import { GraphNode } from './GraphNode';
 
@@ -56,6 +57,39 @@ export function GraphStage({ graph, selectedId, onSelect, onShowChildren, hops }
     [graph, selectedId, hops]
   );
   const layout = useMemo(() => (ego ? layoutEgoGraph(ego, size) : null), [ego, size]);
+
+  /**
+   * Labels are shortened per band, not globally: siblings share far more
+   * opening text than a parent and a child do, so eliding within a band
+   * strips the most and keeps what distinguishes them. The budget comes from
+   * how much horizontal room each node actually has, so a crowded band
+   * truncates harder instead of overlapping.
+   */
+  const displayNames = useMemo(() => {
+    const result = new Map<string, string>();
+    if (!layout) return result;
+
+    const usable = Math.max(0, size.width - 2 * EDGE_MARGIN);
+    for (const band of [-2, -1, 0, 1] as const) {
+      const members = layout.nodes.filter((n) => n.band === band);
+      if (members.length === 0) continue;
+
+      // Budget from the tightest actual gap in the band rather than from an
+      // even share of it. Band 0 pins the centre and splits the laterals
+      // between the halves either side, so its nodes are not evenly spaced
+      // and an even share would overestimate the room they have.
+      const xs = members.map((n) => n.x).sort((a, b) => a - b);
+      let gap = usable;
+      for (let i = 1; i < xs.length; i += 1) gap = Math.min(gap, xs[i] - xs[i - 1]);
+
+      const budget = labelBudget(gap);
+      const elided = elideSharedPrefix(members.map((n) => graph.nodes[n.id].name));
+      members.forEach((node, i) => {
+        result.set(node.id, fitLabel(elided[i], budget));
+      });
+    }
+    return result;
+  }, [layout, graph, size.width]);
 
   const incident = useMemo(() => {
     if (!layout || !hovered) return null;
@@ -146,6 +180,7 @@ export function GraphStage({ graph, selectedId, onSelect, onShowChildren, hops }
                 node={node}
                 cweNode={graph.nodes[node.id]}
                 label={describeNode(graph, node.id)}
+                displayName={displayNames.get(node.id) ?? ''}
                 selected={node.id === ego?.centerId}
                 dimmed={!!incident && !incident.nodes.has(node.id)}
                 onSelect={onSelect}
