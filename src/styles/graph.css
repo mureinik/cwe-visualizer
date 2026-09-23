@@ -5,6 +5,19 @@
   display: flex;
 }
 
+/*
+ * The detail card floats over the stage's right-hand side, so the graph must
+ * not lay out underneath it. ResizeObserver reports the *content* box, so
+ * padding here shrinks the width the layout is given — which is what keeps
+ * the widest pillar's children, and its overflow chip, out from behind the
+ * card.
+ */
+@media (min-width: 901px) {
+  .graph-stage {
+    padding-inline-end: calc(24rem + var(--space-6));
+  }
+}
+
 .graph-stage__canvas {
   width: 100%;
   height: 100%;
@@ -29,6 +42,16 @@
   fill: none;
   stroke: var(--border-strong);
   stroke-width: 2;
+}
+
+.graph-node__id,
+.graph-node__name {
+  /* Knock the background out from behind the glyphs so a label crossing an
+     edge stays readable instead of being struck through by it. */
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 3;
+  stroke-linejoin: round;
 }
 
 .graph-node__id {

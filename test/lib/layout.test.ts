@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { layoutEgoGraph } from '../../src/lib/layout';
+import { layoutEgoGraph, EDGE_MARGIN } from '../../src/lib/layout';
 import type { EgoGraph } from '../../src/lib/ego';
 
 const size = { width: 1000, height: 800 };
@@ -74,5 +74,36 @@ describe('layoutEgoGraph', () => {
   it('does not divide by zero on an empty ego graph', () => {
     const empty = layoutEgoGraph({ centerId: 'x', nodes: [], edges: [], overflow: null }, size);
     expect(empty.nodes).toEqual([]);
+  });
+});
+
+describe('layoutEgoGraph edge margin', () => {
+  it('keeps the outermost node in a band clear of the stage edge', () => {
+    const wide: EgoGraph = {
+      centerId: 'c',
+      nodes: [
+        { id: 'c', band: 0, side: 'center' },
+        ...Array.from({ length: 8 }, (_, i) => ({ id: `k${i}`, band: 1 as const, side: 'center' as const })),
+      ],
+      edges: [],
+      overflow: null,
+    };
+    const xs = layoutEgoGraph(wide, size).nodes.filter((n) => n.band === 1).map((n) => n.x);
+    expect(Math.min(...xs)).toBeGreaterThanOrEqual(EDGE_MARGIN);
+    expect(Math.max(...xs)).toBeLessThanOrEqual(size.width - EDGE_MARGIN);
+  });
+
+  it('keeps the overflow chip clear of the stage edge too', () => {
+    const packed: EgoGraph = {
+      centerId: 'c',
+      nodes: [
+        { id: 'c', band: 0, side: 'center' },
+        ...Array.from({ length: 10 }, (_, i) => ({ id: `k${i}`, band: 1 as const, side: 'center' as const })),
+      ],
+      edges: [],
+      overflow: { parentId: 'c', hiddenCount: 33 },
+    };
+    const { overflow } = layoutEgoGraph(packed, size);
+    expect(overflow!.x).toBeLessThanOrEqual(size.width - EDGE_MARGIN);
   });
 });

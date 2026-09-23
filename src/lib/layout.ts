@@ -39,6 +39,13 @@ export function bandY(band: Band): number {
   }
 }
 
+/**
+ * Keeps the outermost node in a band away from the stage edge. Without it a
+ * band's first and last labels are centred on x≈0 and x≈width and get
+ * clipped in half.
+ */
+export const EDGE_MARGIN = 80;
+
 /** Spreads n items evenly across [start, end], centred. */
 function spread(index: number, count: number, start: number, end: number): number {
   if (count <= 0) return (start + end) / 2;
@@ -64,7 +71,11 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
   for (const band of [-2, -1, 1] as const) {
     const members = ego.nodes.filter((n) => n.band === band);
     members.forEach((node, i) => {
-      positioned.set(node.id, { ...node, x: spread(i, members.length, 0, width), y: height * bandY(band) });
+      positioned.set(node.id, {
+        ...node,
+        x: spread(i, members.length, EDGE_MARGIN, width - EDGE_MARGIN),
+        y: height * bandY(band),
+      });
     });
   }
 
@@ -74,7 +85,8 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
 
   for (const side of ['left', 'right'] as const) {
     const members = ego.nodes.filter((n) => n.band === 0 && n.side === side);
-    const [start, end] = side === 'left' ? [0, width / 2] : [width / 2, width];
+    const [start, end] =
+      side === 'left' ? [EDGE_MARGIN, width / 2] : [width / 2, width - EDGE_MARGIN];
     members.forEach((node, i) => {
       positioned.set(node.id, { ...node, x: spread(i, members.length, start, end), y: centerY });
     });
@@ -83,7 +95,11 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
   const childBandY = height * bandY(1);
   const childCount = ego.nodes.filter((n) => n.band === 1).length;
   const overflow: PositionedOverflow | null = ego.overflow
-    ? { ...ego.overflow, x: spread(childCount, childCount + 1, 0, width), y: childBandY }
+    ? {
+        ...ego.overflow,
+        x: spread(childCount, childCount + 1, EDGE_MARGIN, width - EDGE_MARGIN),
+        y: childBandY,
+      }
     : null;
 
   const nodes = ego.nodes.map((n) => positioned.get(n.id)!).filter(Boolean);

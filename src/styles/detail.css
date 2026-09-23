@@ -91,10 +91,21 @@
   padding: 0;
 }
 
+/*
+ * A flex item defaults to min-width:auto, which refuses to shrink below its
+ * content — so without these the chip runs past the card's edge and the
+ * ellipsis below never engages.
+ */
+.relation-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .relation-chip {
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  min-width: 0;
   max-width: 100%;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -117,6 +128,7 @@
 }
 
 .relation-chip__name {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
