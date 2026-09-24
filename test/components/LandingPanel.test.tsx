@@ -27,20 +27,20 @@ const graph = buildGraph(data);
 
 describe('LandingPanel', () => {
   it('says how large the corpus is, and which version', () => {
-    render(<LandingPanel graph={graph} onSelect={() => {}} />);
+    render(<LandingPanel graph={graph} onSelect={() => {}} onOpenTree={() => {}} />);
     expect(screen.getByText(/5/)).toBeInTheDocument();
     expect(screen.getByText(/4\.20/)).toBeInTheDocument();
   });
 
   it('offers every pillar as a starting point, and no deprecated orphan', () => {
-    render(<LandingPanel graph={graph} onSelect={() => {}} />);
+    render(<LandingPanel graph={graph} onSelect={() => {}} onOpenTree={() => {}} />);
     expect(screen.getByRole('button', { name: /^CWE-284: Improper Access Control/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^CWE-707: Improper Neutralization/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /CWE-71/ })).not.toBeInTheDocument();
   });
 
   it('shows how much of the corpus sits beneath each pillar', () => {
-    render(<LandingPanel graph={graph} onSelect={() => {}} />);
+    render(<LandingPanel graph={graph} onSelect={() => {}} onOpenTree={() => {}} />);
     expect(
       screen.getByRole('button', { name: 'CWE-284: Improper Access Control, 2 weaknesses beneath it' })
     ).toBeInTheDocument();
@@ -51,8 +51,21 @@ describe('LandingPanel', () => {
 
   it('selects the pillar when its card is clicked', async () => {
     const onSelect = vi.fn();
-    render(<LandingPanel graph={graph} onSelect={onSelect} />);
+    render(<LandingPanel graph={graph} onSelect={onSelect} onOpenTree={() => {}} />);
     await userEvent.click(screen.getByRole('button', { name: /^CWE-284/ }));
     expect(onSelect).toHaveBeenCalledWith('284');
+  });
+  it('makes the hamburger it mentions actually open the tree', async () => {
+    const onOpenTree = vi.fn();
+    render(<LandingPanel graph={graph} onSelect={() => {}} onOpenTree={onOpenTree} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Browse the full tree' }));
+    expect(onOpenTree).toHaveBeenCalled();
+  });
+
+  it('does not select a CWE when the tree control is used', async () => {
+    const onSelect = vi.fn();
+    render(<LandingPanel graph={graph} onSelect={onSelect} onOpenTree={() => {}} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Browse the full tree' }));
+    expect(onSelect).not.toHaveBeenCalled();
   });
 });

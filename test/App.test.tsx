@@ -57,6 +57,14 @@ describe('App', () => {
     expect(screen.getByRole('contentinfo')).toBeInTheDocument();
   });
 
+  it('opens the tree from the hamburger named in the landing text', async () => {
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'CWE Visualizer' })).toBeInTheDocument());
+    expect(screen.queryByRole('tree')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Browse the full tree' }));
+    expect(screen.getByRole('tree')).toBeInTheDocument();
+  });
+
   it('shows an error message when the fetch fails', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })));
     render(<App />);

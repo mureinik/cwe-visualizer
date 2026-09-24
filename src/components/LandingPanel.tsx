@@ -4,9 +4,10 @@ import { Glyph } from './Glyph';
 interface LandingPanelProps {
   graph: Graph;
   onSelect: (id: string) => void;
+  onOpenTree: () => void;
 }
 
-export function LandingPanel({ graph, onSelect }: LandingPanelProps) {
+export function LandingPanel({ graph, onSelect, onOpenTree }: LandingPanelProps) {
   const total = graph.all.length;
 
   return (
@@ -40,7 +41,18 @@ export function LandingPanel({ graph, onSelect }: LandingPanelProps) {
           })}
         </ul>
 
-        <p className="landing__hint">…or search by ID or name above, or browse the full tree from ☰.</p>
+        <p className="landing__hint">
+          …or search by ID or name above, or browse the full tree from{' '}
+          <button
+            type="button"
+            className="landing__tree-button"
+            onClick={onOpenTree}
+            aria-label="Browse the full tree"
+          >
+            <span aria-hidden="true">☰</span>
+          </button>
+          .
+        </p>
       </div>
     </div>
   );

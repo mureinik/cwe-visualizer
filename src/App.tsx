@@ -67,7 +67,11 @@ export function App() {
       />
       <main className="app-stage">
         {selectedId === null ? (
-          <LandingPanel graph={state.graph} onSelect={selectNode} />
+          <LandingPanel
+            graph={state.graph}
+            onSelect={selectNode}
+            onOpenTree={() => setDrawerOpen(true)}
+          />
         ) : (
           <>
             <GraphStage

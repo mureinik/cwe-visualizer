@@ -98,6 +98,29 @@
 }
 
 /*
+ * The sentence names the control, so the glyph should be the control rather
+ * than a picture of it.
+ */
+.landing__tree-button {
+  padding: 0 var(--space-1);
+  /* Reclaim the trailing padding so the full stop still hugs the glyph. */
+  margin-inline-end: calc(var(--space-1) * -1);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+}
+
+.landing__tree-button:hover {
+  border-color: var(--border);
+  color: var(--text);
+  background: var(--surface);
+}
+
+/*
  * A low strip along the bottom rather than a box in the corner: the children
  * band sits at 82% of the stage height, so a corner box overlaps the
  * left-most child, while the strip below it costs only its own height.
