@@ -9,40 +9,67 @@ interface DetailPanelProps {
   onSelect: (id: string) => void;
 }
 
+interface Entry {
+  id: string;
+  /**
+   * The relation's own name. A family heading alone loses direction —
+   * "Sequence" covers both CanPrecede and CanFollow — so each chip carries
+   * its type. Hierarchy sections don't need it; the heading says it.
+   */
+  type?: string;
+}
+
 interface Section {
   label: string;
-  ids: string[];
+  entries: Entry[];
 }
 
 function relationSections(graph: Graph, id: string): Section[] {
   const sections: Section[] = [
-    { label: 'Parents', ids: graph.parentsOf.get(id) ?? [] },
-    { label: 'Children', ids: graph.childrenOf.get(id) ?? [] },
+    { label: 'Parents', entries: (graph.parentsOf.get(id) ?? []).map((to) => ({ id: to })) },
+    { label: 'Children', entries: (graph.childrenOf.get(id) ?? []).map((to) => ({ id: to })) },
   ];
 
   const related = graph.relatedTo.get(id) ?? [];
-  const byGroup = new Map<RelationGroup, string[]>();
+  const byGroup = new Map<RelationGroup, Entry[]>();
   for (const edge of related) {
     const group = relationGroup(edge.type);
     const list = byGroup.get(group) ?? [];
-    if (!list.includes(edge.to)) list.push(edge.to);
+    if (!list.some((entry) => entry.id === edge.to && entry.type === edge.type)) {
+      list.push({ id: edge.to, type: edge.type });
+    }
     byGroup.set(group, list);
   }
 
   for (const key of ['peer', 'sequence', 'requires'] as const) {
-    sections.push({ label: RELATION_GROUPS[key].label, ids: byGroup.get(key) ?? [] });
+    sections.push({ label: RELATION_GROUPS[key].label, entries: byGroup.get(key) ?? [] });
   }
 
-  return sections.filter((section) => section.ids.length > 0);
+  return sections.filter((section) => section.entries.length > 0);
 }
 
-function RelationChip({ graph, id, onSelect }: { graph: Graph; id: string; onSelect: (id: string) => void }) {
+function RelationChip({
+  graph,
+  entry,
+  onSelect,
+}: {
+  graph: Graph;
+  entry: Entry;
+  onSelect: (id: string) => void;
+}) {
+  const { id, type } = entry;
   const node = graph.nodes[id];
-  const label = node ? `CWE-${id}: ${node.name}` : `CWE-${id}`;
+  const name = node ? `CWE-${id}: ${node.name}` : `CWE-${id}`;
   return (
     <li>
-      <button type="button" className="relation-chip" onClick={() => onSelect(id)} aria-label={label}>
+      <button
+        type="button"
+        className="relation-chip"
+        onClick={() => onSelect(id)}
+        aria-label={type ? `${type} ${name}` : name}
+      >
         <Glyph abstraction={node?.abstraction ?? ''} size={12} deprecated={node?.status === 'Deprecated'} />
+        {type && <span className="relation-chip__type">{type}</span>}
         <span className="relation-chip__id">CWE-{id}</span>
         {node && <span className="relation-chip__name">{node.name}</span>}
       </button>
@@ -103,11 +130,16 @@ export function DetailPanel({ graph, selectedId, onSelect }: DetailPanelProps) {
       {sections.map((section) => (
         <section key={section.label} className="relation-section">
           <h3 className="relation-section__heading">
-            {section.label} ({section.ids.length})
+            {section.label} ({section.entries.length})
           </h3>
           <ul className="relation-list">
-            {section.ids.map((id) => (
-              <RelationChip key={`${section.label}-${id}`} graph={graph} id={id} onSelect={onSelect} />
+            {section.entries.map((entry) => (
+              <RelationChip
+                key={`${section.label}-${entry.id}-${entry.type ?? ''}`}
+                graph={graph}
+                entry={entry}
+                onSelect={onSelect}
+              />
             ))}
           </ul>
         </section>

@@ -9,6 +9,8 @@ interface GraphNodeProps {
   label: string;
   /** What's drawn under the node: shared prefix elided, fitted to its slot. */
   displayName: string;
+  /** Too little room for "CWE-1085"; show the bare number instead. */
+  compactId: boolean;
   selected: boolean;
   dimmed: boolean;
   onSelect: (id: string) => void;
@@ -21,6 +23,7 @@ export function GraphNode({
   cweNode,
   label,
   displayName,
+  compactId,
   selected,
   dimmed,
   onSelect,
@@ -52,7 +55,7 @@ export function GraphNode({
       {selected && <circle className="graph-node__halo" r={r + 7} />}
       <GlyphShape abstraction={cweNode.abstraction} r={r} deprecated={deprecated} />
       <text className="graph-node__id" y={labelTop} textAnchor="middle">
-        CWE-{node.id}
+        {compactId ? node.id : `CWE-${node.id}`}
       </text>
       <text className="graph-node__name" y={labelTop + 14} textAnchor="middle">
         {displayName}

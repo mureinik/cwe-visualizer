@@ -21,6 +21,7 @@ export function App() {
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [selectedId, setSelectedId] = useState<string | null>(() => readSelectedIdFromUrl());
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [revealId, setRevealId] = useState<string | null>(null);
   const narrow = useMediaQuery(NARROW_QUERY);
 
   useEffect(() => {
@@ -70,7 +71,10 @@ export function App() {
           <LandingPanel
             graph={state.graph}
             onSelect={selectNode}
-            onOpenTree={() => setDrawerOpen(true)}
+            onOpenTree={() => {
+              setRevealId(null);
+              setDrawerOpen(true);
+            }}
           />
         ) : (
           <>
@@ -78,7 +82,10 @@ export function App() {
               graph={state.graph}
               selectedId={selectedId}
               onSelect={selectNode}
-              onShowChildren={() => setDrawerOpen(true)}
+              onShowChildren={(parentId) => {
+                setRevealId(parentId);
+                setDrawerOpen(true);
+              }}
               hops={narrow ? 1 : 2}
             />
             <DetailPanel graph={state.graph} selectedId={selectedId} onSelect={selectNode} />
@@ -90,6 +97,7 @@ export function App() {
           graph={state.graph}
           selectedId={selectedId}
           onSelect={selectNode}
+          revealId={revealId}
         />
       </main>
       <Attribution />

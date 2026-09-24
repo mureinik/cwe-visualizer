@@ -115,3 +115,78 @@ describe('buildEgoGraph', () => {
     expect(buildEgoGraph(graph, '3')).toEqual(buildEgoGraph(graph, '3'));
   });
 });
+
+describe('buildEgoGraph synthesized inverses', () => {
+  it('places an inverse on the opposite side from the forward relation', () => {
+    const base: CweData = {
+      meta: data.meta,
+      nodes: {
+        '1': node('1'),
+        '2': node('2'),
+      },
+      // 1 StartsWith 2 — so from 2's point of view, 1 leads to it.
+      edges: [{ from: '1', to: '2', type: 'StartsWith' }],
+    };
+    const graph2 = buildGraph(base);
+    const forward = buildEgoGraph(graph2, '1').nodes.find((n) => n.id === '2');
+    const inverse = buildEgoGraph(graph2, '2').nodes.find((n) => n.id === '1');
+    expect(forward?.side).toBe('right');
+    expect(inverse?.side).toBe('left');
+  });
+});
+
+describe('buildEgoGraph lateral cap', () => {
+  const crowded = (): CweData => ({
+    meta: data.meta,
+    nodes: {
+      '119': node('119'),
+      ...Object.fromEntries(Array.from({ length: 11 }, (_, i) => [`${400 + i}`, node(`${400 + i}`)])),
+    },
+    // every one is "X can precede 119", so all eleven land on the same side
+    edges: Array.from({ length: 11 }, (_, i) => ({ from: '119', to: `${400 + i}`, type: 'CanFollow' })),
+  });
+
+  it('keeps the row legible by capping each side', () => {
+    const ego = buildEgoGraph(buildGraph(crowded()), '119', { lateralCap: 6 });
+    expect(ego.nodes.filter((n) => n.band === 0 && n.side === 'left')).toHaveLength(6);
+  });
+
+  it('reports how many it dropped, on the side it dropped them from', () => {
+    const ego = buildEgoGraph(buildGraph(crowded()), '119', { lateralCap: 6 });
+    expect(ego.lateralOverflow).toEqual({ left: 5, right: 0 });
+  });
+
+  it('reports none when every lateral fits', () => {
+    expect(buildEgoGraph(graph, '3').lateralOverflow).toEqual({ left: 0, right: 0 });
+  });
+
+  it('does not let a node already on the canvas consume a lateral slot', () => {
+    // P is the centre's parent and also declares a PeerOf with it. With two
+    // other laterals and a cap of two, both must still fit: if P took a slot,
+    // one of them would be dropped.
+    const overlapping: CweData = {
+      meta: data.meta,
+      nodes: {
+        '1': node('1'),
+        '2': node('2'),
+        '10': node('10'),
+        '11': node('11'),
+      },
+      edges: [
+        { from: '1', to: '2', type: 'ChildOf' },
+        { from: '1', to: '2', type: 'PeerOf' },
+        { from: '1', to: '10', type: 'CanFollow' },
+        { from: '1', to: '11', type: 'CanFollow' },
+      ],
+    };
+    const ego = buildEgoGraph(buildGraph(overlapping), '1', { lateralCap: 2 });
+
+    expect(ego.nodes.filter((n) => n.id === '2')).toHaveLength(1);
+    expect(ego.nodes.find((n) => n.id === '2')?.band).toBe(-1);
+    expect(ego.nodes.filter((n) => n.band === 0 && n.side === 'left').map((n) => n.id).sort()).toEqual([
+      '10',
+      '11',
+    ]);
+    expect(ego.lateralOverflow).toEqual({ left: 0, right: 0 });
+  });
+});

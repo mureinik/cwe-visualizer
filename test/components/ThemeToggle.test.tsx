@@ -25,3 +25,23 @@ describe('ThemeToggle', () => {
     expect(screen.getByRole('button', { name: 'Switch to light theme' })).toBeInTheDocument();
   });
 });
+
+describe('ThemeToggle and the OS preference', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    document.documentElement.removeAttribute('data-theme');
+  });
+
+  it('writes no data-theme for someone who has never chosen one', () => {
+    render(<ThemeToggle />);
+    // Writing the attribute is what disables the stylesheet's
+    // prefers-color-scheme block, so an untouched app must not write it.
+    expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
+  });
+
+  it('writes it as soon as a choice is made', async () => {
+    render(<ThemeToggle />);
+    await userEvent.click(screen.getByRole('button', { name: /Switch to (light|dark) theme/ }));
+    expect(document.documentElement.hasAttribute('data-theme')).toBe(true);
+  });
+});

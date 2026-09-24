@@ -179,3 +179,37 @@ describe('countDescendants', () => {
     expect(countDescendants(buildGraph(deep), '5')).toBe(0);
   });
 });
+
+describe('buildGraph relation de-duplication', () => {
+  it('records a relation once even when MITRE states it from both ends', () => {
+    const reciprocal: CweData = {
+      meta: sampleData.meta,
+      nodes: {
+        '257': { id: '257', name: 'A', abstraction: 'Base', status: 'Draft', description: '', url: '' },
+        '259': { id: '259', name: 'B', abstraction: 'Base', status: 'Draft', description: '', url: '' },
+      },
+      edges: [
+        { from: '257', to: '259', type: 'PeerOf' },
+        { from: '259', to: '257', type: 'PeerOf' },
+      ],
+    };
+    const graph = buildGraph(reciprocal);
+    expect(graph.relatedTo.get('257')).toEqual([{ from: '257', to: '259', type: 'PeerOf' }]);
+    expect(graph.relatedTo.get('259')).toEqual([{ from: '259', to: '257', type: 'PeerOf' }]);
+  });
+
+  it('still keeps two genuinely different relations between the same pair', () => {
+    const twoKinds: CweData = {
+      meta: sampleData.meta,
+      nodes: {
+        '1': { id: '1', name: 'A', abstraction: 'Base', status: 'Draft', description: '', url: '' },
+        '2': { id: '2', name: 'B', abstraction: 'Base', status: 'Draft', description: '', url: '' },
+      },
+      edges: [
+        { from: '1', to: '2', type: 'PeerOf' },
+        { from: '1', to: '2', type: 'CanPrecede' },
+      ],
+    };
+    expect(buildGraph(twoKinds).relatedTo.get('1')).toHaveLength(2);
+  });
+});

@@ -150,3 +150,37 @@ describe('GraphStage highlighting', () => {
     expect(container.querySelectorAll('.graph-node--dimmed')).toHaveLength(0);
   });
 });
+
+describe('GraphStage overflow chip and stale hover', () => {
+  const wide: CweData = {
+    ...data,
+    nodes: { ...data.nodes, ...Object.fromEntries(Array.from({ length: 14 }, (_, i) => [`${300 + i}`, node(`${300 + i}`, `Child ${i}`)])) },
+    edges: [...data.edges, ...Array.from({ length: 14 }, (_, i) => ({ from: `${300 + i}`, to: '79', type: 'ChildOf' }))],
+  };
+
+  it('activates the overflow chip from the keyboard', async () => {
+    const onShowChildren = vi.fn();
+    render(
+      <GraphStage graph={buildGraph(wide)} selectedId="79" onSelect={() => {}} onShowChildren={onShowChildren} hops={2} />
+    );
+    const chip = screen.getByRole('button', { name: /Show \d+ more children of CWE-79/ });
+    chip.focus();
+    await userEvent.keyboard('{Enter}');
+    expect(onShowChildren).toHaveBeenCalledWith('79');
+  });
+
+  it('does not dim the whole graph when the hovered node leaves the layout', async () => {
+    const { container, rerender } = render(
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} hops={2} />
+    );
+    await userEvent.hover(screen.getByRole('button', { name: /^CWE-80/ }));
+    expect(container.querySelectorAll('.graph-node--dimmed').length).toBeGreaterThan(0);
+
+    // Re-centre somewhere CWE-80 is absent. React fires no mouseleave for an
+    // unmounted node, so a stale hover would dim every node with nothing lit.
+    rerender(
+      <GraphStage graph={graph} selectedId="71" onSelect={() => {}} onShowChildren={() => {}} hops={2} />
+    );
+    expect(container.querySelectorAll('.graph-node--dimmed')).toHaveLength(0);
+  });
+});

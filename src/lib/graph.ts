@@ -92,6 +92,21 @@ export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
     relatedTo.set(id, []);
   }
 
+  // MITRE states some relations from both ends, and buildGraph also
+  // synthesizes the missing direction of one-sided ones — so without this the
+  // same relation can be recorded twice, byte for byte, on the same node.
+  const relatedSeen = new Map<string, Set<string>>();
+  function addRelated(id: string, edge: CweEdge) {
+    const list = relatedTo.get(id);
+    if (!list) return;
+    const seen = relatedSeen.get(id) ?? new Set<string>();
+    const key = `${edge.to}|${edge.type}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    relatedSeen.set(id, seen);
+    list.push(edge);
+  }
+
   for (const edge of data.edges) {
     if (edge.type === 'ChildOf') {
       addUnique(childrenOf, edge.to, edge.from);
@@ -100,8 +115,10 @@ export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
       addUnique(childrenOf, edge.from, edge.to);
       addUnique(parentsOf, edge.to, edge.from);
     } else {
-      relatedTo.get(edge.from)?.push(edge);
-      relatedTo.get(edge.to)?.push({ from: edge.to, to: edge.from, type: inverseNature(edge.type) });
+      addRelated(edge.from, edge);
+      const inverse: CweEdge = { from: edge.to, to: edge.from, type: inverseNature(edge.type) };
+      if (edge.viewId !== undefined) inverse.viewId = edge.viewId;
+      addRelated(edge.to, inverse);
     }
   }
 

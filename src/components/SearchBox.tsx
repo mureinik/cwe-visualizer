@@ -29,7 +29,18 @@ export function SearchBox({ graph, onSelect }: SearchBoxProps) {
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (!open || results.length === 0) return;
+    if (!open) return;
+
+    // Escape first: the list is on screen whenever `open`, including the
+    // "No matches" row, so it must be dismissible with nothing in it.
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setDismissed(true);
+      setActive(-1);
+      return;
+    }
+
+    if (results.length === 0) return;
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       setActive((i) => (i + 1) % results.length);
@@ -39,10 +50,6 @@ export function SearchBox({ graph, onSelect }: SearchBoxProps) {
     } else if (event.key === 'Enter' && active >= 0) {
       event.preventDefault();
       choose(active);
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      setDismissed(true);
-      setActive(-1);
     }
   }
 

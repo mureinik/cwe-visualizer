@@ -27,6 +27,8 @@ export interface EgoGraph {
   nodes: EgoNode[];
   edges: EgoEdge[];
   overflow: EgoOverflow | null;
+  /** Laterals dropped by the per-side cap, so the row stays legible. */
+  lateralOverflow: { left: number; right: number };
 }
 
 export interface EgoOptions {
@@ -34,6 +36,13 @@ export interface EgoOptions {
   ancestorHops?: number;
   /** Maximum children rendered before the rest collapse into overflow. Default 10. */
   childCap?: number;
+  /**
+   * Maximum laterals per side. CWE-119 has eleven, all on one side, which
+   * packs them into an unreadable cluster; the detail card lists every one
+   * regardless. Four, because a half-width minus the centre clearance is
+   * roughly 250px on a 1280px viewport, and five slots is all that fits.
+   */
+  lateralCap?: number;
 }
 
 const byId = (a: string, b: string) => Number(a) - Number(b);
@@ -52,9 +61,10 @@ const LEADS_FROM = new Set(['CanFollow', 'RequiredBy']);
 export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptions): EgoGraph {
   const ancestorHops = options?.ancestorHops ?? 2;
   const childCap = options?.childCap ?? 10;
+  const lateralCap = options?.lateralCap ?? 4;
 
   if (!(centerId in graph.nodes)) {
-    return { centerId, nodes: [], edges: [], overflow: null };
+    return { centerId, nodes: [], edges: [], overflow: null, lateralOverflow: { left: 0, right: 0 } };
   }
 
   const nodes: EgoNode[] = [{ id: centerId, band: 0, side: 'center' }];
@@ -104,20 +114,38 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
   // relation has one; everything else is placed to balance the row.
   let left = 0;
   let right = 0;
+  let leftHidden = 0;
+  let rightHidden = 0;
   for (const edge of [...(graph.relatedTo.get(centerId) ?? [])].sort((a, b) => byId(a.to, b.to))) {
     if (!(edge.to in graph.nodes) || edge.to === centerId) continue;
+    // "<Type> (inverse)" is the direction buildGraph synthesized for a
+    // relation with no named opposite, so it points the other way: treating
+    // it as the forward type would draw the arrow backwards.
+    const inverted = / \(inverse\)$/.test(edge.type);
     const base = edge.type.replace(/ \(inverse\)$/, '');
     let side: Side;
-    if (LEADS_TO.has(base)) side = 'right';
-    else if (LEADS_FROM.has(base)) side = 'left';
+    if (LEADS_TO.has(base)) side = inverted ? 'left' : 'right';
+    else if (LEADS_FROM.has(base)) side = inverted ? 'right' : 'left';
     else side = left <= right ? 'left' : 'right';
 
-    if (add(edge.to, 0, side)) {
-      if (side === 'left') left += 1;
-      else right += 1;
+    // Already on the canvas as a parent, child or earlier relation: record
+    // the edge, but it occupies no new slot.
+    if (seen.has(edge.to)) {
+      edges.push({ from: centerId, to: edge.to, type: edge.type, group: relationGroup(edge.type) });
+      continue;
     }
+
+    if ((side === 'left' ? left : right) >= lateralCap) {
+      if (side === 'left') leftHidden += 1;
+      else rightHidden += 1;
+      continue;
+    }
+
+    add(edge.to, 0, side);
+    if (side === 'left') left += 1;
+    else right += 1;
     edges.push({ from: centerId, to: edge.to, type: edge.type, group: relationGroup(edge.type) });
   }
 
-  return { centerId, nodes, edges, overflow };
+  return { centerId, nodes, edges, overflow, lateralOverflow: { left: leftHidden, right: rightHidden } };
 }

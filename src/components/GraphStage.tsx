@@ -68,40 +68,52 @@ export function GraphStage({ graph, selectedId, onSelect, onShowChildren, hops }
    */
   const displayNames = useMemo(() => {
     const result = new Map<string, string>();
-    if (!layout) return result;
+    const compact = new Map<string, boolean>();
+    if (!layout) return { names: result, compact };
 
     const usable = Math.max(0, size.width - 2 * EDGE_MARGIN);
     for (const band of [-2, -1, 0, 1] as const) {
       const members = layout.nodes.filter((n) => n.band === band);
       if (members.length === 0) continue;
 
-      // Budget from the tightest actual gap in the band rather than from an
-      // even share of it. Band 0 pins the centre and splits the laterals
-      // between the halves either side, so its nodes are not evenly spaced
-      // and an even share would overestimate the room they have.
-      const xs = members.map((n) => n.x).sort((a, b) => a - b);
-      let gap = usable;
-      for (let i = 1; i < xs.length; i += 1) gap = Math.min(gap, xs[i] - xs[i - 1]);
-
-      const budget = labelBudget(gap);
+      // Budget each node from its own nearest neighbour in the band, not from
+      // one figure for the whole band: band 0 pins the centre and spreads the
+      // laterals across the halves either side, so a single tight pair
+      // anywhere in it would otherwise starve every other label — including
+      // the selected node's own name.
+      const byX = members.slice().sort((a, b) => a.x - b.x);
       const elided = elideSharedPrefix(members.map((n) => graph.nodes[n.id].name));
-      members.forEach((node, i) => {
-        result.set(node.id, fitLabel(elided[i], budget));
+      const nameOf = new Map(members.map((n, i) => [n.id, elided[i]]));
+
+      byX.forEach((node, i) => {
+        const left = i > 0 ? node.x - byX[i - 1].x : Infinity;
+        const right = i < byX.length - 1 ? byX[i + 1].x - node.x : Infinity;
+        const nearest = Math.min(left, right);
+        const budget = labelBudget(Number.isFinite(nearest) ? nearest : usable);
+        result.set(node.id, fitLabel(nameOf.get(node.id) ?? '', budget));
+        // "CWE-1085" is eight characters; below that the ids of neighbouring
+        // nodes run into each other, and the bare number still identifies it.
+        compact.set(node.id, budget < 8);
       });
     }
-    return result;
+    return { names: result, compact };
   }, [layout, graph, size.width]);
 
+  // React fires no mouseleave or blur when the hovered node is unmounted by a
+  // re-centre, so a stale id would survive and dim every node in the new
+  // graph with nothing lit. Derive it rather than clear it in an effect.
+  const active = hovered && layout?.nodes.some((n) => n.id === hovered) ? hovered : null;
+
   const incident = useMemo(() => {
-    if (!layout || !hovered) return null;
-    const edges = layout.edges.filter((e) => e.from === hovered || e.to === hovered);
-    const nodes = new Set<string>([hovered]);
+    if (!layout || !active) return null;
+    const edges = layout.edges.filter((e) => e.from === active || e.to === active);
+    const nodes = new Set<string>([active]);
     for (const edge of edges) {
       nodes.add(edge.from);
       nodes.add(edge.to);
     }
     return { nodes, edges: new Set(edges.map((e) => `${e.from}-${e.to}-${e.type}`)) };
-  }, [layout, hovered]);
+  }, [layout, active]);
 
   function focusNode(id: string) {
     // CWE ids are numeric strings, so they need no selector escaping.
@@ -181,13 +193,28 @@ export function GraphStage({ graph, selectedId, onSelect, onShowChildren, hops }
                 node={node}
                 cweNode={graph.nodes[node.id]}
                 label={describeNode(graph, node.id)}
-                displayName={displayNames.get(node.id) ?? ''}
+                displayName={displayNames.names.get(node.id) ?? ''}
+                compactId={displayNames.compact.get(node.id) ?? false}
                 selected={node.id === ego?.centerId}
                 dimmed={!!incident && !incident.nodes.has(node.id)}
                 onSelect={onSelect}
                 onKeyDown={onNodeKeyDown}
                 onHover={setHovered}
               />
+            ))}
+            {layout.lateralOverflow.map((marker) => (
+              <text
+                key={marker.side}
+                className="graph-lateral-overflow"
+                x={marker.x}
+                y={marker.y + 4}
+                textAnchor="middle"
+              >
+                <title>
+                  {`${marker.hiddenCount} more related weaknesses — listed in the detail card`}
+                </title>
+                +{marker.hiddenCount} more
+              </text>
             ))}
             {layout.overflow && (
               <g
@@ -197,6 +224,14 @@ export function GraphStage({ graph, selectedId, onSelect, onShowChildren, hops }
                 tabIndex={0}
                 aria-label={`Show ${layout.overflow.hiddenCount} more children of CWE-${layout.overflow.parentId}`}
                 onClick={() => onShowChildren(layout.overflow!.parentId)}
+                onKeyDown={(event) => {
+                  // An SVG <g> is not a native button, so Enter and Space do
+                  // nothing unless we handle them.
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onShowChildren(layout.overflow!.parentId);
+                  }
+                }}
               >
                 <rect x={-34} y={-12} width={68} height={24} rx={12} />
                 <text textAnchor="middle" y={4}>

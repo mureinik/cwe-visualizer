@@ -121,6 +121,15 @@
   border-color: var(--border-strong);
 }
 
+.relation-chip__type {
+  flex: none;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
 .relation-chip__id {
   font-family: var(--font-mono);
   font-size: var(--text-xs);

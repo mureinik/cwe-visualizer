@@ -7,9 +7,11 @@ interface TreeProps {
   graph: Graph;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** Opened to this node and its ancestors, so its children are on screen. */
+  revealId?: string | null;
 }
 
-export function Tree({ graph, selectedId, onSelect }: TreeProps) {
+export function Tree({ graph, selectedId, onSelect, revealId = null }: TreeProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   // Nodes the user has explicitly collapsed. This is what lets a manual
   // toggle override the auto-expand-ancestors behavior below: without it, an
@@ -25,8 +27,11 @@ export function Tree({ graph, selectedId, onSelect }: TreeProps) {
   // synced into state via an effect) to avoid the extra render pass a
   // setState-in-effect would trigger.
   const ancestors = selectedId ? ancestorsOf(graph, selectedId) : new Set<string>();
+  // ancestorsOf excludes the node itself, so revealing a node's children means
+  // expanding the node as well as the path down to it.
+  const revealed = revealId ? [revealId, ...ancestorsOf(graph, revealId)] : [];
   const effectiveExpanded = new Set(
-    [...expanded, ...ancestors].filter((id) => !collapsed.has(id))
+    [...expanded, ...ancestors, ...revealed].filter((id) => !collapsed.has(id))
   );
 
   function toggle(id: string) {

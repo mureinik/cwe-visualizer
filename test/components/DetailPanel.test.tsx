@@ -92,3 +92,16 @@ describe('DetailPanel as a bottom sheet', () => {
     expect(screen.getByRole('button', { name: 'Expand details' })).toBeInTheDocument();
   });
 });
+
+describe('DetailPanel relation direction', () => {
+  it('names the relation on each lateral chip, since the heading cannot', () => {
+    render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} />);
+    // "Sequence" covers both CanPrecede and CanFollow, so the chip must say which.
+    expect(screen.getByRole('button', { name: 'CanFollow CWE-20: Improper Input Validation' })).toBeInTheDocument();
+  });
+
+  it('leaves hierarchy chips unadorned, because the heading already says it', () => {
+    render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} />);
+    expect(screen.getByRole('button', { name: 'CWE-74: Injection' })).toBeInTheDocument();
+  });
+});

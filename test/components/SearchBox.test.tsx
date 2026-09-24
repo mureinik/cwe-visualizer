@@ -85,3 +85,14 @@ describe('SearchBox keyboard behaviour', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 });
+
+describe('SearchBox with no matches', () => {
+  it('can be dismissed with Escape even when the list is empty', async () => {
+    render(<SearchBox graph={buildGraph(data)} onSelect={() => {}} />);
+    const input = screen.getByRole('combobox', { name: 'Search CWEs' });
+    await userEvent.type(input, 'zzzzz');
+    expect(screen.getByText('No matches')).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByText('No matches')).not.toBeInTheDocument();
+  });
+});

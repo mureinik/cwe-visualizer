@@ -8,13 +8,19 @@ interface TreeDrawerProps {
   graph: Graph;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  revealId?: string | null;
 }
 
-export function TreeDrawer({ open, onClose, graph, selectedId, onSelect }: TreeDrawerProps) {
+export function TreeDrawer({ open, onClose, graph, selectedId, onSelect, revealId = null }: TreeDrawerProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (open) closeRef.current?.focus();
+    if (!open) return;
+    // Hand focus back on close, or a keyboard user is returned to the top of
+    // the document having lost their place.
+    const opener = document.activeElement as HTMLElement | null;
+    closeRef.current?.focus();
+    return () => opener?.focus?.();
   }, [open]);
 
   useEffect(() => {
@@ -44,7 +50,7 @@ export function TreeDrawer({ open, onClose, graph, selectedId, onSelect }: TreeD
           </button>
         </div>
         <div className="drawer__body">
-          <Tree graph={graph} selectedId={selectedId} onSelect={onSelect} />
+          <Tree graph={graph} selectedId={selectedId} onSelect={onSelect} revealId={revealId} />
         </div>
       </div>
     </>

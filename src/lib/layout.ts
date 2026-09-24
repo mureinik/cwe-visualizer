@@ -19,10 +19,18 @@ export interface PositionedOverflow extends EgoOverflow {
   y: number;
 }
 
+export interface PositionedLateralOverflow {
+  side: 'left' | 'right';
+  hiddenCount: number;
+  x: number;
+  y: number;
+}
+
 export interface Layout {
   nodes: PositionedNode[];
   edges: PositionedEdge[];
   overflow: PositionedOverflow | null;
+  lateralOverflow: PositionedLateralOverflow[];
 }
 
 /** Vertical position of each band, as a fraction of stage height. */
@@ -45,6 +53,13 @@ export function bandY(band: Band): number {
  * clipped in half.
  */
 export const EDGE_MARGIN = 80;
+
+/**
+ * Clear space either side of the pinned centre. Laterals are spread across
+ * the half-widths, so without this the innermost one sits flush against the
+ * selected node and squeezes its label — CWE-119 puts eleven on one side.
+ */
+export const CENTER_CLEARANCE = 100;
 
 /** Spreads n items evenly across [start, end], centred. */
 function spread(index: number, count: number, start: number, end: number): number {
@@ -70,10 +85,13 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
   // because horizontal position there encodes sequence direction.
   for (const band of [-2, -1, 1] as const) {
     const members = ego.nodes.filter((n) => n.band === band);
+    // The overflow chip lives in the children band and needs a slot of its
+    // own, or it lands on top of the last child.
+    const slots = band === 1 && ego.overflow ? members.length + 1 : members.length;
     members.forEach((node, i) => {
       positioned.set(node.id, {
         ...node,
-        x: spread(i, members.length, EDGE_MARGIN, width - EDGE_MARGIN),
+        x: spread(i, slots, EDGE_MARGIN, width - EDGE_MARGIN),
         y: height * bandY(band),
       });
     });
@@ -83,13 +101,34 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
   const center = ego.nodes.find((n) => n.band === 0 && n.side === 'center');
   if (center) positioned.set(center.id, { ...center, x: width / 2, y: centerY });
 
+  const lateralOverflow: PositionedLateralOverflow[] = [];
   for (const side of ['left', 'right'] as const) {
     const members = ego.nodes.filter((n) => n.band === 0 && n.side === side);
     const [start, end] =
-      side === 'left' ? [EDGE_MARGIN, width / 2] : [width / 2, width - EDGE_MARGIN];
+      side === 'left'
+        ? [EDGE_MARGIN, width / 2 - CENTER_CLEARANCE]
+        : [width / 2 + CENTER_CLEARANCE, width - EDGE_MARGIN];
+
+    const hiddenCount = ego.lateralOverflow?.[side] ?? 0;
+    const slots = hiddenCount > 0 ? members.length + 1 : members.length;
+
+    // The marker takes the slot furthest from the centre, so the relations
+    // that are drawn stay nearest the node they belong to.
+    const markerIndex = side === 'left' ? 0 : slots - 1;
+    const memberIndex = (i: number) => (side === 'left' && hiddenCount > 0 ? i + 1 : i);
+
     members.forEach((node, i) => {
-      positioned.set(node.id, { ...node, x: spread(i, members.length, start, end), y: centerY });
+      positioned.set(node.id, { ...node, x: spread(memberIndex(i), slots, start, end), y: centerY });
     });
+
+    if (hiddenCount > 0) {
+      lateralOverflow.push({
+        side,
+        hiddenCount,
+        x: spread(markerIndex, slots, start, end),
+        y: centerY,
+      });
+    }
   }
 
   const childBandY = height * bandY(1);
@@ -97,6 +136,8 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
   const overflow: PositionedOverflow | null = ego.overflow
     ? {
         ...ego.overflow,
+        // Same denominator the children used above, so the chip takes the
+        // slot after the last of them rather than overlapping it.
         x: spread(childCount, childCount + 1, EDGE_MARGIN, width - EDGE_MARGIN),
         y: childBandY,
       }
@@ -110,5 +151,5 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
     return from && to ? [{ ...edge, path: cubic(from, to) }] : [];
   });
 
-  return { nodes, edges, overflow };
+  return { nodes, edges, overflow, lateralOverflow };
 }
