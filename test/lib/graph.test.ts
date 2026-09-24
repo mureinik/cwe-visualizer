@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildGraph, ancestorsOf, type CweData } from '../../src/lib/graph';
+import { buildGraph, ancestorsOf, countDescendants, type CweData } from '../../src/lib/graph';
 
 const sampleData: CweData = {
   meta: { cweVersion: '4.15', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
@@ -145,5 +145,37 @@ describe('buildGraph roots', () => {
 
   it('ignores explicit root ids that are not in the corpus', () => {
     expect(buildGraph(withDeprecated, { rootIds: ['285', '99999'] }).roots).toEqual(['285']);
+  });
+});
+
+describe('countDescendants', () => {
+  const deep: CweData = {
+    meta: sampleData.meta,
+    nodes: Object.fromEntries(
+      ['1', '2', '3', '4', '5'].map((id) => [
+        id,
+        { id, name: `N${id}`, abstraction: 'Base', status: 'Draft', description: '', url: '' },
+      ])
+    ),
+    edges: [
+      { from: '2', to: '1', type: 'ChildOf' },
+      { from: '3', to: '1', type: 'ChildOf' },
+      { from: '4', to: '2', type: 'ChildOf' },
+      // 5 sits under both 3 and 4 — the hierarchy is a DAG
+      { from: '5', to: '3', type: 'ChildOf' },
+      { from: '5', to: '4', type: 'ChildOf' },
+    ],
+  };
+
+  it('counts every level beneath a node', () => {
+    expect(countDescendants(buildGraph(deep), '1')).toBe(4);
+  });
+
+  it('counts a node reachable by two paths only once', () => {
+    expect(countDescendants(buildGraph(deep), '2')).toBe(2);
+  });
+
+  it('is zero for a leaf', () => {
+    expect(countDescendants(buildGraph(deep), '5')).toBe(0);
   });
 });

@@ -1,0 +1,168 @@
+.landing {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  display: grid;
+  place-items: center;
+  padding: var(--space-5) var(--space-4);
+}
+
+.landing__inner {
+  width: min(64rem, 100%);
+}
+
+.landing__lede {
+  margin: 0 0 var(--space-5);
+  max-width: 48ch;
+  color: var(--text-secondary);
+  font-size: var(--text-lg);
+  line-height: 1.4;
+}
+
+.landing__heading {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.landing__pillars {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+}
+
+.pillar-card {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+
+.pillar-card:hover {
+  border-color: var(--abs-pillar);
+  transform: translateY(-1px);
+}
+
+.pillar-card__id {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/*
+ * Six of the ten pillars begin "Improper", so an ellipsis renders most of
+ * them identical. There is room on a card that there isn't beside a graph
+ * node, so let the name wrap and show it whole.
+ */
+.pillar-card__name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-md);
+  line-height: 1.3;
+}
+
+/* Descendant count — the pillar's weight in the corpus. */
+.pillar-card__count {
+  flex: none;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.landing__hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-md);
+}
+
+/*
+ * A low strip along the bottom rather than a box in the corner: the children
+ * band sits at 82% of the stage height, so a corner box overlaps the
+ * left-most child, while the strip below it costs only its own height.
+ */
+.legend {
+  position: absolute;
+  inset-block-end: var(--space-2);
+  inset-inline-start: var(--space-4);
+  inset-inline-end: var(--space-4);
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.legend__heading {
+  margin: 0;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.legend__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.legend__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.legend__swatch {
+  flex: none;
+  width: 28px;
+}
+
+.legend__swatch--glyph {
+  display: inline-flex;
+  justify-content: center;
+}
+
+/* Stop the strip running under the detail card on a wide screen. */
+@media (min-width: 901px) {
+  .legend {
+    inset-inline-end: calc(24rem + var(--space-6));
+  }
+}
+
+/* No room for it beside a phone-width canvas. */
+@media (max-width: 900px) {
+  .legend {
+    display: none;
+  }
+}

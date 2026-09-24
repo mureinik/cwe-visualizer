@@ -5,6 +5,7 @@ import { EDGE_MARGIN, layoutEgoGraph, type StageSize } from '../lib/layout';
 import { elideSharedPrefix, fitLabel, labelBudget } from '../lib/labels';
 import { GraphEdge } from './GraphEdge';
 import { GraphNode } from './GraphNode';
+import { Legend } from './Legend';
 
 const DEFAULT_STAGE: StageSize = { width: 960, height: 600 };
 
@@ -204,6 +205,7 @@ export function GraphStage({ graph, selectedId, onSelect, onShowChildren, hops }
               </g>
             )}
           </svg>
+          <Legend />
         </>
       )}
     </div>

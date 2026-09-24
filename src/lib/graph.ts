@@ -136,3 +136,21 @@ export function ancestorsOf(graph: Graph, id: string): Set<string> {
   }
   return ancestors;
 }
+
+/**
+ * How many distinct weaknesses sit beneath `id`, at any depth. The hierarchy
+ * is a DAG rather than a tree — 200 entries have more than one parent — so
+ * this counts each descendant once however many paths reach it.
+ */
+export function countDescendants(graph: Graph, id: string): number {
+  const seen = new Set<string>();
+  const queue = [...(graph.childrenOf.get(id) ?? [])];
+  while (queue.length > 0) {
+    const next = queue.shift()!;
+    if (seen.has(next)) continue;
+    seen.add(next);
+    queue.push(...(graph.childrenOf.get(next) ?? []));
+  }
+  seen.delete(id);
+  return seen.size;
+}

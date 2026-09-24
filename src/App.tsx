@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { buildGraph, type CweData, type Graph } from './lib/graph';
 import { TreeDrawer } from './components/TreeDrawer';
 import { GraphStage } from './components/GraphStage';
+import { LandingPanel } from './components/LandingPanel';
 import { NARROW_QUERY, useMediaQuery } from './lib/media';
 import { DetailPanel } from './components/DetailPanel';
 import { AppHeader } from './components/AppHeader';
@@ -65,14 +66,20 @@ export function App() {
         onToggleDrawer={() => setDrawerOpen((open) => !open)}
       />
       <main className="app-stage">
-        <GraphStage
-          graph={state.graph}
-          selectedId={selectedId}
-          onSelect={selectNode}
-          onShowChildren={() => setDrawerOpen(true)}
-          hops={narrow ? 1 : 2}
-        />
-        <DetailPanel graph={state.graph} selectedId={selectedId} onSelect={selectNode} />
+        {selectedId === null ? (
+          <LandingPanel graph={state.graph} onSelect={selectNode} />
+        ) : (
+          <>
+            <GraphStage
+              graph={state.graph}
+              selectedId={selectedId}
+              onSelect={selectNode}
+              onShowChildren={() => setDrawerOpen(true)}
+              hops={narrow ? 1 : 2}
+            />
+            <DetailPanel graph={state.graph} selectedId={selectedId} onSelect={selectNode} />
+          </>
+        )}
         <TreeDrawer
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}

@@ -8,6 +8,7 @@ import './styles/tree.css';
 import './styles/detail.css';
 import './styles/search.css';
 import './styles/graph.css';
+import './styles/landing.css';
 
 const container = document.getElementById('root');
 if (!container) {
