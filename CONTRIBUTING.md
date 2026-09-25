@@ -28,9 +28,13 @@ talks to MITRE at runtime.
 ## Contributing
 
 Every change starts as a GitHub issue, then a branch and a PR that
-references it (`Closes #N`). CI (lint, test, build) must pass, and the PR
-needs a manual review before merge — `main` is a protected branch with no
-bypass. See the design doc for the full rationale, including why the daily
+references it (`Closes #N`). `main` is a protected branch with no bypass,
+admins included: changes land only through a PR, the PR must be up to date
+with `main`, and both CI checks must pass — `build` (lint, test, build) and
+`validate-issue-link` (the PR links an open issue). No approving review is
+required, since GitHub doesn't let authors approve their own PRs and that
+would lock out a sole maintainer; read the diff yourself before merging.
+See the design doc for the full rationale, including why the daily
 data-freshness check (`.github/workflows/update-data.yml`) is exempt from
 this flow: it never commits or pushes anything, so there's nothing for it
 to bypass.
