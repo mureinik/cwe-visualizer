@@ -4,7 +4,7 @@ import { TreeDrawer } from './components/TreeDrawer';
 import { GraphStage } from './components/GraphStage';
 import { LandingPanel } from './components/LandingPanel';
 import { NARROW_QUERY, useMediaQuery } from './lib/media';
-import { DetailPanel } from './components/DetailPanel';
+import { DetailPanel, RELATIONS_ANCHOR_ID } from './components/DetailPanel';
 import { AppHeader } from './components/AppHeader';
 import { Attribution } from './components/Attribution';
 
@@ -85,6 +85,14 @@ export function App() {
               onShowChildren={(parentId) => {
                 setRevealId(parentId);
                 setDrawerOpen(true);
+              }}
+              onShowRelations={() => {
+                // The capped relations are already in the detail card, so
+                // take them there rather than crowding them back onto the
+                // canvas. scrollIntoView is unimplemented in jsdom.
+                document
+                  .getElementById(RELATIONS_ANCHOR_ID)
+                  ?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
               }}
               hops={narrow ? 1 : 2}
             />

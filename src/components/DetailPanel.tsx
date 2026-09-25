@@ -3,6 +3,8 @@ import type { Graph } from '../lib/graph';
 import { RELATION_GROUPS, relationGroup, type RelationGroup } from '../lib/relations';
 import { Glyph } from './Glyph';
 
+export const RELATIONS_ANCHOR_ID = 'detail-relations';
+
 interface DetailPanelProps {
   graph: Graph;
   selectedId: string | null;
@@ -127,7 +129,12 @@ export function DetailPanel({ graph, selectedId, onSelect }: DetailPanelProps) {
         View on cwe.mitre.org
       </a>
 
-      {sections.map((section) => (
+      {/*
+        Scroll target for the graph's lateral "+N more" marker: the relations
+        it stands for are all listed here.
+      */}
+      <div id={RELATIONS_ANCHOR_ID} className="detail-panel__relations">
+        {sections.map((section) => (
         <section key={section.label} className="relation-section">
           <h3 className="relation-section__heading">
             {section.label} ({section.entries.length})
@@ -142,8 +149,9 @@ export function DetailPanel({ graph, selectedId, onSelect }: DetailPanelProps) {
               />
             ))}
           </ul>
-        </section>
-      ))}
+          </section>
+        ))}
+      </div>
     </div>
   );
 }

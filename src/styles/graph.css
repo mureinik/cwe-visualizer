@@ -103,19 +103,6 @@
   fill: var(--text);
 }
 
-/*
- * Not a control: the capped relations are all listed in the detail card, so
- * this only reports that the row was trimmed.
- */
-.graph-lateral-overflow {
-  fill: var(--text-muted);
-  font-size: var(--text-xs);
-  paint-order: stroke;
-  stroke: var(--bg);
-  stroke-width: 3;
-  stroke-linejoin: round;
-}
-
 .graph-overflow {
   cursor: pointer;
 }

@@ -14,6 +14,9 @@ interface GraphStageProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   onShowChildren: (parentId: string) => void;
+  /** Invoked by the lateral "+N more" marker, which stands for relations
+   *  the detail card already lists in full. */
+  onShowRelations: () => void;
   hops: number;
 }
 
@@ -48,7 +51,14 @@ function describeNode(graph: Graph, id: string): string {
   return `CWE-${id}: ${node.name}. ${node.abstraction}, ${node.status}. ${parentText}, ${childText}.`;
 }
 
-export function GraphStage({ graph, selectedId, onSelect, onShowChildren, hops }: GraphStageProps) {
+export function GraphStage({
+  graph,
+  selectedId,
+  onSelect,
+  onShowChildren,
+  onShowRelations,
+  hops,
+}: GraphStageProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const size = useStageSize(stageRef);
@@ -203,18 +213,26 @@ export function GraphStage({ graph, selectedId, onSelect, onShowChildren, hops }
               />
             ))}
             {layout.lateralOverflow.map((marker) => (
-              <text
+              <g
                 key={marker.side}
-                className="graph-lateral-overflow"
-                x={marker.x}
-                y={marker.y + 4}
-                textAnchor="middle"
+                className="graph-overflow"
+                transform={`translate(${marker.x} ${marker.y})`}
+                role="button"
+                tabIndex={0}
+                aria-label={`Show ${marker.hiddenCount} more related weaknesses`}
+                onClick={onShowRelations}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onShowRelations();
+                  }
+                }}
               >
-                <title>
-                  {`${marker.hiddenCount} more related weaknesses — listed in the detail card`}
-                </title>
-                +{marker.hiddenCount} more
-              </text>
+                <rect x={-34} y={-12} width={68} height={24} rx={12} />
+                <text textAnchor="middle" y={4}>
+                  +{marker.hiddenCount} more
+                </text>
+              </g>
             ))}
             {layout.overflow && (
               <g
