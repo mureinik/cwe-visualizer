@@ -11,12 +11,29 @@ jobs:
   check-and-deploy:
     runs-on: ubuntu-24.04
     steps:
+      - name: Check that the deployment is configured
+        env:
+          DEPLOYED_SITE_URL: ${{ vars.DEPLOYED_SITE_URL }}
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          missing=0
+          if [ -z "$DEPLOYED_SITE_URL" ]; then
+            echo "::error::Repository variable DEPLOYED_SITE_URL is not set (the deployed site's origin, e.g. https://cwe-visualizer.vercel.app)."
+            missing=1
+          fi
+          if [ -z "$VERCEL_DEPLOY_HOOK_URL" ]; then
+            echo "::error::Repository secret VERCEL_DEPLOY_HOOK_URL is not set (the Vercel deploy hook URL for main)."
+            missing=1
+          fi
+          exit "$missing"
       - name: Compare upstream and deployed CWE data versions
         id: check
+        env:
+          DEPLOYED_SITE_URL: ${{ vars.DEPLOYED_SITE_URL }}
         run: |
           set -euo pipefail
           SOURCE_LAST_MODIFIED=$(curl -sI 'https://cwe.mitre.org/data/xml/cwec_latest.xml.zip' | tr -d '\r' | grep -i '^last-modified:' | sed -E 's/^[^:]*: *//')
-          DEPLOYED_LAST_MODIFIED=$(curl -sf '${{ vars.DEPLOYED_SITE_URL }}/data/meta.json' | jq -r '.meta.lastModified')
+          DEPLOYED_LAST_MODIFIED=$(curl -sf "$DEPLOYED_SITE_URL/data/meta.json" | jq -r '.meta.lastModified')
           echo "Upstream Last-Modified: $SOURCE_LAST_MODIFIED"
           echo "Deployed Last-Modified: $DEPLOYED_LAST_MODIFIED"
           if [ "$SOURCE_LAST_MODIFIED" = "$DEPLOYED_LAST_MODIFIED" ]; then
