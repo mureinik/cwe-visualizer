@@ -1,7 +1,14 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
-import './index.css';
+import './styles/tokens.css';
+import './styles/base.css';
+import './styles/app.css';
+import './styles/tree.css';
+import './styles/detail.css';
+import './styles/search.css';
+import './styles/graph.css';
+import './styles/landing.css';
 
 const container = document.getElementById('root');
 if (!container) {

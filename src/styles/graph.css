@@ -1,0 +1,118 @@
+.graph-stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+/*
+ * The detail card floats over the stage's right-hand side, so the graph must
+ * not lay out underneath it. ResizeObserver reports the *content* box, so
+ * padding here shrinks the width the layout is given — which is what keeps
+ * the widest pillar's children, and its overflow chip, out from behind the
+ * card.
+ */
+@media (min-width: 901px) {
+  .graph-stage {
+    padding-inline-end: calc(24rem + var(--space-6));
+  }
+}
+
+/*
+ * Same reasoning below the breakpoint, in the other axis: the sheet peeks
+ * over the bottom of the stage, so the layout must be handed a shorter one
+ * or the children band is drawn underneath it.
+ */
+@media (max-width: 900px) {
+  .graph-stage {
+    padding-block-end: 34dvh;
+  }
+}
+
+.graph-stage__canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.graph-stage__empty,
+.graph-stage__note {
+  position: absolute;
+  inset-block-start: var(--space-4);
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-md);
+}
+
+.graph-node {
+  cursor: pointer;
+}
+
+.graph-node__halo {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 2;
+}
+
+.graph-node__id,
+.graph-node__name {
+  /* Knock the background out from behind the glyphs so a label crossing an
+     edge stays readable instead of being struck through by it. */
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.graph-node__id {
+  fill: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.graph-node__name {
+  fill: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.graph-node {
+  transition:
+    transform var(--dur) var(--ease),
+    opacity var(--dur-fast) var(--ease);
+}
+
+.graph-edge-group {
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.graph-node--dimmed,
+.graph-edge-group--dimmed {
+  opacity: 0.25;
+}
+
+.graph-edge__label {
+  fill: var(--text-muted);
+  font-size: var(--text-xs);
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 3;
+}
+
+.graph-node:hover .graph-node__name {
+  fill: var(--text);
+}
+
+.graph-overflow {
+  cursor: pointer;
+}
+
+.graph-overflow rect {
+  fill: var(--surface);
+  stroke: var(--border);
+}
+
+.graph-overflow text {
+  fill: var(--text-secondary);
+  font-size: var(--text-xs);
+}

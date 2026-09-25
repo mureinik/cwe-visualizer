@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildGraph, ancestorsOf, searchNodes, type CweData } from '../../src/lib/graph';
+import { buildGraph, ancestorsOf, countDescendants, type CweData } from '../../src/lib/graph';
 
 const sampleData: CweData = {
   meta: { cweVersion: '4.15', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
@@ -106,18 +106,110 @@ describe('ancestorsOf', () => {
   });
 });
 
-describe('searchNodes', () => {
-  const graph = buildGraph(sampleData);
+describe('buildGraph roots', () => {
+  const withDeprecated: CweData = {
+    meta: sampleData.meta,
+    nodes: {
+      '284': { id: '284', name: 'Improper Access Control', abstraction: 'Pillar', status: 'Draft', description: '', url: '' },
+      '285': { id: '285', name: 'Improper Authorization', abstraction: 'Class', status: 'Draft', description: '', url: '' },
+      '71': { id: '71', name: "DEPRECATED: Apple '.DS_Store'", abstraction: 'Variant', status: 'Deprecated', description: '', url: '' },
+    },
+    edges: [{ from: '285', to: '284', type: 'ChildOf' }],
+  };
 
-  it('matches by id substring', () => {
-    expect(searchNodes(graph, '89').map((n) => n.id)).toEqual(['89']);
+  it('keeps live parentless nodes in roots', () => {
+    expect(buildGraph(withDeprecated).roots).toEqual(['284']);
   });
 
-  it('matches by name substring, case-insensitively', () => {
-    expect(searchNodes(graph, 'injection').map((n) => n.id).sort()).toEqual(['74', '89']);
+  it('moves parentless deprecated nodes into deprecatedRoots', () => {
+    expect(buildGraph(withDeprecated).deprecatedRoots).toEqual(['71']);
   });
 
-  it('returns an empty array for a blank query', () => {
-    expect(searchNodes(graph, '   ')).toEqual([]);
+  it('sorts both root lists numerically', () => {
+    const data: CweData = {
+      meta: sampleData.meta,
+      nodes: {
+        '1000': { id: '1000', name: 'A', abstraction: 'Pillar', status: 'Draft', description: '', url: '' },
+        '99': { id: '99', name: 'B', abstraction: 'Pillar', status: 'Draft', description: '', url: '' },
+      },
+      edges: [],
+    };
+    expect(buildGraph(data).roots).toEqual(['99', '1000']);
+  });
+
+  it('accepts an explicit root set, which a view would supply', () => {
+    const graph = buildGraph(withDeprecated, { rootIds: ['285'] });
+    expect(graph.roots).toEqual(['285']);
+    expect(graph.deprecatedRoots).toEqual([]);
+  });
+
+  it('ignores explicit root ids that are not in the corpus', () => {
+    expect(buildGraph(withDeprecated, { rootIds: ['285', '99999'] }).roots).toEqual(['285']);
+  });
+});
+
+describe('countDescendants', () => {
+  const deep: CweData = {
+    meta: sampleData.meta,
+    nodes: Object.fromEntries(
+      ['1', '2', '3', '4', '5'].map((id) => [
+        id,
+        { id, name: `N${id}`, abstraction: 'Base', status: 'Draft', description: '', url: '' },
+      ])
+    ),
+    edges: [
+      { from: '2', to: '1', type: 'ChildOf' },
+      { from: '3', to: '1', type: 'ChildOf' },
+      { from: '4', to: '2', type: 'ChildOf' },
+      // 5 sits under both 3 and 4 — the hierarchy is a DAG
+      { from: '5', to: '3', type: 'ChildOf' },
+      { from: '5', to: '4', type: 'ChildOf' },
+    ],
+  };
+
+  it('counts every level beneath a node', () => {
+    expect(countDescendants(buildGraph(deep), '1')).toBe(4);
+  });
+
+  it('counts a node reachable by two paths only once', () => {
+    expect(countDescendants(buildGraph(deep), '2')).toBe(2);
+  });
+
+  it('is zero for a leaf', () => {
+    expect(countDescendants(buildGraph(deep), '5')).toBe(0);
+  });
+});
+
+describe('buildGraph relation de-duplication', () => {
+  it('records a relation once even when MITRE states it from both ends', () => {
+    const reciprocal: CweData = {
+      meta: sampleData.meta,
+      nodes: {
+        '257': { id: '257', name: 'A', abstraction: 'Base', status: 'Draft', description: '', url: '' },
+        '259': { id: '259', name: 'B', abstraction: 'Base', status: 'Draft', description: '', url: '' },
+      },
+      edges: [
+        { from: '257', to: '259', type: 'PeerOf' },
+        { from: '259', to: '257', type: 'PeerOf' },
+      ],
+    };
+    const graph = buildGraph(reciprocal);
+    expect(graph.relatedTo.get('257')).toEqual([{ from: '257', to: '259', type: 'PeerOf' }]);
+    expect(graph.relatedTo.get('259')).toEqual([{ from: '259', to: '257', type: 'PeerOf' }]);
+  });
+
+  it('still keeps two genuinely different relations between the same pair', () => {
+    const twoKinds: CweData = {
+      meta: sampleData.meta,
+      nodes: {
+        '1': { id: '1', name: 'A', abstraction: 'Base', status: 'Draft', description: '', url: '' },
+        '2': { id: '2', name: 'B', abstraction: 'Base', status: 'Draft', description: '', url: '' },
+      },
+      edges: [
+        { from: '1', to: '2', type: 'PeerOf' },
+        { from: '1', to: '2', type: 'CanPrecede' },
+      ],
+    };
+    expect(buildGraph(twoKinds).relatedTo.get('1')).toHaveLength(2);
   });
 });

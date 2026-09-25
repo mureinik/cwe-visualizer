@@ -11,6 +11,8 @@ export interface CweEdge {
   from: string;
   to: string;
   type: string;
+  /** See the matching comment in scripts/prepare-data.ts. */
+  viewId?: string;
 }
 
 export interface CweMeta {
@@ -31,8 +33,24 @@ export interface Graph {
   childrenOf: Map<string, string[]>;
   parentsOf: Map<string, string[]>;
   relatedTo: Map<string, CweEdge[]>;
+  /** Top-level entries to display. Deprecated orphans are not here. */
   roots: string[];
+  /**
+   * Parentless entries MITRE has deprecated. Kept separate so they can be
+   * shown in one collapsed group instead of interleaved by ID at the top of
+   * the tree, which is what they do today.
+   */
+  deprecatedRoots: string[];
   all: CweNode[];
+}
+
+export interface BuildGraphOptions {
+  /**
+   * Declared top-level entries. A view supplies its members here; with no
+   * options, roots are derived as "has no parent", which is what the
+   * Research Concepts hierarchy amounts to.
+   */
+  rootIds?: string[];
 }
 
 // MITRE's source XML encodes most non-hierarchy relations one-sided (only on
@@ -63,7 +81,7 @@ function addUnique(map: Map<string, string[]>, key: string, value: string) {
   }
 }
 
-export function buildGraph(data: CweData): Graph {
+export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
   const childrenOf = new Map<string, string[]>();
   const parentsOf = new Map<string, string[]>();
   const relatedTo = new Map<string, CweEdge[]>();
@@ -74,6 +92,21 @@ export function buildGraph(data: CweData): Graph {
     relatedTo.set(id, []);
   }
 
+  // MITRE states some relations from both ends, and buildGraph also
+  // synthesizes the missing direction of one-sided ones — so without this the
+  // same relation can be recorded twice, byte for byte, on the same node.
+  const relatedSeen = new Map<string, Set<string>>();
+  function addRelated(id: string, edge: CweEdge) {
+    const list = relatedTo.get(id);
+    if (!list) return;
+    const seen = relatedSeen.get(id) ?? new Set<string>();
+    const key = `${edge.to}|${edge.type}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    relatedSeen.set(id, seen);
+    list.push(edge);
+  }
+
   for (const edge of data.edges) {
     if (edge.type === 'ChildOf') {
       addUnique(childrenOf, edge.to, edge.from);
@@ -82,18 +115,31 @@ export function buildGraph(data: CweData): Graph {
       addUnique(childrenOf, edge.from, edge.to);
       addUnique(parentsOf, edge.to, edge.from);
     } else {
-      relatedTo.get(edge.from)?.push(edge);
-      relatedTo.get(edge.to)?.push({ from: edge.to, to: edge.from, type: inverseNature(edge.type) });
+      addRelated(edge.from, edge);
+      const inverse: CweEdge = { from: edge.to, to: edge.from, type: inverseNature(edge.type) };
+      if (edge.viewId !== undefined) inverse.viewId = edge.viewId;
+      addRelated(edge.to, inverse);
     }
   }
 
-  const roots = Object.keys(data.nodes)
-    .filter((id) => (parentsOf.get(id) ?? []).length === 0)
-    .sort((a, b) => Number(a) - Number(b));
+  const byId = (a: string, b: string) => Number(a) - Number(b);
+  const isDeprecated = (id: string) => data.nodes[id]?.status === 'Deprecated';
+
+  let roots: string[];
+  let deprecatedRoots: string[];
+
+  if (options?.rootIds) {
+    roots = options.rootIds.filter((id) => id in data.nodes).sort(byId);
+    deprecatedRoots = [];
+  } else {
+    const parentless = Object.keys(data.nodes).filter((id) => (parentsOf.get(id) ?? []).length === 0);
+    roots = parentless.filter((id) => !isDeprecated(id)).sort(byId);
+    deprecatedRoots = parentless.filter(isDeprecated).sort(byId);
+  }
 
   const all = Object.values(data.nodes).sort((a, b) => Number(a.id) - Number(b.id));
 
-  return { meta: data.meta, nodes: data.nodes, childrenOf, parentsOf, relatedTo, roots, all };
+  return { meta: data.meta, nodes: data.nodes, childrenOf, parentsOf, relatedTo, roots, deprecatedRoots, all };
 }
 
 export function ancestorsOf(graph: Graph, id: string): Set<string> {
@@ -108,10 +154,20 @@ export function ancestorsOf(graph: Graph, id: string): Set<string> {
   return ancestors;
 }
 
-export function searchNodes(graph: Graph, query: string): CweNode[] {
-  const trimmed = query.trim().toLowerCase();
-  if (trimmed === '') return [];
-  return graph.all.filter(
-    (node) => node.id.includes(trimmed) || node.name.toLowerCase().includes(trimmed)
-  );
+/**
+ * How many distinct weaknesses sit beneath `id`, at any depth. The hierarchy
+ * is a DAG rather than a tree — 200 entries have more than one parent — so
+ * this counts each descendant once however many paths reach it.
+ */
+export function countDescendants(graph: Graph, id: string): number {
+  const seen = new Set<string>();
+  const queue = [...(graph.childrenOf.get(id) ?? [])];
+  while (queue.length > 0) {
+    const next = queue.shift()!;
+    if (seen.has(next)) continue;
+    seen.add(next);
+    queue.push(...(graph.childrenOf.get(next) ?? []));
+  }
+  seen.delete(id);
+  return seen.size;
 }

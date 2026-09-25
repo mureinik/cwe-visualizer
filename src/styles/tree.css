@@ -1,0 +1,128 @@
+.tree,
+.tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tree ul {
+  margin-left: var(--space-4);
+  border-left: 1px solid var(--border);
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+
+.tree-row--selected {
+  background: var(--surface-raised);
+  outline: 1px solid var(--border-strong);
+}
+
+.tree-toggle,
+.tree-label {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: var(--space-1);
+  text-align: left;
+}
+
+.tree-toggle,
+.tree-toggle-spacer {
+  flex: none;
+  width: 1.5rem;
+  color: var(--text-muted);
+}
+
+.tree-row--group .tree-toggle {
+  width: auto;
+  font-size: var(--text-sm);
+}
+
+.tree-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  flex: 1;
+}
+
+.tree-label:hover {
+  background: var(--surface);
+}
+
+.tree-label__id {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  flex: none;
+}
+
+.tree-label__name {
+  font-size: var(--text-md);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-label--deprecated .tree-label__name {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.tree-row__multi {
+  flex: none;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 40%);
+  z-index: 1;
+}
+
+.drawer {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: min(22rem, 85vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-inline-end: 1px solid var(--border);
+  z-index: 2;
+}
+
+.drawer__header {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-2);
+}
+
+.drawer__close {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: inherit;
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+}
+
+.drawer__body {
+  overflow: auto;
+  padding: var(--space-2);
+}
+
+@media (max-width: 900px) {
+  .drawer {
+    width: 100%;
+  }
+}

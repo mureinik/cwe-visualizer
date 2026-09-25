@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { App } from '../src/App';
 
 const sampleData = {
@@ -27,10 +28,11 @@ describe('App', () => {
     expect(screen.getByText('Loading CWE data…')).toBeInTheDocument();
   });
 
-  it('renders the header and tree once data has loaded', async () => {
+  it('renders the header, and the tree once the drawer is opened', async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByText('CWE-74: Injection')).toBeInTheDocument());
-    expect(screen.getByRole('heading', { name: 'CWE Visualizer' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'CWE Visualizer' })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: 'Weakness tree' }));
+    expect(screen.getByRole('button', { name: 'CWE-74: Injection' })).toBeInTheDocument();
   });
 
   it('credits MITRE for the CWE content once data has loaded', async () => {
@@ -43,6 +45,24 @@ describe('App', () => {
       'href',
       'https://cwe.mitre.org/about/termsofuse.html'
     );
+  });
+
+  it('still renders the shell when the viewport reports as narrow', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+    );
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'CWE Visualizer' })).toBeInTheDocument());
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+  });
+
+  it('opens the tree from the hamburger named in the landing text', async () => {
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'CWE Visualizer' })).toBeInTheDocument());
+    expect(screen.queryByRole('tree')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Browse the full tree' }));
+    expect(screen.getByRole('tree')).toBeInTheDocument();
   });
 
   it('shows an error message when the fetch fails', async () => {

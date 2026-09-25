@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import type { Graph } from '../lib/graph';
 import { ancestorsOf } from '../lib/graph';
+import { Glyph } from './Glyph';
 
 interface TreeProps {
   graph: Graph;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** Opened to this node and its ancestors, so its children are on screen. */
+  revealId?: string | null;
 }
 
-export function Tree({ graph, selectedId, onSelect }: TreeProps) {
+export function Tree({ graph, selectedId, onSelect, revealId = null }: TreeProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   // Nodes the user has explicitly collapsed. This is what lets a manual
   // toggle override the auto-expand-ancestors behavior below: without it, an
@@ -16,6 +19,7 @@ export function Tree({ graph, selectedId, onSelect }: TreeProps) {
   // since effectiveExpanded would keep re-adding it via ancestorsOf on every
   // render regardless of what `expanded` said.
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [showDeprecated, setShowDeprecated] = useState(false);
 
   // Ancestors of the current selection are always treated as expanded, in
   // addition to whatever the user has manually toggled open — unless the
@@ -23,8 +27,11 @@ export function Tree({ graph, selectedId, onSelect }: TreeProps) {
   // synced into state via an effect) to avoid the extra render pass a
   // setState-in-effect would trigger.
   const ancestors = selectedId ? ancestorsOf(graph, selectedId) : new Set<string>();
+  // ancestorsOf excludes the node itself, so revealing a node's children means
+  // expanding the node as well as the path down to it.
+  const revealed = revealId ? [revealId, ...ancestorsOf(graph, revealId)] : [];
   const effectiveExpanded = new Set(
-    [...expanded, ...ancestors].filter((id) => !collapsed.has(id))
+    [...expanded, ...ancestors, ...revealed].filter((id) => !collapsed.has(id))
   );
 
   function toggle(id: string) {
@@ -62,6 +69,36 @@ export function Tree({ graph, selectedId, onSelect }: TreeProps) {
           ancestry={new Set()}
         />
       ))}
+      {graph.deprecatedRoots.length > 0 && (
+        <li role="treeitem" aria-expanded={showDeprecated}>
+          <div className="tree-row tree-row--group">
+            <button
+              type="button"
+              className="tree-toggle"
+              onClick={() => setShowDeprecated((open) => !open)}
+              aria-label={`Deprecated (${graph.deprecatedRoots.length})`}
+            >
+              {showDeprecated ? '▾' : '▸'} Deprecated ({graph.deprecatedRoots.length})
+            </button>
+          </div>
+          {showDeprecated && (
+            <ul role="group">
+              {graph.deprecatedRoots.map((id) => (
+                <TreeNode
+                  key={id}
+                  id={id}
+                  graph={graph}
+                  expanded={effectiveExpanded}
+                  selectedId={selectedId}
+                  onToggle={toggle}
+                  onSelect={onSelect}
+                  ancestry={new Set()}
+                />
+              ))}
+            </ul>
+          )}
+        </li>
+      )}
     </ul>
   );
 }
@@ -91,6 +128,9 @@ function TreeNode({ id, graph, expanded, selectedId, onToggle, onSelect, ancestr
   const childAncestry = new Set(ancestry);
   childAncestry.add(id);
 
+  const parentCount = (graph.parentsOf.get(id) ?? []).length;
+  const deprecated = node.status === 'Deprecated';
+
   return (
     <li role="treeitem" aria-expanded={children.length > 0 ? isExpanded : undefined}>
       <div className={`tree-row${isSelected ? ' tree-row--selected' : ''}`}>
@@ -106,9 +146,24 @@ function TreeNode({ id, graph, expanded, selectedId, onToggle, onSelect, ancestr
         ) : (
           <span className="tree-toggle-spacer" />
         )}
-        <button type="button" className="tree-label" onClick={() => onSelect(id)}>
-          CWE-{id}: {node.name}
+        <button
+          type="button"
+          className={`tree-label${deprecated ? ' tree-label--deprecated' : ''}`}
+          onClick={() => onSelect(id)}
+          aria-label={`CWE-${id}: ${node.name}`}
+        >
+          <Glyph abstraction={node.abstraction} size={14} deprecated={deprecated} />
+          <span className="tree-label__id">CWE-{id}</span>
+          <span className="tree-label__name">{node.name}</span>
         </button>
+        {parentCount > 1 && (
+          <span
+            className="tree-row__multi"
+            aria-label={`CWE-${id} also appears under ${parentCount - 1} other parent`}
+          >
+            ⧉
+          </span>
+        )}
       </div>
       {isExpanded && children.length > 0 && (
         <ul role="group">

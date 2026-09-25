@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { buildGraph, type CweData, type Graph } from './lib/graph';
-import { Tree } from './components/Tree';
-import { SearchBox } from './components/SearchBox';
-import { DetailPanel } from './components/DetailPanel';
+import { TreeDrawer } from './components/TreeDrawer';
+import { GraphStage } from './components/GraphStage';
+import { LandingPanel } from './components/LandingPanel';
+import { NARROW_QUERY, useMediaQuery } from './lib/media';
+import { DetailPanel, RELATIONS_ANCHOR_ID } from './components/DetailPanel';
+import { AppHeader } from './components/AppHeader';
+import { Attribution } from './components/Attribution';
 
 type LoadState =
   | { status: 'loading' }
@@ -13,29 +17,12 @@ function readSelectedIdFromUrl(): string | null {
   return new URLSearchParams(window.location.search).get('cwe');
 }
 
-function Attribution() {
-  return (
-    <footer className="app-footer">
-      CWE content is not original to this project. Copyright © 2006–2026,{' '}
-      <a href="https://www.mitre.org/" target="_blank" rel="noreferrer">
-        The MITRE Corporation
-      </a>
-      ; CWE is a trademark of The MITRE Corporation, reproduced here under its{' '}
-      <a href="https://cwe.mitre.org/about/termsofuse.html" target="_blank" rel="noreferrer">
-        Terms of Use
-      </a>
-      . This project is not affiliated with or endorsed by MITRE —{' '}
-      <a href="https://cwe.mitre.org/" target="_blank" rel="noreferrer">
-        cwe.mitre.org
-      </a>{' '}
-      is authoritative.
-    </footer>
-  );
-}
-
 export function App() {
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [selectedId, setSelectedId] = useState<string | null>(() => readSelectedIdFromUrl());
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [revealId, setRevealId] = useState<string | null>(null);
+  const narrow = useMediaQuery(NARROW_QUERY);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,13 +60,53 @@ export function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>CWE Visualizer</h1>
-        <SearchBox graph={state.graph} onSelect={selectNode} />
-      </header>
-      <main className="app-main">
-        <Tree graph={state.graph} selectedId={selectedId} onSelect={selectNode} />
-        <DetailPanel graph={state.graph} selectedId={selectedId} onSelect={selectNode} />
+      <AppHeader
+        graph={state.graph}
+        onSelect={selectNode}
+        drawerOpen={drawerOpen}
+        onToggleDrawer={() => setDrawerOpen((open) => !open)}
+      />
+      <main className="app-stage">
+        {selectedId === null ? (
+          <LandingPanel
+            graph={state.graph}
+            onSelect={selectNode}
+            onOpenTree={() => {
+              setRevealId(null);
+              setDrawerOpen(true);
+            }}
+          />
+        ) : (
+          <>
+            <GraphStage
+              graph={state.graph}
+              selectedId={selectedId}
+              onSelect={selectNode}
+              onShowChildren={(parentId) => {
+                setRevealId(parentId);
+                setDrawerOpen(true);
+              }}
+              onShowRelations={() => {
+                // The capped relations are already in the detail card, so
+                // take them there rather than crowding them back onto the
+                // canvas. scrollIntoView is unimplemented in jsdom.
+                document
+                  .getElementById(RELATIONS_ANCHOR_ID)
+                  ?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+              }}
+              hops={narrow ? 1 : 2}
+            />
+            <DetailPanel graph={state.graph} selectedId={selectedId} onSelect={selectNode} />
+          </>
+        )}
+        <TreeDrawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          graph={state.graph}
+          selectedId={selectedId}
+          onSelect={selectNode}
+          revealId={revealId}
+        />
       </main>
       <Attribution />
     </div>
