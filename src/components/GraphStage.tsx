@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Graph } from '../lib/graph';
 import { buildEgoGraph } from '../lib/ego';
-import { EDGE_MARGIN, layoutEgoGraph, type StageSize } from '../lib/layout';
+import { childCapFor, edgeMargin, layoutEgoGraph, type StageSize } from '../lib/layout';
 import { elideSharedPrefix, fitLabel, labelBudget } from '../lib/labels';
 import { GraphEdge } from './GraphEdge';
 import { GraphNode } from './GraphNode';
 import { Legend } from './Legend';
 
 const DEFAULT_STAGE: StageSize = { width: 960, height: 600 };
+
+/** Children drawn before the rest collapse into the overflow chip, where the stage has room. */
+const CHILD_CAP = 10;
 
 interface GraphStageProps {
   graph: Graph;
@@ -63,9 +66,12 @@ export function GraphStage({
   const [hovered, setHovered] = useState<string | null>(null);
   const size = useStageSize(stageRef);
 
+  // A phone has room for far fewer children than a desktop, and ten packed
+  // into it overlap; the chip still offers the rest.
+  const childCap = childCapFor(size.width, CHILD_CAP);
   const ego = useMemo(
-    () => (selectedId ? buildEgoGraph(graph, selectedId, { ancestorHops: hops }) : null),
-    [graph, selectedId, hops]
+    () => (selectedId ? buildEgoGraph(graph, selectedId, { ancestorHops: hops, childCap }) : null),
+    [graph, selectedId, hops, childCap]
   );
   const layout = useMemo(() => (ego ? layoutEgoGraph(ego, size) : null), [ego, size]);
 
@@ -81,7 +87,7 @@ export function GraphStage({
     const compact = new Map<string, boolean>();
     if (!layout) return { names: result, compact };
 
-    const usable = Math.max(0, size.width - 2 * EDGE_MARGIN);
+    const usable = Math.max(0, size.width - 2 * edgeMargin(size.width));
     for (const band of [-2, -1, 0, 1] as const) {
       const members = layout.nodes.filter((n) => n.band === band);
       if (members.length === 0) continue;
@@ -195,7 +201,10 @@ export function GraphStage({
             {layout.edges.map((edge) => {
               const key = `${edge.from}-${edge.to}-${edge.type}`;
               const lit = !incident || incident.edges.has(key);
-              return <GraphEdge key={key} edge={edge} dimmed={!lit} label={incident && lit ? edge.type : null} />;
+              // Every edge meets the centre, so labelling them all when it is
+              // active stacks the labels on top of one another around it.
+              const labelled = incident && lit && active !== ego?.centerId;
+              return <GraphEdge key={key} edge={edge} dimmed={!lit} label={labelled ? edge.type : null} />;
             })}
             {layout.nodes.map((node) => (
               <GraphNode

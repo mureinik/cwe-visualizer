@@ -49,6 +49,17 @@
   cursor: pointer;
 }
 
+/*
+ * A tap focuses the node it lands on, and mobile browsers outline a focused
+ * SVG group even when it isn't :focus-visible — a box around the node and
+ * its label that stays after the node re-centres. Keyboard focus still gets
+ * the :focus-visible ring from base.css.
+ */
+.graph-node:focus:not(:focus-visible),
+.graph-overflow:focus:not(:focus-visible) {
+  outline: none;
+}
+
 .graph-node__halo {
   fill: none;
   stroke: var(--border-strong);

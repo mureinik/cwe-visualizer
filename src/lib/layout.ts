@@ -55,6 +55,31 @@ export function bandY(band: Band): number {
 export const EDGE_MARGIN = 80;
 
 /**
+ * The margin actually used on a stage this wide. On a phone the full
+ * EDGE_MARGIN would spend 40% of the width on blank space, and each node
+ * only needs half its own slot clear of the edge.
+ */
+export function edgeMargin(width: number): number {
+  return Math.min(EDGE_MARGIN, width * 0.1);
+}
+
+/**
+ * The narrowest slot a child can have and stay legible: its glyph, a
+ * four-digit bare id beneath it, and a gutter to the next one.
+ */
+export const MIN_CHILD_SLOT = 44;
+
+/**
+ * How many children fit across a stage this wide, never more than `max`.
+ * One slot is held back for the overflow chip, since a cap that engages
+ * always brings one.
+ */
+export function childCapFor(width: number, max: number): number {
+  const slots = Math.floor((width - 2 * edgeMargin(width)) / MIN_CHILD_SLOT);
+  return Math.max(1, Math.min(max, slots - 1));
+}
+
+/**
  * Clear space either side of the pinned centre. Laterals are spread across
  * the half-widths, so without this the innermost one sits flush against the
  * selected node and squeezes its label — CWE-119 puts eleven on one side.
@@ -78,7 +103,17 @@ function cubic(from: PositionedNode | PositionedOverflow, to: PositionedNode): s
 
 export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
   const { width, height } = size;
+  const margin = edgeMargin(width);
   const positioned = new Map<string, PositionedNode>();
+
+  // A band nobody is on still reserves its row, and the narrow layout never
+  // has grandparents — so rescale from the topmost populated band, keeping
+  // the children band fixed, rather than leave the top third of a phone
+  // blank while the bands below crowd each other's labels.
+  const topBand = ego.nodes.reduce<Band>((top, n) => (n.band < top ? n.band : top), 0);
+  const [first, last] = [bandY(-2), bandY(1)];
+  const scale = (last - first) / (last - bandY(topBand));
+  const yOf = (band: Band) => height * (first + (bandY(band) - bandY(topBand)) * scale);
 
   // Bands -2, -1 and 1 distribute across the full width. Band 0 is special:
   // the centre is pinned mid-stage, and laterals fill the halves either side,
@@ -91,13 +126,13 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
     members.forEach((node, i) => {
       positioned.set(node.id, {
         ...node,
-        x: spread(i, slots, EDGE_MARGIN, width - EDGE_MARGIN),
-        y: height * bandY(band),
+        x: spread(i, slots, margin, width - margin),
+        y: yOf(band),
       });
     });
   }
 
-  const centerY = height * bandY(0);
+  const centerY = yOf(0);
   const center = ego.nodes.find((n) => n.band === 0 && n.side === 'center');
   if (center) positioned.set(center.id, { ...center, x: width / 2, y: centerY });
 
@@ -106,8 +141,8 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
     const members = ego.nodes.filter((n) => n.band === 0 && n.side === side);
     const [start, end] =
       side === 'left'
-        ? [EDGE_MARGIN, width / 2 - CENTER_CLEARANCE]
-        : [width / 2 + CENTER_CLEARANCE, width - EDGE_MARGIN];
+        ? [margin, width / 2 - CENTER_CLEARANCE]
+        : [width / 2 + CENTER_CLEARANCE, width - margin];
 
     const hiddenCount = ego.lateralOverflow?.[side] ?? 0;
     const slots = hiddenCount > 0 ? members.length + 1 : members.length;
@@ -131,14 +166,14 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
     }
   }
 
-  const childBandY = height * bandY(1);
+  const childBandY = yOf(1);
   const childCount = ego.nodes.filter((n) => n.band === 1).length;
   const overflow: PositionedOverflow | null = ego.overflow
     ? {
         ...ego.overflow,
         // Same denominator the children used above, so the chip takes the
         // slot after the last of them rather than overlapping it.
-        x: spread(childCount, childCount + 1, EDGE_MARGIN, width - EDGE_MARGIN),
+        x: spread(childCount, childCount + 1, margin, width - margin),
         y: childBandY,
       }
     : null;

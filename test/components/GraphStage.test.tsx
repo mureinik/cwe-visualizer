@@ -131,6 +131,17 @@ describe('GraphStage highlighting', () => {
     expect(container.querySelectorAll('.graph-edge__label').length).toBeGreaterThan(0);
   });
 
+  it('labels no edges when the centre itself is hovered', async () => {
+    // Every edge on the stage meets the centre, so labelling them all piles
+    // one label per edge on top of each other around it. On a phone this is
+    // the resting state: the node just tapped keeps focus as it re-centres.
+    const { container } = render(
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />
+    );
+    await userEvent.hover(screen.getByRole('button', { name: /^CWE-79/ }));
+    expect(container.querySelectorAll('.graph-edge__label')).toHaveLength(0);
+  });
+
   it('dims the nodes that are not incident to the hovered one', async () => {
     const { container } = render(
       <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />

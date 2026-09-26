@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { layoutEgoGraph, EDGE_MARGIN, CENTER_CLEARANCE } from '../../src/lib/layout';
+import {
+  layoutEgoGraph,
+  bandY,
+  childCapFor,
+  edgeMargin,
+  EDGE_MARGIN,
+  CENTER_CLEARANCE,
+  MIN_CHILD_SLOT,
+} from '../../src/lib/layout';
 import type { EgoGraph } from '../../src/lib/ego';
 
 const size = { width: 1000, height: 800 };
@@ -185,5 +193,63 @@ describe('layoutEgoGraph lateral overflow marker', () => {
 
   it('emits no marker when nothing was capped', () => {
     expect(layoutEgoGraph(ego, size).lateralOverflow).toEqual([]);
+  });
+});
+
+describe('layoutEgoGraph empty upper bands', () => {
+  // The narrow layout asks for one hop up, so there is never a grandparent
+  // band; reserving its row anyway squeezes every other band together.
+  const oneHop: EgoGraph = {
+    ...ego,
+    nodes: ego.nodes.filter((n) => n.band !== -2),
+    edges: ego.edges.filter((e) => e.to !== '1'),
+  };
+
+  it('moves the topmost populated band up into the room left empty', () => {
+    const top = layoutEgoGraph(oneHop, size).nodes.find((n) => n.id === '2')!;
+    expect(top.y).toBeCloseTo(size.height * bandY(-2), 5);
+  });
+
+  it('leaves the children band where it was', () => {
+    const child = layoutEgoGraph(oneHop, size).nodes.find((n) => n.id === '10')!;
+    expect(child.y).toBeCloseTo(size.height * bandY(1), 5);
+  });
+
+  it('spreads the bands further apart than a fixed row would', () => {
+    const nodes = layoutEgoGraph(oneHop, size).nodes;
+    const y = (id: string) => nodes.find((n) => n.id === id)!.y;
+    expect(y('3') - y('2')).toBeGreaterThan(1.2 * size.height * (bandY(0) - bandY(-1)));
+    expect(y('10') - y('3')).toBeGreaterThan(1.2 * size.height * (bandY(1) - bandY(0)));
+  });
+
+  it('keeps every band where it was when all four are populated', () => {
+    const nodes = layoutEgoGraph(ego, size).nodes;
+    for (const node of nodes) expect(node.y).toBeCloseTo(size.height * bandY(node.band), 5);
+  });
+});
+
+describe('narrow stages', () => {
+  it('keeps the full margin where there is room for it', () => {
+    expect(edgeMargin(1000)).toBe(EDGE_MARGIN);
+  });
+
+  it('shrinks the margin on a phone rather than give away 40% of the width', () => {
+    expect(edgeMargin(412)).toBeLessThan(EDGE_MARGIN);
+  });
+
+  it('caps children so each, and the overflow chip, gets a legible slot', () => {
+    const width = 412;
+    const cap = childCapFor(width, 10);
+    expect(cap).toBeGreaterThanOrEqual(1);
+    // One slot more than the cap, for the chip.
+    expect((width - 2 * edgeMargin(width)) / (cap + 1)).toBeGreaterThanOrEqual(MIN_CHILD_SLOT);
+  });
+
+  it('leaves the cap alone on a desktop stage', () => {
+    expect(childCapFor(880, 10)).toBe(10);
+  });
+
+  it('never caps below one child', () => {
+    expect(childCapFor(50, 10)).toBe(1);
   });
 });
