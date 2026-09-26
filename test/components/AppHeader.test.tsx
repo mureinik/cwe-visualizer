@@ -27,4 +27,12 @@ describe('AppHeader', () => {
     expect(screen.getByLabelText('Search CWEs')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Switch to (light|dark) theme/ })).toBeInTheDocument();
   });
+
+  it('links to the source repo on GitHub', () => {
+    render(<AppHeader graph={buildGraph(data)} onSelect={() => {}} drawerOpen={false} onToggleDrawer={() => {}} />);
+    const link = screen.getByRole('link', { name: 'Source on GitHub' });
+    expect(link).toHaveAttribute('href', 'https://github.com/mureinik/cwe-visualizer');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noreferrer');
+  });
 });
