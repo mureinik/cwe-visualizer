@@ -1,4 +1,4 @@
-MIT License
+# MIT License
 
 Copyright (c) 2026 Allon Mureinik
 
@@ -22,4 +22,4 @@ SOFTWARE.
 
 This license covers the source code of CWE Visualizer only. The CWE content
 it displays is copyright The MITRE Corporation and is used under separate
-terms; see the NOTICE file.
+terms; see [`NOTICE.md`](NOTICE.md).
