@@ -25,4 +25,4 @@ published at cwe.mitre.org, MITRE's version is authoritative.
 
 The source code of CWE Visualizer — everything except the CWE content
 described above — is Copyright © 2026 Allon Mureinik and is licensed under
-the MIT License; see [`LICENSE`](LICENSE).
+the MIT License; see [`LICENSE.md`](LICENSE.md).

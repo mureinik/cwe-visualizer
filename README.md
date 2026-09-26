@@ -19,10 +19,10 @@ CWE is used under MITRE's
 [Terms of Use](https://cwe.mitre.org/about/termsofuse.html). This project is
 not affiliated with, sponsored by, or endorsed by MITRE, and
 [cwe.mitre.org](https://cwe.mitre.org/) remains the authoritative source. See
-[`NOTICE`](NOTICE) for the full attribution.
+[`NOTICE.md`](NOTICE.md) for the full attribution.
 
 The visualizer's own source is Copyright © 2026 Allon Mureinik under the MIT
-License; see [`LICENSE`](LICENSE).
+License; see [`LICENSE.md`](LICENSE.md).
 
 ## Contributing
 

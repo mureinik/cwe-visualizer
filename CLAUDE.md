@@ -19,10 +19,10 @@ enforces on its own, so breaking them fails silently.
   hand-authoring it produces changes that silently never land. Regenerate
   with `npm run prepare-data`. Fixtures go in `test/fixtures/`.
 - **Keep the MITRE attribution.** The CWE corpus is copied verbatim and is
-  not ours. `NOTICE`, the attribution sections of `README.md` and `LICENSE`,
-  and the `<Attribution>` footer in `src/App.tsx` say so. Don't drop them in
-  a refactor, and keep the footer reachable if you move where CWE data is
-  displayed.
+  not ours. `NOTICE.md`, the attribution sections of `README.md` and
+  `LICENSE.md`, and the `<Attribution>` footer in `src/App.tsx` say so.
+  Don't drop them in a refactor, and keep the footer reachable if you move
+  where CWE data is displayed.
 - **Never use `--no-verify`.** The pre-commit hook runs `lint-staged` and the
   full test suite. Bypassing it is the one way to get unlinted, failing code
   into a commit. If it blocks you, fix the cause.
