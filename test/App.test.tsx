@@ -88,6 +88,36 @@ describe('App', () => {
     expect(screen.getByRole('dialog', { name: 'Weakness tree' })).toBeInTheDocument();
   });
 
+  describe('?cwe= parameter', () => {
+    afterEach(() => {
+      window.history.replaceState(null, '', '/');
+    });
+
+    it('selects the CWE it names', async () => {
+      window.history.replaceState(null, '', '/?cwe=74');
+      render(<App />);
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'CWE-74: Injection' })).toBeInTheDocument());
+    });
+
+    it('still reports a numeric id that is not in the data as not found', async () => {
+      window.history.replaceState(null, '', '/?cwe=99999');
+      render(<App />);
+      await waitFor(() => expect(screen.getByText('CWE-99999 was not found.')).toBeInTheDocument());
+    });
+
+    it.each([
+      ['text that would be echoed back', 'evil text'],
+      ['markup', '<img src=x onerror=alert(1)>'],
+      ['an inherited object key', 'constructor'],
+      ['the prototype key', '__proto__'],
+    ])('ignores %s and shows the landing page', async (_, value) => {
+      window.history.replaceState(null, '', `/?${new URLSearchParams({ cwe: value })}`);
+      render(<App />);
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Start from a pillar' })).toBeInTheDocument());
+      expect(screen.queryByText(/was not found/)).not.toBeInTheDocument();
+    });
+  });
+
   it('shows an error message when the fetch fails', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })));
     render(<App />);
