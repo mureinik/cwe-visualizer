@@ -6,6 +6,7 @@ import {
   edgeMargin,
   EDGE_MARGIN,
   CENTER_CLEARANCE,
+  LABEL_DEPTH,
   MIN_CHILD_SLOT,
 } from '../../src/lib/layout';
 import type { EgoGraph } from '../../src/lib/ego';
@@ -251,5 +252,25 @@ describe('narrow stages', () => {
 
   it('never caps below one child', () => {
     expect(childCapFor(50, 10)).toBe(1);
+  });
+});
+
+describe('layoutEgoGraph short stages', () => {
+  // A phone with its browser chrome and the detail sheet leaves ~230px of
+  // stage; 18% of that is less than the label hanging under a child.
+  const short = { width: 412, height: 230 };
+
+  it('leaves room for the labels under the lowest band', () => {
+    for (const node of layoutEgoGraph(ego, short).nodes) {
+      expect(node.y + LABEL_DEPTH).toBeLessThanOrEqual(short.height);
+    }
+  });
+
+  it('keeps the bands in order', () => {
+    const nodes = layoutEgoGraph(ego, short).nodes;
+    const y = (id: string) => nodes.find((n) => n.id === id)!.y;
+    expect(y('1')).toBeLessThan(y('2'));
+    expect(y('2')).toBeLessThan(y('3'));
+    expect(y('3')).toBeLessThan(y('10'));
   });
 });

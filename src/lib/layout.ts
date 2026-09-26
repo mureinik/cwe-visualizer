@@ -48,6 +48,13 @@ export function bandY(band: Band): number {
 }
 
 /**
+ * How far a node's two-line label hangs below its centre: the glyph, the id
+ * line, the name line and its descenders (see GraphNode). A band drawn
+ * closer than this to the bottom of the stage has its label cut off.
+ */
+export const LABEL_DEPTH = 48;
+
+/**
  * Keeps the outermost node in a band away from the stage edge. Without it a
  * band's first and last labels are centred on x≈0 and x≈width and get
  * clipped in half.
@@ -107,13 +114,15 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
   const positioned = new Map<string, PositionedNode>();
 
   // A band nobody is on still reserves its row, and the narrow layout never
-  // has grandparents — so rescale from the topmost populated band, keeping
-  // the children band fixed, rather than leave the top third of a phone
-  // blank while the bands below crowd each other's labels.
+  // has grandparents — so rescale from the topmost populated band rather
+  // than leave the top third of a phone blank while the bands below crowd
+  // each other's labels. The children band stays put unless the stage is
+  // too short to hang its labels underneath, which a phone's is.
   const topBand = ego.nodes.reduce<Band>((top, n) => (n.band < top ? n.band : top), 0);
-  const [first, last] = [bandY(-2), bandY(1)];
-  const scale = (last - first) / (last - bandY(topBand));
-  const yOf = (band: Band) => height * (first + (bandY(band) - bandY(topBand)) * scale);
+  const first = height * bandY(-2);
+  const last = Math.max(first, Math.min(height * bandY(1), height - LABEL_DEPTH));
+  const yOf = (band: Band) =>
+    first + ((bandY(band) - bandY(topBand)) / (bandY(1) - bandY(topBand))) * (last - first);
 
   // Bands -2, -1 and 1 distribute across the full width. Band 0 is special:
   // the centre is pinned mid-stage, and laterals fill the halves either side,
