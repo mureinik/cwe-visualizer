@@ -104,7 +104,13 @@ export function App() {
           onClose={() => setDrawerOpen(false)}
           graph={state.graph}
           selectedId={selectedId}
-          onSelect={selectNode}
+          onSelect={(id) => {
+            selectNode(id);
+            // Below the breakpoint the drawer covers the whole screen, so the
+            // pick would re-centre a graph nobody can see. Wider, the graph
+            // shows beside it and the drawer stays open for browsing.
+            if (narrow) setDrawerOpen(false);
+          }}
           revealId={revealId}
         />
       </main>
