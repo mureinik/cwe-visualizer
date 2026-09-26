@@ -65,6 +65,29 @@ describe('App', () => {
     expect(screen.getByRole('tree')).toBeInTheDocument();
   });
 
+  it('closes the tree once a CWE is picked on a narrow viewport', async () => {
+    // Below the breakpoint the drawer covers the whole screen, so leaving it
+    // open hides the graph the pick just re-centred.
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+    );
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'CWE Visualizer' })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: 'Weakness tree' }));
+    await userEvent.click(screen.getByRole('button', { name: 'CWE-74: Injection' }));
+    expect(screen.queryByRole('dialog', { name: 'Weakness tree' })).not.toBeInTheDocument();
+    expect(new URLSearchParams(window.location.search).get('cwe')).toBe('74');
+  });
+
+  it('keeps the tree open after a pick on a wide viewport, where the graph shows beside it', async () => {
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'CWE Visualizer' })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: 'Weakness tree' }));
+    await userEvent.click(screen.getByRole('button', { name: 'CWE-74: Injection' }));
+    expect(screen.getByRole('dialog', { name: 'Weakness tree' })).toBeInTheDocument();
+  });
+
   it('shows an error message when the fetch fails', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })));
     render(<App />);
