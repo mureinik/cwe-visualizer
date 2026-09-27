@@ -8,12 +8,19 @@ on:
 permissions:
   contents: read
 
+# A new push to a PR supersedes its previous run; runs on main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: npm
@@ -22,25 +29,57 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  lint-workflows:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: actionlint
+        uses: docker://rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+        with:
+          args: -color
+      - name: zizmor
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          version: 1.30.1
+          advanced-security: false
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: moderate
+
   validate-issue-link:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-      issues: read
+      issues: read # gh issue view, to check the linked issue is open
     steps:
       - name: Validate PR references an open issue
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
           set -euo pipefail
+          # Dependabot can't link an issue. GitHub doesn't allow brackets in
+          # user logins, so no one else can open a PR as this author.
+          if [ "$PR_AUTHOR" = "dependabot[bot]" ]; then
+            echo "Dependabot PR: exempt from the issue-link requirement."
+            exit 0
+          fi
           ISSUE_NUM=$(printf '%s' "$PR_BODY" | grep -ioE '(closes|fixes|resolves)[[:space:]]+#[0-9]+' | head -1 | grep -oE '[0-9]+' || true)
           if [ -z "$ISSUE_NUM" ]; then
             echo "::error::PR description must reference an issue via 'Closes #N' (or Fixes/Resolves #N), per this repo's contribution flow (CONTRIBUTING.md)."
             exit 1
           fi
-          STATE=$(gh issue view "$ISSUE_NUM" --repo "${{ github.repository }}" --json state -q .state)
+          STATE=$(gh issue view "$ISSUE_NUM" --json state -q .state)
           if [ "$STATE" != "OPEN" ]; then
             echo "::error::Issue #$ISSUE_NUM is not open (state: $STATE) — reference an open issue."
             exit 1
