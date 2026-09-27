@@ -1,0 +1,9 @@
+{
+  "config": {
+    // Prose isn't wrapped consistently, and wrapping isn't worth enforcing.
+    "MD013": false
+  },
+  // Skip everything .gitignore covers (node_modules, dist, coverage, ...).
+  "gitignore": true,
+  "globs": ["**/*.md"]
+}

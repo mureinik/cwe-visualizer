@@ -23,16 +23,17 @@ talks to MITRE at runtime.
 - `npm run build` — type-check, prepare data, and build for production
 - `npm run preview` — serve the production build locally
 - `npm run lint` — ESLint
+- `npm run lint:md` — markdownlint
 - `npm test` — Vitest
 - `npm run test:coverage` — Vitest with coverage; fails below the thresholds
   in `vite.config.ts` (CI runs this one)
 
-## Contributing
+## Workflow
 
 Every change starts as a GitHub issue, then a branch and a PR that
 references it (`Closes #N`). `main` is a protected branch with no bypass,
 admins included: changes land only through a PR, the PR must be up to date
-with `main`, and all CI checks must pass: `build` (lint, test, build),
+with `main`, and all CI checks must pass: `build` (lint, Markdown lint, test with coverage, build),
 `lint-workflows` (actionlint and zizmor over `.github/workflows/`),
 `dependency-review` (no new dependency with a known moderate-or-worse
 vulnerability), and `validate-issue-link` (the PR links an open issue).
@@ -55,7 +56,7 @@ Code — skills like `brainstorming`, `writing-plans`,
 how work here gets designed, planned, and merged. If you're contributing
 with Claude Code, install the plugin so your workflow matches:
 
-```
+```text
 /plugin marketplace add anthropics/claude-plugins-official
 /plugin install superpowers@claude-plugins-official
 ```

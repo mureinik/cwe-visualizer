@@ -30,7 +30,7 @@
 
 ## File Structure
 
-```
+```text
 cwe-visualizer/
 ├── .github/
 │   ├── workflows/
@@ -82,10 +82,12 @@ cwe-visualizer/
 ### Task 1: Project init — package.json and .gitignore
 
 **Files:**
+
 - Create: `package.json`
 - Create: `.gitignore`
 
 **Interfaces:**
+
 - Consumes: nothing (first task).
 - Produces: a `package.json` with `name`, `type: "module"`, `engines.node >= 24`, `author`, `repository`, and an empty `scripts`/`dependencies`/`devDependencies` that every later task adds to. A `.gitignore` covering `node_modules/`, `dist/`, `coverage/`.
 
@@ -121,7 +123,7 @@ Replace the generated content with:
 
 - [ ] **Step 3: Create .gitignore**
 
-```
+```gitignore
 node_modules/
 dist/
 coverage/
@@ -148,6 +150,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ### Task 2: Vite + React + TypeScript app shell
 
 **Files:**
+
 - Create: `index.html`
 - Create: `tsconfig.json`
 - Create: `vite.config.ts`
@@ -157,6 +160,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 - Modify: `package.json`
 
 **Interfaces:**
+
 - Consumes: `package.json` from Task 1.
 - Produces: a placeholder `App` component (`export function App()`, default-exported too) rendering an `<h1>CWE Visualizer</h1>` — Task 13 replaces its body but keeps this export shape. `npm run dev` / `npm run build` / `npm run preview` scripts.
 
@@ -298,10 +302,12 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ### Task 3: ESLint configuration
 
 **Files:**
+
 - Create: `eslint.config.js`
 - Modify: `package.json`
 
 **Interfaces:**
+
 - Consumes: nothing new.
 - Produces: `npm run lint` — every later task's new files must pass it before being committed (the pre-commit hook in Task 5 enforces this automatically going forward). `scripts/**/*.ts` (created in Task 6) is pre-wired here with `eslint-plugin-n`'s recommended Node rules, ahead of that file existing.
 
@@ -404,12 +410,14 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ### Task 4: Vitest + React Testing Library
 
 **Files:**
+
 - Modify: `vite.config.ts`
 - Create: `test/setup.ts`
 - Create: `test/App.test.tsx`
 - Modify: `package.json`
 
 **Interfaces:**
+
 - Consumes: `App` from `src/App.tsx` (Task 2).
 - Produces: `npm test` (`vitest run`) — every later task's test file relies on this command and on `test/setup.ts`'s jest-dom matcher extension being active.
 
@@ -489,10 +497,12 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ### Task 5: Husky + lint-staged pre-commit hook
 
 **Files:**
+
 - Create: `.husky/pre-commit`
 - Modify: `package.json`
 
 **Interfaces:**
+
 - Consumes: `npm run lint` (Task 3) and `npm test` (Task 4).
 - Produces: a working `git commit` gate. **Every task from Task 6 onward commits through this hook** — no application code is written before this task lands.
 
@@ -509,7 +519,7 @@ Expected: creates `.husky/pre-commit` (containing `npm test`) and adds `"prepare
 
 - [ ] **Step 3: Edit .husky/pre-commit to run lint-staged before the full suite**
 
-```
+```sh
 npx lint-staged
 npm test
 ```
@@ -565,6 +575,7 @@ Expected: `npx lint-staged` and `npm test` both run and pass as part of this com
 ### Task 6: prepare-data.ts — zip/XML parsing (slow path)
 
 **Files:**
+
 - Create: `scripts/prepare-data.ts`
 - Create: `test/fixtures/cwec-sample.xml`
 - Create: `test/scripts/prepare-data.test.ts`
@@ -572,6 +583,7 @@ Expected: `npx lint-staged` and `npm test` both run and pass as part of this com
 - Modify: `tsconfig.json`
 
 **Interfaces:**
+
 - Consumes: `adm-zip`, `fast-xml-parser`, `@types/node`.
 - Produces (named exports from `scripts/prepare-data.ts`, used by Task 7 and by the CLI entrypoint):
   - `interface CweNode { id: string; name: string; abstraction: string; status: string; description: string; url: string }`
@@ -872,10 +884,12 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ### Task 7: prepare-data.ts — fast path and error handling
 
 **Files:**
+
 - Modify: `scripts/prepare-data.ts`
 - Modify: `test/scripts/prepare-data.test.ts`
 
 **Interfaces:**
+
 - Consumes: `extractXmlFromZip`, `parseCatalog`, `writeOutput`, `CweData`, `CweMeta` from Task 6.
 - Produces: `readLocalMeta(outDir: string): Promise<CweMeta | null>` and `run(options?: { sourceUrl?: string, outDir?: string, fetchImpl?: typeof fetch }): Promise<{ updated: boolean, meta: CweMeta }>` — the orchestrator the CLI entrypoint calls, and what Task 8 wires into `npm run prepare-data`.
 
@@ -1067,10 +1081,12 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ### Task 8: Wire the data pipeline into npm scripts
 
 **Files:**
+
 - Modify: `package.json`
 - Modify: `.gitignore`
 
 **Interfaces:**
+
 - Consumes: `run()` default export behavior from Task 7 (CLI entrypoint already calls it with defaults — `outDir` defaults to `public/data`).
 - Produces: `npm run prepare-data`, and `predev`/`prebuild` npm lifecycle hooks that Vite's `dev`/`build` now trigger automatically.
 
@@ -1086,7 +1102,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 Append to `.gitignore`:
 
-```
+```gitignore
 public/data/
 ```
 
@@ -1120,10 +1136,12 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ### Task 9: graph.ts — types, indices, ancestors, search
 
 **Files:**
+
 - Create: `src/lib/graph.ts`
 - Create: `test/lib/graph.test.ts`
 
 **Interfaces:**
+
 - Consumes: nothing new (defines the shared shape of the JSON `prepare-data.ts` produces).
 - Produces (consumed by Tasks 10–13):
   - `interface CweNode { id: string; name: string; abstraction: string; status: string; description: string; url: string }`
@@ -1357,10 +1375,12 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ### Task 10: Tree.tsx
 
 **Files:**
+
 - Create: `src/components/Tree.tsx`
 - Create: `test/components/Tree.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `Graph`, `ancestorsOf` from `src/lib/graph.ts` (Task 9).
 - Produces: `Tree({ graph: Graph; selectedId: string | null; onSelect: (id: string) => void }): JSX.Element` — used by Task 13's `App.tsx`.
 
@@ -1563,10 +1583,12 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ### Task 11: SearchBox.tsx
 
 **Files:**
+
 - Create: `src/components/SearchBox.tsx`
 - Create: `test/components/SearchBox.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `Graph`, `searchNodes` from `src/lib/graph.ts` (Task 9).
 - Produces: `SearchBox({ graph: Graph; onSelect: (id: string) => void }): JSX.Element` — used by Task 13's `App.tsx`.
 
@@ -1702,10 +1724,12 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ### Task 12: DetailPanel.tsx
 
 **Files:**
+
 - Create: `src/components/DetailPanel.tsx`
 - Create: `test/components/DetailPanel.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `Graph` from `src/lib/graph.ts` (Task 9).
 - Produces: `DetailPanel({ graph: Graph; selectedId: string | null; onSelect: (id: string) => void }): JSX.Element` — used by Task 13's `App.tsx`.
 
@@ -1855,10 +1879,12 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ### Task 13: App.tsx — data loading, URL state, integration
 
 **Files:**
+
 - Modify: `src/App.tsx`
 - Modify: `test/App.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `buildGraph`, `Graph`, `CweData` (Task 9); `Tree` (Task 10); `SearchBox` (Task 11); `DetailPanel` (Task 12).
 - Produces: the assembled page; fetches `/data/cwe.json` at runtime (the static file `prepare-data.ts` wrote into `public/data/cwe.json`, served by Vite/Vercel from `public/` at the site root).
 
@@ -2015,9 +2041,11 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ### Task 14: CI workflow (ci.yml)
 
 **Files:**
+
 - Create: `.github/workflows/ci.yml`
 
 **Interfaces:**
+
 - Consumes: `npm run lint`, `npm test`, `npm run build` (all now real, from Tasks 3/4/13).
 - Produces: a required status check named `build` — Task 16's branch protection rule references this exact job id.
 
@@ -2065,9 +2093,11 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ### Task 15: Update-data workflow (update-data.yml)
 
 **Files:**
+
 - Create: `.github/workflows/update-data.yml`
 
 **Interfaces:**
+
 - Consumes: MITRE's zip URL (`https://cwe.mitre.org/data/xml/cwec_latest.xml.zip`), the deployed site's `/data/meta.json` (written by `prepare-data.ts`'s `writeOutput`, Task 6), a `DEPLOYED_SITE_URL` repository variable and a `VERCEL_DEPLOY_HOOK_URL` repository secret (both created manually in Task 16).
 - Produces: a POST to the Vercel deploy hook only when the upstream Last-Modified value and the deployed site's recorded Last-Modified value differ. Never commits or pushes anything.
 
@@ -2122,10 +2152,12 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ### Task 16: Repo governance and deployment setup
 
 **Files:**
+
 - Create: `.github/ISSUE_TEMPLATE/change.md`
 - Create: `README.md`
 
 **Interfaces:**
+
 - Consumes: everything from Tasks 1–15 (this is the final task — it turns the built repo into a governed, deployed project).
 - Produces: an issue template; a `README.md`; and (manual, outside git — see Steps 3–6) a live Vercel deployment, a `DEPLOYED_SITE_URL` repo variable, a `VERCEL_DEPLOY_HOOK_URL` repo secret, and branch protection on `main`.
 
@@ -2154,7 +2186,7 @@ Anything else relevant: related issues, screenshots, links.
 
 - [ ] **Step 2: Create README.md**
 
-```markdown
+````markdown
 # CWE Visualizer
 
 A visual explorer for the full [CWE](https://cwe.mitre.org/) (Common Weakness
@@ -2192,7 +2224,8 @@ bypass. See the design doc for the full rationale, including why the daily
 data-freshness check (`.github/workflows/update-data.yml`) is exempt from
 this flow: it never commits or pushes anything, so there's nothing for it
 to bypass.
-```
+
+````
 
 - [ ] **Step 4: Commit the tracked files**
 
