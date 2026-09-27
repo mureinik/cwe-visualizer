@@ -1,3 +1,6 @@
+# Groups only bundle updates, they don't filter them: minor and patch bumps
+# arrive as one PR per ecosystem, and each major bump as its own PR, so a
+# breaking upgrade gets its own CI run and review.
 version: 2
 updates:
   - package-ecosystem: npm
