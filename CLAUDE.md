@@ -14,7 +14,9 @@ enforces on its own, so breaking them fails silently.
 - **The app must never contact MITRE at runtime.** It reads the prebuilt
   `public/data/cwe.json` and nothing else. Data is fetched at build time by
   `scripts/prepare-data.ts`; a live fetch would look like a feature and
-  break the design.
+  break the design. ESLint rejects network calls in `src/**` other than
+  `fetch('/data/...')`; what it can't catch is an `eslint-disable` comment
+  for that rule, so never add one.
 - **`public/data/` is build output.** It is gitignored, so editing or
   hand-authoring it produces changes that silently never land. Regenerate
   with `npm run prepare-data`. Fixtures go in `test/fixtures/`.
