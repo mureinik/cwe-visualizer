@@ -31,7 +31,7 @@ export default tseslint.config(
       'no-restricted-syntax': [
         'error',
         {
-          // / is '/': esquery ends a regex at the first bare slash.
+          // \u002F is '/': esquery ends a regex at the first bare slash.
           selector:
             "CallExpression:matches([callee.name='fetch'], [callee.property.name='fetch'])" +
             ":not([arguments.0.type='Literal'][arguments.0.value=/^\\u002Fdata\\u002F/])",
