@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { ESLint } from 'eslint';
 
 // Lints snippets against the repo's real eslint.config.js, so this fails if
@@ -16,6 +16,12 @@ async function restrictedMessages(code: string, filePath = 'src/main.tsx'): Prom
 }
 
 describe('no runtime network access from src/', () => {
+  // The first type-aware lint builds the TypeScript program, which can take
+  // longer than the default test timeout, especially under coverage.
+  beforeAll(async () => {
+    await eslint.lintText('', { filePath: 'src/main.tsx' });
+  }, 60_000);
+
   it.each([
     ["fetch('/data/cwe.json');"],
     ["fetch('/data/meta.json').then((r) => r.json());"],

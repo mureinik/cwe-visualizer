@@ -24,6 +24,8 @@ talks to MITRE at runtime.
 - `npm run preview` — serve the production build locally
 - `npm run lint` — ESLint
 - `npm test` — Vitest
+- `npm run test:coverage` — Vitest with coverage; fails below the thresholds
+  in `vite.config.ts` (CI runs this one)
 
 ## Contributing
 

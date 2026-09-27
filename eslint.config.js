@@ -20,7 +20,7 @@ const projectService = {
 };
 
 export default tseslint.config(
-  { ignores: ['dist', 'public/data'] },
+  { ignores: ['dist', 'public/data', 'coverage'] },
   {
     files: ['src/**/*.{ts,tsx}'],
     extends: [...typeChecked, jsxA11y.configs.recommended],
