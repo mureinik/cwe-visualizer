@@ -90,8 +90,8 @@ describe('writeOutput', () => {
         edges: [],
       };
       await writeOutput(dir, data);
-      const cweJson = JSON.parse(await readFile(path.join(dir, 'cwe.json'), 'utf-8'));
-      const metaJson = JSON.parse(await readFile(path.join(dir, 'meta.json'), 'utf-8'));
+      const cweJson: unknown = JSON.parse(await readFile(path.join(dir, 'cwe.json'), 'utf-8'));
+      const metaJson: unknown = JSON.parse(await readFile(path.join(dir, 'meta.json'), 'utf-8'));
       expect(cweJson).toEqual(data);
       expect(metaJson).toEqual({ meta: data.meta });
     } finally {
@@ -107,11 +107,11 @@ function zipBuffer() {
 }
 
 function fakeFetch({ lastModified = '"v1"' }: { lastModified?: string } = {}) {
-  return vi.fn(async (_url: string, options?: { method?: string }) => {
+  return vi.fn((_url: string, options?: { method?: string }) => {
     if (options?.method === 'HEAD') {
-      return { ok: true, status: 200, headers: { get: (name: string) => (name === 'last-modified' ? lastModified : null) } };
+      return Promise.resolve({ ok: true, status: 200, headers: { get: (name: string) => (name === 'last-modified' ? lastModified : null) } });
     }
-    return { ok: true, status: 200, arrayBuffer: async () => zipBuffer().buffer };
+    return Promise.resolve({ ok: true, status: 200, arrayBuffer: () => Promise.resolve(zipBuffer().buffer) });
   });
 }
 
@@ -130,7 +130,7 @@ describe('run', () => {
     const result = await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
     expect(result.updated).toBe(true);
     expect(result.meta.lastModified).toBe('"v1"');
-    const cweJson = JSON.parse(await readFile(path.join(dir, 'cwe.json'), 'utf-8'));
+    const cweJson = JSON.parse(await readFile(path.join(dir, 'cwe.json'), 'utf-8')) as CweData;
     expect(Object.keys(cweJson.nodes)).toContain('79');
   });
 
@@ -152,18 +152,14 @@ describe('run', () => {
 
   it('reuses cached data when the source is unreachable and a cache exists', async () => {
     await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
-    const failingFetch = vi.fn(async () => {
-      throw new Error('network down');
-    });
+    const failingFetch = vi.fn(() => Promise.reject(new Error('network down')));
     const result = await run({ outDir: dir, fetchImpl: failingFetch as unknown as typeof fetch });
     expect(result.updated).toBe(false);
     expect(result.meta.lastModified).toBe('"v1"');
   });
 
   it('throws when the source is unreachable and there is no cache', async () => {
-    const failingFetch = vi.fn(async () => {
-      throw new Error('network down');
-    });
+    const failingFetch = vi.fn(() => Promise.reject(new Error('network down')));
     await expect(
       run({ outDir: dir, fetchImpl: failingFetch as unknown as typeof fetch })
     ).rejects.toThrow(/no cached data/);

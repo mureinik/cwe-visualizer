@@ -70,7 +70,7 @@ export function Tree({ graph, selectedId, onSelect, revealId = null }: TreeProps
         />
       ))}
       {graph.deprecatedRoots.length > 0 && (
-        <li role="treeitem" aria-expanded={showDeprecated}>
+        <li role="treeitem" aria-expanded={showDeprecated} aria-selected={false}>
           <div className="tree-row tree-row--group">
             <button
               type="button"
@@ -132,7 +132,11 @@ function TreeNode({ id, graph, expanded, selectedId, onToggle, onSelect, ancestr
   const deprecated = node.status === 'Deprecated';
 
   return (
-    <li role="treeitem" aria-expanded={children.length > 0 ? isExpanded : undefined}>
+    <li
+      role="treeitem"
+      aria-expanded={children.length > 0 ? isExpanded : undefined}
+      aria-selected={isSelected}
+    >
       <div className={`tree-row${isSelected ? ' tree-row--selected' : ''}`}>
         {children.length > 0 ? (
           <button

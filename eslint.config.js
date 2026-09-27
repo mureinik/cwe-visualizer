@@ -2,6 +2,7 @@ import js from '@eslint/js';
 import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import jsxA11y from 'eslint-plugin-jsx-a11y-x';
 import nodePlugin from 'eslint-plugin-n';
 import tseslint from 'typescript-eslint';
 
@@ -12,12 +13,19 @@ const NO_RUNTIME_NETWORK =
   'The app must never contact MITRE at runtime; it may only fetch the prebuilt ' +
   "'/data/...' JSON, as a string literal. Fetch data at build time in scripts/prepare-data.ts.";
 
+// Type-aware linting for the TypeScript that tsconfig.json covers.
+const typeChecked = [js.configs.recommended, ...tseslint.configs.recommendedTypeChecked];
+const projectService = {
+  parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
+};
+
 export default tseslint.config(
   { ignores: ['dist', 'public/data'] },
   {
     files: ['src/**/*.{ts,tsx}'],
-    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    extends: [...typeChecked, jsxA11y.configs.recommended],
     languageOptions: {
+      ...projectService,
       ecmaVersion: 2025,
       globals: globals.browser,
     },
@@ -27,7 +35,7 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      'react-refresh/only-export-components': ['error', { allowConstantExport: true }],
       'no-restricted-syntax': [
         'error',
         {
@@ -54,12 +62,9 @@ export default tseslint.config(
     // *.config.{js,ts} (tooling config — its imports are devDependencies,
     // which eslint-plugin-n's unpublished-import rules would misflag).
     files: ['scripts/**/*.ts'],
-    extends: [
-      js.configs.recommended,
-      ...tseslint.configs.recommended,
-      nodePlugin.configs['flat/recommended-module'],
-    ],
+    extends: [...typeChecked, nodePlugin.configs['flat/recommended-module']],
     languageOptions: {
+      ...projectService,
       ecmaVersion: 2025,
       sourceType: 'module',
       globals: globals.node,
@@ -75,9 +80,10 @@ export default tseslint.config(
     },
   },
   {
-    files: ['test/**/*.{ts,tsx,mjs,js}'],
-    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    files: ['test/**/*.{ts,tsx}'],
+    extends: typeChecked,
     languageOptions: {
+      ...projectService,
       ecmaVersion: 2025,
       sourceType: 'module',
       globals: { ...globals.node, ...globals.browser },

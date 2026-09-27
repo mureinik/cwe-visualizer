@@ -36,7 +36,13 @@ export function TreeDrawer({ open, onClose, graph, selectedId, onSelect, revealI
 
   return (
     <>
-      <div className="drawer-backdrop" data-testid="drawer-backdrop" onClick={onClose} />
+      {/* Pointer-only affordance: keyboard users close with Escape or the close button. */}
+      <div
+        className="drawer-backdrop"
+        data-testid="drawer-backdrop"
+        aria-hidden="true"
+        onClick={onClose}
+      />
       <div className="drawer" role="dialog" aria-label="Weakness tree">
         <div className="drawer__header">
           <button
