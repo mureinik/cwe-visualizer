@@ -33,7 +33,7 @@ Every task's requirements implicitly include this section.
 **Created:**
 
 | File | Responsibility |
-|---|---|
+| --- | --- |
 | `src/styles/tokens.css` | Every colour defined twice (light + dark), plus space, radius, type, and motion scales |
 | `src/styles/base.css` | Reset, `body`, `:focus-visible`, reduced-motion guard |
 | `src/styles/app.css` | Shell grid, header, stage, footer |
@@ -60,12 +60,14 @@ Every task's requirements implicitly include this section.
 ### Task 1: Design tokens and base stylesheet
 
 **Files:**
+
 - Create: `src/styles/tokens.css`, `src/styles/base.css`
 - Create: `test/helpers/contrast.ts`, `test/styles/tokens.test.ts`
 - Modify: `src/main.tsx`
 - Delete: `src/index.css`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: the CSS custom properties every later task styles against — `--bg`, `--surface`, `--surface-raised`, `--border`, `--border-strong`, `--text`, `--text-secondary`, `--text-muted`, `--abs-pillar|class|base|variant|compound`, `--status-stable|draft|incomplete|deprecated`, `--rel-hierarchy|peer|sequence|requires`, `--space-1..6`, `--radius-sm|md|lg`, `--text-xs..3xl`, `--dur-fast`, `--dur`, `--ease`. Also `test/helpers/contrast.ts` exporting `contrastRatio(hexA, hexB): number` and `readTokens(css, selector): Record<string, string>`.
 
@@ -381,10 +383,12 @@ EOF
 ### Task 2: Theme preference and toggle
 
 **Files:**
+
 - Create: `src/lib/theme.ts`, `test/lib/theme.test.ts`
 - Create: `src/components/ThemeToggle.tsx`, `test/components/ThemeToggle.test.tsx`
 
 **Interfaces:**
+
 - Consumes: the tokens from Task 1 (specifically that `:root[data-theme='dark']` exists).
 - Produces:
   - `export type Theme = 'light' | 'dark'`
@@ -622,10 +626,12 @@ EOF
 ### Task 3: Abstraction glyph registry
 
 **Files:**
+
 - Create: `src/lib/shapes.ts`, `test/lib/shapes.test.ts`
 - Create: `src/components/Glyph.tsx`, `test/components/Glyph.test.tsx`
 
 **Interfaces:**
+
 - Consumes: the `--abs-*` and `--status-deprecated` tokens from Task 1.
 - Produces:
   - `export type ShapeName = 'diamond' | 'ringed-circle' | 'circle' | 'hollow-circle' | 'hexagon' | 'square'`
@@ -858,14 +864,17 @@ EOF
 ```
 
 ---
+
 ### Task 4: Carry `View_ID` through the data pipeline
 
 **Files:**
+
 - Modify: `scripts/prepare-data.ts:33-36` (`RawRelatedWeakness`), `scripts/prepare-data.ts:15-19` (`CweEdge`), `scripts/prepare-data.ts:88-94` (edge construction)
 - Modify: `src/lib/graph.ts:10-14` (`CweEdge`)
 - Modify: `test/scripts/prepare-data.test.ts:58-64`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `CweEdge` gains `viewId?: string` in **both** `scripts/prepare-data.ts` and `src/lib/graph.ts`. The two interfaces are intentionally duplicated today (the script is Node, `src/` is browser) — keep them in sync.
 
@@ -985,10 +994,12 @@ EOF
 ### Task 5: Explicit roots, with deprecated entries separated
 
 **Files:**
+
 - Modify: `src/lib/graph.ts:28-36` (`Graph`), `src/lib/graph.ts:66-97` (`buildGraph`)
 - Modify: `test/lib/graph.test.ts`
 
 **Interfaces:**
+
 - Consumes: `CweEdge.viewId` from Task 4 (present but unused here).
 - Produces:
   - `export interface BuildGraphOptions { rootIds?: string[] }`
@@ -1145,11 +1156,13 @@ EOF
 ### Task 6: Ranked search
 
 **Files:**
+
 - Create: `src/lib/search.ts`, `test/lib/search.test.ts`
 - Modify: `src/lib/graph.ts` (remove `searchNodes`), `src/components/SearchBox.tsx:3` (import path)
 - Modify: `test/lib/graph.test.ts` (remove the `searchNodes` describe block and its import)
 
 **Interfaces:**
+
 - Consumes: `Graph`, `CweNode` from `src/lib/graph.ts`.
 - Produces: `export function searchNodes(graph: Graph, query: string): CweNode[]` — same signature as the old one, now ordered by relevance and capped by the caller as before.
 
@@ -1316,15 +1329,18 @@ EOF
 ```
 
 ---
+
 ### Task 7: Application shell and header
 
 **Files:**
+
 - Create: `src/styles/app.css`, `src/components/AppHeader.tsx`, `src/components/Attribution.tsx`
 - Create: `test/components/AppHeader.test.tsx`
 - Modify: `src/App.tsx` (extract `Attribution`, adopt the shell), `src/main.tsx` (import `app.css`)
 - Modify: `test/App.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `ThemeToggle` (Task 2), `SearchBox` (existing), `Graph` (Task 5).
 - Produces:
   - `<AppHeader graph={Graph} onSelect={(id: string) => void} />`
@@ -1548,12 +1564,14 @@ EOF
 ### Task 8: Tree drawer and restyled rows
 
 **Files:**
+
 - Create: `src/components/TreeDrawer.tsx`, `src/styles/tree.css`
 - Create: `test/components/TreeDrawer.test.tsx`
 - Modify: `src/components/Tree.tsx` (presentation and the deprecated group only), `src/components/AppHeader.tsx` (drawer toggle), `src/App.tsx` (drawer state)
 - Modify: `test/components/Tree.test.tsx`, `test/App.test.tsx`, `test/components/AppHeader.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `Glyph` (Task 3), `Graph.roots` / `Graph.deprecatedRoots` (Task 5).
 - Produces:
   - `<TreeDrawer open={boolean} onClose={() => void} graph={Graph} selectedId={string | null} onSelect={(id: string) => void} />`
@@ -2062,13 +2080,16 @@ EOF
 ```
 
 ---
+
 ### Task 9: Relation grouping and the detail card
 
 **Files:**
+
 - Create: `src/lib/relations.ts`, `test/lib/relations.test.ts`, `src/styles/detail.css`
 - Modify: `src/components/DetailPanel.tsx` (rewritten), `test/components/DetailPanel.test.tsx` (rewritten), `src/main.tsx`
 
 **Interfaces:**
+
 - Consumes: `Glyph` (Task 3), `Graph` (Task 5).
 - Produces:
   - `export type RelationGroup = 'sequence' | 'peer' | 'requires'`
@@ -2527,11 +2548,13 @@ EOF
 ### Task 10: Search as a combobox
 
 **Files:**
+
 - Modify: `src/components/SearchBox.tsx` (rewritten), `test/components/SearchBox.test.tsx` (extended)
 - Create: `src/styles/search.css`
 - Modify: `src/main.tsx`
 
 **Interfaces:**
+
 - Consumes: `searchNodes` (Task 6), `Glyph` (Task 3).
 - Produces: `<SearchBox graph={Graph} onSelect={(id: string) => void} />` — unchanged props, now implementing the ARIA combobox pattern.
 
@@ -2785,12 +2808,15 @@ EOF
 ```
 
 ---
+
 ### Task 11: `buildEgoGraph`
 
 **Files:**
+
 - Create: `src/lib/ego.ts`, `test/lib/ego.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Graph` (Task 5), `relationGroup` / `RelationGroup` (Task 9).
 - Produces:
 
@@ -3091,9 +3117,11 @@ EOF
 ### Task 12: `layoutEgoGraph`
 
 **Files:**
+
 - Create: `src/lib/layout.ts`, `test/lib/layout.test.ts`
 
 **Interfaces:**
+
 - Consumes: `EgoGraph`, `EgoNode`, `EgoEdge`, `Band` (Task 11).
 - Produces:
 
@@ -3330,14 +3358,17 @@ EOF
 ```
 
 ---
+
 ### Task 13: The graph stage
 
 **Files:**
+
 - Create: `src/components/GraphStage.tsx`, `src/components/GraphNode.tsx`, `src/components/GraphEdge.tsx`, `src/styles/graph.css`
 - Create: `test/components/GraphStage.test.tsx`
 - Modify: `src/components/Glyph.tsx` (extract `GlyphShape`), `src/App.tsx`, `src/main.tsx`
 
 **Interfaces:**
+
 - Consumes: `buildEgoGraph` (Task 11), `layoutEgoGraph` (Task 12), `glyphFor` (Task 3), `RELATION_GROUPS` (Task 9).
 - Produces:
   - `export function GlyphShape({ abstraction, r, deprecated }: { abstraction: string; r: number; deprecated?: boolean })` — the shape elements alone, for embedding in an existing `<svg>`.
@@ -3782,10 +3813,12 @@ EOF
 ### Task 14: Graph keyboard navigation and announcements
 
 **Files:**
+
 - Modify: `src/components/GraphStage.tsx`, `src/styles/graph.css`
 - Modify: `test/components/GraphStage.test.tsx`
 
 **Interfaces:**
+
 - Consumes: everything from Task 13.
 - Produces: no new exports. `GraphStage` gains arrow-key navigation along the layout's axes and a polite live region.
 
@@ -3925,11 +3958,13 @@ EOF
 ### Task 15: Responsive layout and bottom sheet
 
 **Files:**
+
 - Create: `src/lib/media.ts`, `test/lib/media.test.ts`
 - Modify: `src/App.tsx`, `src/styles/app.css`, `src/styles/detail.css`, `src/styles/graph.css`
 - Modify: `test/App.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `GraphStage.hops` (Task 13).
 - Produces:
   - `export const NARROW_QUERY = '(max-width: 900px)'`
@@ -4152,10 +4187,12 @@ EOF
 **Depends on Task 13 only** — it can be done any time after the stage exists.
 
 **Files:**
+
 - Modify: `src/components/GraphStage.tsx`, `src/components/GraphNode.tsx`, `src/components/GraphEdge.tsx`, `src/styles/graph.css`
 - Modify: `test/components/GraphStage.test.tsx`
 
 **Interfaces:**
+
 - Consumes: Task 13's components.
 - Produces:
   - `<GraphNode>` gains `dimmed: boolean`, `onHover: (id: string | null) => void`

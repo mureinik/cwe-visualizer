@@ -59,7 +59,7 @@ carrying one extra field; any new runtime dependency.
 ## Decisions
 
 | Decision | Choice | Why |
-|---|---|---|
+| --- | --- | --- |
 | Ambition | Full rethink, including a graph view | Chosen by the repo owner over a pure restyle |
 | Graph scope | Ego graph around the selection | The only scope that stays readable at 969 nodes and can show every relation type |
 | Layout model | Graph-first; tree in a drawer | Chosen by the repo owner |
@@ -96,7 +96,7 @@ is what lets a manual override coexist with the OS setting rather than fight
 it.
 
 | Group | Tokens |
-|---|---|
+| --- | --- |
 | Surface | `--bg`, `--surface`, `--surface-raised`, `--border`, `--border-strong` |
 | Text | `--text`, `--text-secondary`, `--text-muted` |
 | Abstraction | `--abs-pillar`, `--abs-class`, `--abs-base`, `--abs-variant`, `--abs-compound` |
@@ -122,7 +122,7 @@ either.
 Abstraction is encoded by **shape and colour together, never colour alone**:
 
 | Abstraction | Shape | Count in 4.20 |
-|---|---|---|
+| --- | --- | --- |
 | Pillar | ◆ diamond | 10 |
 | Class | ◉ ringed circle | 114 |
 | Base | ● filled circle | 539 |
@@ -141,7 +141,7 @@ shape later is a data addition rather than a code change.
 
 Three rows, fixed to the viewport, no page scroll:
 
-```
+```text
 ┌──────────────────────────────────────────────────────┐
 │ ☰   CWE Visualizer   [ search… ]      v4.20   ☀/☾   │  56px
 ├──────────────────────────────────────────────────────┤
@@ -204,7 +204,7 @@ overflow still has somewhere real to go.
 
 `src/lib/layout.ts` maps the ego graph onto bands. Position carries meaning:
 
-```
+```text
 band −2      ◆ 707                          ancestors, 2 up
 band −1      ● 74
 band  0    ○ 352 ──── ◉ 79 ──── ○ 20        ← sequence →      center row
@@ -335,7 +335,7 @@ Two facts worth recording for whoever picks views up:
 
 ## Structure
 
-```
+```text
 src/
   styles/tokens.css       every colour twice; space, type, motion
   styles/base.css         reset, focus-visible

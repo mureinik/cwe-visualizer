@@ -12,6 +12,7 @@ deliberately simple and the pipeline gets the design attention.
 ## Scope
 
 **In scope:**
+
 - Visualize the full CWE corpus (every `Weakness` entry MITRE publishes) as
   one graph, not a single curated MITRE "view."
 - A tree-first UI: `ChildOf`/`ParentOf` edges drive a collapsible hierarchy;
@@ -29,6 +30,7 @@ deliberately simple and the pipeline gets the design attention.
 - A pre-commit hook (eslint + full test suite) via Husky + lint-staged.
 
 **Explicitly out of scope for this iteration:**
+
 - CWE **Categories** and **Views** (MITRE constructs above individual
   Weakness entries) — only `Weakness` entries and their
   `Related_Weaknesses` edges are parsed and shown. **Follow-up:** file a
@@ -40,7 +42,7 @@ deliberately simple and the pipeline gets the design attention.
 
 ## Architecture
 
-```
+```text
 cwe-visualizer/
 ├── scripts/
 │   └── prepare-data.ts        # fetch MITRE's CWE zip, parse, write public/data/*.json
@@ -92,6 +94,7 @@ carrying for one build script. `adm-zip` is a maintained dependency instead.
 
 **Fast path.** Every invocation first does a lightweight check before
 touching the network for real data:
+
 1. `HEAD` the MITRE zip URL → read its `Last-Modified` header.
 2. Compare against the value recorded in the *currently relevant* source of
    truth (see "No committed state" below).
@@ -140,6 +143,7 @@ since Vercel only ever rebuilds when the daily workflow has already
 confirmed real upstream change (see below).
 
 **Error handling.**
+
 - `Last-Modified` check fails to reach MITRE: if a local `meta.json` cache exists
   (dev only), warn and reuse the stale cache rather than blocking; if not
   (first run, or a cache-less CI/Vercel build), fail loudly.
@@ -192,6 +196,7 @@ confirmed real upstream change (see below).
 ## Deployment
 
 **`package.json` scripts:**
+
 ```json
 {
   "scripts": {
@@ -222,6 +227,7 @@ store its URL as a GitHub Actions secret (`VERCEL_DEPLOY_HOOK_URL`).
 **`ci.yml`** — on every PR: install, lint, `vitest run`, `npm run build`.
 
 **`update-data.yml`** — on a daily schedule:
+
 1. `HEAD` MITRE's CWE zip → current `Last-Modified` header.
 2. `GET https://<deployed-domain>/data/meta.json` → the `Last-Modified`
    value the live site was last built from.

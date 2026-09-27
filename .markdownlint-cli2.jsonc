@@ -1,0 +1,11 @@
+{
+  "config": {
+    // Prose isn't wrapped consistently, and wrapping isn't worth enforcing.
+    "MD013": false
+  },
+  // Skip everything .gitignore covers (node_modules, dist, coverage, ...).
+  "gitignore": true
+  // No "globs" here: they'd be added to lint-staged's file list, so a
+  // commit would lint (and --fix) every Markdown file, not just staged ones.
+  // The npm script passes the glob instead.
+}
