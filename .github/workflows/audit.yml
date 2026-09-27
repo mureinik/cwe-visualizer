@@ -1,0 +1,33 @@
+name: npm audit
+
+# dependency-review only sees dependencies a PR changes. This catches
+# advisories published later against ones already in the lockfile, on a
+# schedule so a new advisory doesn't block unrelated PRs.
+on:
+  schedule:
+    - cron: '37 5 * * *'
+  workflow_dispatch:
+  # Re-check as soon as a dependency change lands, so a fix turns this green.
+  push:
+    branches: [main]
+    paths: [package.json, package-lock.json]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+      # Reads the lockfile only; nothing needs installing.
+      - run: npm audit --audit-level=moderate

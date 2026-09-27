@@ -46,6 +46,13 @@ data-freshness check (`.github/workflows/update-data.yml`) is exempt from
 this flow: it never commits or pushes anything, so there's nothing for it
 to bypass.
 
+Advisories published against dependencies already in the lockfile never
+show up in `dependency-review`. Dependabot security updates open fix PRs
+for them, and `.github/workflows/audit.yml` runs `npm audit` daily (and
+whenever `package-lock.json` changes on `main`) so they also show as a
+failed run in Actions. It isn't a PR check, so a new advisory never blocks
+unrelated work.
+
 ## Working with the Superpowers skillset
 
 This project's design, planning, and implementation history
