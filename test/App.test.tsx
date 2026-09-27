@@ -15,7 +15,7 @@ describe('App', () => {
   beforeEach(() => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => ({ ok: true, json: async () => sampleData }))
+      vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(sampleData) }))
     );
   });
 
@@ -119,7 +119,7 @@ describe('App', () => {
   });
 
   it('shows an error message when the fetch fails', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })));
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) })));
     render(<App />);
     await waitFor(() => expect(screen.getByText(/Failed to load CWE data/)).toBeInTheDocument());
   });

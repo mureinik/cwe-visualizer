@@ -17,7 +17,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "prepare": "husky",
     "prepare-data": "node scripts/prepare-data.ts",
@@ -40,6 +40,7 @@
     "@types/react-dom": "^19.2.5",
     "@vitejs/plugin-react": "^6.1.0",
     "eslint": "^10.9.0",
+    "eslint-plugin-jsx-a11y-x": "^0.2.0",
     "eslint-plugin-n": "^18.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.4",
@@ -53,6 +54,6 @@
     "vitest": "^4.1.11"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,mjs}": "eslint --fix"
+    "*.{js,jsx,ts,tsx,mjs}": "eslint --fix --max-warnings 0"
   }
 }

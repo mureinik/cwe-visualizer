@@ -51,6 +51,13 @@ interface RawWeakness {
   Related_Weaknesses?: { Related_Weakness?: RawRelatedWeakness | RawRelatedWeakness[] };
 }
 
+interface RawDocument {
+  Weakness_Catalog?: {
+    '@_Version'?: string;
+    Weaknesses?: { Weakness?: RawWeakness | RawWeakness[] };
+  };
+}
+
 export function extractXmlFromZip(buffer: Buffer): string {
   const zip = new AdmZip(buffer);
   const entries = zip.getEntries().filter((e) => e.entryName.toLowerCase().endsWith('.xml'));
@@ -67,7 +74,7 @@ export function extractXmlFromZip(buffer: Buffer): string {
 
 export function parseCatalog(xmlText: string, lastModified: string | null): CweData {
   const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
-  const doc = parser.parse(xmlText);
+  const doc = parser.parse(xmlText) as RawDocument;
   const catalog = doc.Weakness_Catalog;
   if (!catalog?.['@_Version']) {
     throw new Error('Unexpected CWE catalog format: missing Weakness_Catalog/Version');
