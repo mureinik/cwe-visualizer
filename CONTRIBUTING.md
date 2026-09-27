@@ -30,8 +30,12 @@ talks to MITRE at runtime.
 Every change starts as a GitHub issue, then a branch and a PR that
 references it (`Closes #N`). `main` is a protected branch with no bypass,
 admins included: changes land only through a PR, the PR must be up to date
-with `main`, and both CI checks must pass — `build` (lint, test, build) and
-`validate-issue-link` (the PR links an open issue). No approving review is
+with `main`, and all CI checks must pass: `build` (lint, test, build),
+`lint-workflows` (actionlint and zizmor over `.github/workflows/`),
+`dependency-review` (no new dependency with a known moderate-or-worse
+vulnerability), and `validate-issue-link` (the PR links an open issue).
+Dependabot's PRs are the one exemption from the issue link, since a bot
+can't open issues for its own updates. No approving review is
 required, since GitHub doesn't let authors approve their own PRs and that
 would lock out a sole maintainer; read the diff yourself before merging.
 See the design doc for the full rationale, including why the daily
