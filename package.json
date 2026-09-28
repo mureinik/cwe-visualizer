@@ -27,7 +27,7 @@
     "prebuild": "npm run prepare-data"
   },
   "dependencies": {
-    "adm-zip": "^0.6.0",
+    "adm-zip": "^0.6.1",
     "fast-xml-parser": "^5.11.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
