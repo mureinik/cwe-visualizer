@@ -15,9 +15,6 @@ updates:
     # Ungrouped packages each get a PR, so allow more than the default 5.
     open-pull-requests-limit: 10
     # Wildcards pick up new packages in a category without editing this list.
-    # A package matching several groups joins the first one, so the order
-    # matters: eslint-plugin-react-* goes to lint and @vitejs/plugin-react to
-    # vite, not react.
     groups:
       lint:
         patterns:
@@ -27,10 +24,19 @@ updates:
       vite:
         patterns:
           - '*vite*'
+        # A Vite plugin for a linter (say, vite-plugin-eslint) belongs in lint.
+        exclude-patterns:
+          - '*lint*'
       react:
         patterns:
           - '*react*'
           - '@testing-library/*'
+        # *react* also matches eslint-plugin-react-* and @vitejs/plugin-react.
+        # Group order doesn't decide where such overlaps go (Dependabot put
+        # them in react), so exclude them here to keep them in lint and vite.
+        exclude-patterns:
+          - '*lint*'
+          - '*vite*'
   - package-ecosystem: github-actions
     directory: /
     schedule:
