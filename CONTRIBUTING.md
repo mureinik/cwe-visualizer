@@ -2,10 +2,15 @@
 
 ## Running locally
 
-Requires Node.js `>=24` (see the `engines` field in `package.json`). This
+Requires Node.js `>=24.2` (see the `engines` field in `package.json`). This
 project relies on Node 24's stable, unflagged TypeScript type-stripping to
 run `scripts/prepare-data.ts` directly with no build step — on an older
-Node version, `predev`/`prebuild` will fail.
+Node version, `predev`/`prebuild` will fail. The script also detects that it
+is the entry point with `import.meta.main`, which Node added in 24.2.
+
+`@types/node` is pinned to exactly the `engines` minimum (24.2.0), and
+Dependabot ignores it, so the types never offer an API the oldest supported
+Node lacks. Raise both together when the minimum Node version changes.
 
 ```bash
 npm install
