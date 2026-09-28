@@ -14,6 +14,11 @@ updates:
       default-days: 7
     # Ungrouped packages each get a PR, so allow more than the default 5.
     open-pull-requests-limit: 10
+    # @types/node is pinned to the minimum Node in package.json's engines, so
+    # the types never offer APIs that Node lacks. Bump it by hand, together
+    # with engines, when the minimum Node version changes.
+    ignore:
+      - dependency-name: '@types/node'
     # Wildcards pick up new packages in a category without editing this list.
     groups:
       lint:
