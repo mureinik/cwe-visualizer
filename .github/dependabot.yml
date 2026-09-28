@@ -1,6 +1,7 @@
-# Groups only bundle updates, they don't filter them: minor and patch bumps
-# arrive as one PR per ecosystem, and each major bump as its own PR, so a
-# breaking upgrade gets its own CI run and review.
+# Updates are grouped by what they belong to, not by semver level: each group
+# gets one PR covering its major, minor and patch bumps alike, so packages
+# that move together are reviewed together. Any npm package outside the
+# groups gets a PR of its own.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -11,9 +12,33 @@ updates:
     # yanked version has time to be caught upstream first.
     cooldown:
       default-days: 7
+    # Ungrouped packages each get a PR, so allow more than the default 5.
+    open-pull-requests-limit: 10
     groups:
-      npm-minor-and-patch:
-        update-types: [minor, patch]
+      react:
+        patterns:
+          - react
+          - react-dom
+          - '@types/react'
+          - '@types/react-dom'
+          - '@testing-library/*'
+      vite:
+        patterns:
+          - vite
+          - '@vitejs/*'
+          - vitest
+          - '@vitest/*'
+      lint:
+        patterns:
+          - eslint
+          - '@eslint/*'
+          - eslint-plugin-*
+          - typescript-eslint
+          - '@typescript-eslint/*'
+          - globals
+          - markdownlint-cli2
+          - lint-staged
+          - husky
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -23,5 +48,5 @@ updates:
     cooldown:
       default-days: 7
     groups:
-      actions-minor-and-patch:
-        update-types: [minor, patch]
+      ci:
+        patterns: ['*']
