@@ -14,31 +14,23 @@ updates:
       default-days: 7
     # Ungrouped packages each get a PR, so allow more than the default 5.
     open-pull-requests-limit: 10
+    # Wildcards pick up new packages in a category without editing this list.
+    # A package matching several groups joins the first one, so the order
+    # matters: eslint-plugin-react-* goes to lint and @vitejs/plugin-react to
+    # vite, not react.
     groups:
-      react:
-        patterns:
-          - react
-          - react-dom
-          - '@types/react'
-          - '@types/react-dom'
-          - '@testing-library/*'
-      vite:
-        patterns:
-          - vite
-          - '@vitejs/*'
-          - vitest
-          - '@vitest/*'
       lint:
         patterns:
-          - eslint
-          - '@eslint/*'
-          - eslint-plugin-*
-          - typescript-eslint
-          - '@typescript-eslint/*'
+          - '*lint*'
           - globals
-          - markdownlint-cli2
-          - lint-staged
           - husky
+      vite:
+        patterns:
+          - '*vite*'
+      react:
+        patterns:
+          - '*react*'
+          - '@testing-library/*'
   - package-ecosystem: github-actions
     directory: /
     schedule:
