@@ -19,6 +19,12 @@ updates:
     # with engines, when the minimum Node version changes.
     ignore:
       - dependency-name: '@types/node'
+      # TypeScript 7 dropped the JavaScript compiler API that typescript-eslint's
+      # type-aware rules need, and no typescript-eslint release supports it yet.
+      # Stay on 6.x until one does:
+      # https://github.com/typescript-eslint/typescript-eslint/issues/10940
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
     # Wildcards pick up new packages in a category without editing this list.
     groups:
       lint:
