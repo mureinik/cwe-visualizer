@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useMediaQuery, NARROW_QUERY } from '../../src/lib/media';
 
@@ -14,8 +14,6 @@ function stubMatchMedia(matches: boolean) {
 }
 
 describe('useMediaQuery', () => {
-  afterEach(() => vi.unstubAllGlobals());
-
   it('reports a match', () => {
     stubMatchMedia(true);
     expect(renderHook(() => useMediaQuery(NARROW_QUERY)).result.current).toBe(true);
