@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../src/App';
@@ -17,10 +17,6 @@ describe('App', () => {
       'fetch',
       vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(sampleData) }))
     );
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
   });
 
   it('shows a loading state before data arrives', () => {
@@ -89,10 +85,6 @@ describe('App', () => {
   });
 
   describe('?cwe= parameter', () => {
-    afterEach(() => {
-      window.history.replaceState(null, '', '/');
-    });
-
     it('selects the CWE it names', async () => {
       window.history.replaceState(null, '', '/?cwe=74');
       render(<App />);

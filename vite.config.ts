@@ -7,6 +7,10 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./test/setup.ts'],
+    // Undo vi.stubGlobal and vi.spyOn after every test, so a test that
+    // forgets its own cleanup can't leak into the next one.
+    unstubGlobals: true,
+    restoreMocks: true,
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}', 'scripts/**/*.ts'],
