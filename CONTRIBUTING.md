@@ -59,8 +59,9 @@ failed run in Actions. It isn't a PR check, so a new advisory never blocks
 unrelated work.
 
 Vercel builds a preview deployment for a PR only when it changes a path
-that feeds the deployed site. The paths are listed in `ignoreCommand` in
-`vercel.json`. If you add a new build input outside them (a new top-level
+that feeds the deployed site. The paths are listed in
+`scripts/vercel-ignore-build.sh`, which `vercel.json` runs as its
+`ignoreCommand`. If you add a new build input outside them (a new top-level
 config file Vite reads, say), add it to that list, or its PRs will get no
 preview. Production deployments, including the daily data refresh, always
 build.
