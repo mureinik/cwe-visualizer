@@ -39,7 +39,8 @@ Every change starts as a GitHub issue, then a branch and a PR that
 references it (`Closes #N`). `main` is a protected branch with no bypass,
 admins included: changes land only through a PR, the PR must be up to date
 with `main`, and all CI checks must pass: `build` (lint, Markdown lint, test with coverage, build),
-`lint-workflows` (actionlint and zizmor over `.github/workflows/`),
+`lint-workflows` (actionlint and zizmor over `.github/workflows/`, and
+shellcheck over `*.sh` files and Husky hooks),
 `dependency-review` (no new dependency with a known moderate-or-worse
 vulnerability), and `validate-issue-link` (the PR links an open issue).
 Dependabot's PRs are the one exemption from the issue link, since a bot
@@ -51,12 +52,8 @@ data-freshness check (`.github/workflows/update-data.yml`) is exempt from
 this flow: it never commits or pushes anything, so there's nothing for it
 to bypass.
 
-A PR that touches a shell script (`*.sh`, or a hook under `.husky/`) also
-runs `.github/workflows/shellcheck.yml`. It runs only on those changes, so it
-isn't a required check (a required check that never starts would block
-every other PR), but don't merge while it's red. A Husky hook has no
-shebang, since Husky runs it with `sh`, so give a new one a
-`# shellcheck shell=sh` directive.
+A Husky hook has no shebang, since Husky runs it with `sh`, so give a new
+one a `# shellcheck shell=sh` directive, or shellcheck can't tell its shell.
 
 Advisories published against dependencies already in the lockfile never
 show up in `dependency-review`. Dependabot security updates open fix PRs
