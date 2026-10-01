@@ -1,2 +1,4 @@
+# Husky runs hooks with sh -e, not as executables, so there's no shebang.
+# shellcheck shell=sh
 npx lint-staged
 npm test
