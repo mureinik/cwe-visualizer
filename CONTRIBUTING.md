@@ -51,6 +51,13 @@ data-freshness check (`.github/workflows/update-data.yml`) is exempt from
 this flow: it never commits or pushes anything, so there's nothing for it
 to bypass.
 
+A PR that touches a shell script (`*.sh`, or a hook under `.husky/`) also
+runs `.github/workflows/shellcheck.yml`. It runs only on those changes, so it
+isn't a required check (a required check that never starts would block
+every other PR), but don't merge while it's red. A Husky hook has no
+shebang, since Husky runs it with `sh`, so give a new one a
+`# shellcheck shell=sh` directive.
+
 Advisories published against dependencies already in the lockfile never
 show up in `dependency-review`. Dependabot security updates open fix PRs
 for them, and `.github/workflows/audit.yml` runs `npm audit` daily (and
