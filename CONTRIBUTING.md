@@ -57,10 +57,12 @@ one a `# shellcheck shell=sh` directive, or shellcheck can't tell its shell.
 
 Advisories published against dependencies already in the lockfile never
 show up in `dependency-review`. Dependabot security updates open fix PRs
-for them, and `.github/workflows/audit.yml` runs `npm audit` daily (and
-whenever `package-lock.json` changes on `main`) so they also show as a
-failed run in Actions. It isn't a PR check, so a new advisory never blocks
-unrelated work.
+for them, and `.github/workflows/audit.yml` runs `npm audit --omit=dev`
+daily (and whenever `package-lock.json` changes on `main`) so those
+against production dependencies also show as a failed run in Actions.
+Advisories against dev-only tooling get the Dependabot PR but no failed
+run, since that tooling never ships and only sees our own inputs. The
+audit isn't a PR check, so a new advisory never blocks unrelated work.
 
 Vercel builds a preview deployment for a PR only when it changes a path
 that feeds the deployed site. The paths are listed in

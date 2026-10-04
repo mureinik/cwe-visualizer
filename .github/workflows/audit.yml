@@ -30,5 +30,7 @@ jobs:
         with:
           node-version: 24
       # Reads the lockfile only; nothing needs installing. No --audit-level:
-      # any advisory, whatever its severity, fails the run.
-      - run: npm audit
+      # any advisory, whatever its severity, fails the run. --omit=dev keeps
+      # it to what ships in the app: dev tooling only ever sees our own
+      # inputs, and Dependabot security updates still cover it.
+      - run: npm audit --omit=dev
