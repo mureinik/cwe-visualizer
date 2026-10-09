@@ -47,6 +47,9 @@ Dependabot's PRs are the one exemption from the issue link, since a bot
 can't open issues for its own updates. No approving review is
 required, since GitHub doesn't let authors approve their own PRs and that
 would lock out a sole maintainer; read the diff yourself before merging.
+On top of that, the `main-merge-owner-only` ruleset lets only the repo
+owner update `main`, so bots and automation, the Claude agent below
+included, can open PRs but never merge them or push to `main`.
 See the design doc for the full rationale, including why the daily
 data-freshness check (`.github/workflows/update-data.yml`) is exempt from
 this flow: it never commits or pushes anything, so there's nothing for it
@@ -71,6 +74,23 @@ that feeds the deployed site. The paths are listed in
 config file Vite reads, say), add it to that list, or its PRs will get no
 preview. Production deployments, including the daily data refresh, always
 build.
+
+## Working with the Claude agent
+
+`.github/workflows/claude.yml` runs
+[Claude Code](https://github.com/anthropics/claude-code-action) on issues
+and PRs. Labeling an issue `claude` has it implement the issue on a
+`claude/` branch and reply with a link that opens the PR, and an `@claude`
+comment on an issue or PR asks it a question or for a follow-up change.
+Only the repo owner can trigger it. Its commits go through the same Husky
+hook and its PRs through the same required checks as anyone else's, and the
+ruleset above keeps it from merging, whatever it's asked to do.
+
+It needs two things set up once, outside the repo: the
+[Claude GitHub App](https://github.com/apps/claude) installed on the
+repository, and a `CLAUDE_CODE_OAUTH_TOKEN` repository secret holding the
+token `claude setup-token` prints. Runs draw on that Claude subscription's
+usage limits.
 
 ## Working with the Superpowers skillset
 
