@@ -80,8 +80,8 @@ build.
 `.github/workflows/claude.yml` runs
 [Claude Code](https://github.com/anthropics/claude-code-action) on issues
 and PRs. Labeling an issue `claude` has it implement the issue on a
-`claude/` branch and reply with a link that opens the PR, and an `@claude`
-comment on an issue or PR asks it a question or for a follow-up change.
+`claude/` branch and open a PR for it, and an `@claude` comment on an
+issue or PR asks it a question or for a follow-up change.
 Only the repo owner can trigger it. Its commits go through the same Husky
 hook and its PRs through the same required checks as anyone else's, and the
 ruleset above keeps it from merging, whatever it's asked to do.

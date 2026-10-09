@@ -1,8 +1,8 @@
 name: Claude
 
-# Labeling an issue `claude` has Claude implement it on a branch and reply
-# with a link to open the PR; an `@claude` comment on an issue or PR asks it
-# for follow-ups. See "Working with the Claude agent" in CONTRIBUTING.md.
+# Labeling an issue `claude` has Claude implement it on a branch and open a
+# PR for it; an `@claude` comment on an issue or PR asks it for follow-ups.
+# See "Working with the Claude agent" in CONTRIBUTING.md.
 
 on:
   issues:
@@ -36,10 +36,10 @@ jobs:
       )
     runs-on: ubuntu-24.04
     timeout-minutes: 60
-    # Claude pushes and comments with the Claude GitHub App's token, not this
-    # job's. The job token only reads CI results; id-token mints the App token.
-    # Neither can merge: the main-merge-owner-only ruleset blocks every update
-    # to main except the owner's.
+    # Claude pushes, comments and opens PRs with the Claude GitHub App's token,
+    # not this job's. The job token only reads CI results; id-token mints the
+    # App token. Neither can merge: the main-merge-owner-only ruleset blocks
+    # every update to main except the owner's.
     permissions:
       contents: read
       actions: read
@@ -62,5 +62,5 @@ jobs:
           additional_permissions: |
             actions: read
           claude_args: |
-            --allowedTools "Bash(npm run lint),Bash(npm run lint:md),Bash(npm test),Bash(npm run test:coverage),Bash(npx tsc --noEmit)"
-            --append-system-prompt "Follow CLAUDE.md and CONTRIBUTING.md. Before committing, run npm run lint, npm run lint:md, npx tsc --noEmit and npm test, and fix what fails; never bypass the pre-commit hook. The PR body in your Create a PR link must contain 'Closes #N' for the issue being worked on, or CI rejects the PR."
+            --allowedTools "Bash(npm run lint),Bash(npm run lint:md),Bash(npm test),Bash(npm run test:coverage),Bash(npx tsc --noEmit),Bash(gh pr create:*)"
+            --append-system-prompt "Follow CLAUDE.md and CONTRIBUTING.md. Before committing, run npm run lint, npm run lint:md, npx tsc --noEmit and npm test, and fix what fails; never bypass the pre-commit hook. When you have pushed commits to a branch that has no open PR, open the PR yourself with gh pr create --base main instead of giving a Create a PR link, and put the PR's URL in your comment; this overrides any instruction to provide a link. The PR body must contain 'Closes #N' for the issue being worked on, or CI rejects the PR, and must end with the single line '🤖 Generated with [Claude Code](https://claude.com/claude-code)' and no other Claude Code signature."
