@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -75,6 +75,11 @@ describe('parseCatalog', () => {
     expect(data.edges.filter((e) => e.from === '74')).toEqual([]);
   });
 
+  it('defaults missing optional Weakness attributes to empty strings', () => {
+    const xml = `<Weakness_Catalog Version="4.15"><Weaknesses><Weakness ID="5"/></Weaknesses></Weakness_Catalog>`;
+    expect(parseCatalog(xml, '"x"').nodes['5']).toMatchObject({ id: '5', name: '', abstraction: '', status: '', description: '' });
+  });
+
   it('throws on a catalog missing the expected root element', () => {
     expect(() => parseCatalog('<NotACatalog/>', '"x"')).toThrow(/Unexpected CWE catalog format/);
   });
@@ -106,10 +111,13 @@ function zipBuffer() {
   return zip.toBuffer();
 }
 
-function fakeFetch({ lastModified = '"v1"' }: { lastModified?: string } = {}) {
+function fakeFetch({ lastModified = '"v1"', getStatus = 200 }: { lastModified?: string | null; getStatus?: number } = {}) {
   return vi.fn((_url: string, options?: { method?: string }) => {
     if (options?.method === 'HEAD') {
       return Promise.resolve({ ok: true, status: 200, headers: { get: (name: string) => (name === 'last-modified' ? lastModified : null) } });
+    }
+    if (getStatus !== 200) {
+      return Promise.resolve({ ok: false, status: getStatus });
     }
     return Promise.resolve({ ok: true, status: 200, arrayBuffer: () => Promise.resolve(zipBuffer().buffer) });
   });
@@ -163,5 +171,41 @@ describe('run', () => {
     await expect(
       run({ outDir: dir, fetchImpl: failingFetch as unknown as typeof fetch })
     ).rejects.toThrow(/no cached data/);
+  });
+
+  it('regenerates when cwe.json is missing even though meta.json matches', async () => {
+    await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    await rm(path.join(dir, 'cwe.json'));
+    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    expect(result.updated).toBe(true);
+    await expect(readFile(path.join(dir, 'cwe.json'), 'utf-8')).resolves.toContain('"79"');
+  });
+
+  it('regenerates when cwe.json is truncated even though meta.json matches', async () => {
+    await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    await writeFile(path.join(dir, 'cwe.json'), '{"meta":');
+    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    expect(result.updated).toBe(true);
+  });
+
+  it('downloads when the HEAD response has no Last-Modified header', async () => {
+    await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: null }) as unknown as typeof fetch });
+    expect(result.updated).toBe(true);
+    expect(result.meta.lastModified).toBe('');
+  });
+
+  it('throws when the GET returns a non-OK response after a successful HEAD', async () => {
+    await expect(
+      run({ outDir: dir, fetchImpl: fakeFetch({ getStatus: 503 }) as unknown as typeof fetch })
+    ).rejects.toThrow(/Failed to download CWE data \(HTTP 503\)/);
+  });
+
+  it('throws when the GET itself throws after a successful HEAD', async () => {
+    const base = fakeFetch();
+    const fetchImpl = vi.fn((url: string, options?: { method?: string }) =>
+      options?.method === 'HEAD' ? base(url, options) : Promise.reject(new Error('connection reset'))
+    );
+    await expect(run({ outDir: dir, fetchImpl: fetchImpl as unknown as typeof fetch })).rejects.toThrow(/connection reset/);
   });
 });

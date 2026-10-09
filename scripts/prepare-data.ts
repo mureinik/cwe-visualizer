@@ -58,6 +58,10 @@ interface RawDocument {
   };
 }
 
+function toArray<T>(x: T | T[] | undefined): T[] {
+  return Array.isArray(x) ? x : x ? [x] : [];
+}
+
 export function extractXmlFromZip(buffer: Buffer): string {
   const zip = new AdmZip(buffer);
   const entries = zip.getEntries().filter((e) => e.entryName.toLowerCase().endsWith('.xml'));
@@ -80,8 +84,7 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
     throw new Error('Unexpected CWE catalog format: missing Weakness_Catalog/Version');
   }
 
-  const rawWeaknesses: RawWeakness | RawWeakness[] | undefined = catalog.Weaknesses?.Weakness;
-  const weaknessList = Array.isArray(rawWeaknesses) ? rawWeaknesses : rawWeaknesses ? [rawWeaknesses] : [];
+  const weaknessList = toArray(catalog.Weaknesses?.Weakness);
 
   const nodes: Record<string, CweNode> = {};
   const edges: CweEdge[] = [];
@@ -97,9 +100,7 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
       url: `https://cwe.mitre.org/data/definitions/${id}.html`,
     };
 
-    const rawRelated = w.Related_Weaknesses?.Related_Weakness;
-    const relatedList = Array.isArray(rawRelated) ? rawRelated : rawRelated ? [rawRelated] : [];
-    for (const rel of relatedList) {
+    for (const rel of toArray(w.Related_Weaknesses?.Related_Weakness)) {
       const edge: CweEdge = {
         from: id,
         to: String(rel['@_CWE_ID']),
@@ -135,6 +136,9 @@ const SOURCE_URL = 'https://cwe.mitre.org/data/xml/cwec_latest.xml.zip';
 
 export async function readLocalMeta(outDir: string): Promise<CweMeta | null> {
   try {
+    // meta.json alone isn't proof the data is intact: if cwe.json is missing
+    // or truncated, report no local meta so the slow path regenerates it.
+    JSON.parse(await fs.readFile(path.join(outDir, 'cwe.json'), 'utf-8'));
     const raw = await fs.readFile(path.join(outDir, 'meta.json'), 'utf-8');
     return (JSON.parse(raw) as { meta: CweMeta }).meta;
   } catch {
