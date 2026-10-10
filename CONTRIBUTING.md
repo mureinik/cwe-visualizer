@@ -50,6 +50,9 @@ would lock out a sole maintainer; read the diff yourself before merging.
 On top of that, the `main-merge-owner-only` ruleset lets only the repo
 owner update `main`, so bots and automation, the Claude agent below
 included, can open PRs but never merge them or push to `main`.
+The Dependabot reviewer described below may also approve Dependabot's
+PRs, but approval is only a signal: no review is required, and merging is
+still the owner's.
 See the design doc for the full rationale, including why the daily
 data-freshness check (`.github/workflows/update-data.yml`) is exempt from
 this flow: it never commits or pushes anything, so there's nothing for it
@@ -91,6 +94,47 @@ It needs two things set up once, outside the repo: the
 repository, and a `CLAUDE_CODE_OAUTH_TOKEN` repository secret holding the
 token `claude setup-token` prints. Runs draw on that Claude subscription's
 usage limits.
+
+### Dependabot reviewer
+
+Two workflows look after Dependabot's PRs. `dependabot-rebase.yml` runs on
+every push to `main` and comments `@dependabot rebase` on each one that
+fell behind, since branch protection's strict status checks won't let a PR
+that is behind merge, and Dependabot rebases on its own only when there is
+a conflict. It asks again if a request is still unanswered a day later.
+Once every check on an up-to-date Dependabot PR passes, `ci.yml` calls
+`dependabot-review.yml`. There, Claude reads the release notes in the PR
+body, opens an issue (at most 3 per PR) for each new feature worth adopting
+and each deprecation that affects our code, and approves the PR, tagging
+the repo owner. It never merges; the owner still does.
+
+A rebase alone doesn't trigger a second review: the reviewer skips a PR
+whose changed lines match ones it already approved. It also skips PRs that
+change `.github/workflows/` (every GitHub Actions update does), since the
+Claude App won't act on those; the job notes it, and the owner reviews
+them by hand.
+
+The release notes are third-party text, so the reviewer only ever sees
+`main`'s code, never runs the update, and is limited to reading, opening
+issues and approving.
+
+It authenticates to the Claude API with workload identity federation, which
+exchanges the job's GitHub OIDC token for a short-lived one, so no API key
+is stored anywhere. It needs this set up once, outside the repo:
+
+- In the [Anthropic Console](https://console.anthropic.com): a dedicated
+  workspace with a monthly spend limit, which caps what a runaway or
+  abused run can cost, and a federation rule targeting that workspace that
+  trusts GitHub's OIDC tokens only from this repository's
+  `dependabot-review.yml`. Matching `job_workflow_ref` by prefix means a
+  run of that file from any branch in this repository can federate too, so
+  also require the `actor` claim to be `dependabot[bot]` if the Console
+  supports it; otherwise the spend limit bounds the exposure.
+- In the repository's Actions variables (not secrets; these are
+  identifiers): `ANTHROPIC_FEDERATION_RULE_ID` (`fdrl_...`) and
+  `ANTHROPIC_ORGANIZATION_ID`.
+
+This is separate from the agent's `CLAUDE_CODE_OAUTH_TOKEN`.
 
 ## Working with the Superpowers skillset
 

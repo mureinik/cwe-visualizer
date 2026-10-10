@@ -1,0 +1,56 @@
+name: Dependabot rebase
+
+# Dependabot rebases its own PRs only when they conflict. A PR that is merely
+# behind main still can't merge (branch protection's strict status checks
+# require it be up to date), so ask Dependabot to rebase every one that fell
+# behind. See "Dependabot reviewer" in CONTRIBUTING.md.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+# A newer push supersedes a sweep in progress; the next sweep sees everything.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  request-rebase:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read # compare and commit lookups
+      pull-requests: write # gh pr comment
+    steps:
+      - name: Ask Dependabot to rebase PRs that are behind main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh pr list --author 'app/dependabot' --state open --base main --limit 100 \
+            --json number,headRefOid --jq '.[] | "\(.number) \(.headRefOid)"' |
+          while read -r pr sha; do
+            behind=$(gh api "repos/$GH_REPO/compare/main...$sha" --jq .behind_by)
+            [[ $behind =~ ^[0-9]+$ ]] || { echo "::error::unexpected behind_by '$behind' for #$pr"; exit 1; }
+            if [ "$behind" -eq 0 ]; then
+              echo "#$pr is up to date with main."
+              continue
+            fi
+            # Don't repeat a request Dependabot hasn't acted on yet: skip if
+            # our last request is newer than the PR's head commit. Ask again
+            # once it is a day old, in case Dependabot dropped it.
+            day_ago=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+            head_date=$(gh api "repos/$GH_REPO/commits/$sha" --jq .commit.committer.date)
+            last_request=$(gh api --paginate "repos/$GH_REPO/issues/$pr/comments" \
+              --jq '.[] | select(.user.login == "github-actions[bot]" and .body == "@dependabot rebase") | .created_at' |
+              tail -n 1)
+            if [ -n "$last_request" ] && [[ "$last_request" > "$head_date" ]] &&
+              [[ "$last_request" > "$day_ago" ]]; then
+              echo "#$pr is $behind behind main; rebase already requested at $last_request."
+              continue
+            fi
+            echo "#$pr is $behind behind main; requesting a rebase."
+            gh pr comment "$pr" --body '@dependabot rebase'
+          done
