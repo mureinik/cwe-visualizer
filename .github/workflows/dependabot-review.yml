@@ -84,6 +84,20 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
+      # CLAUDE_CODE_SUBPROCESS_ENV_SCRUB below needs bubblewrap, which the
+      # action installs only for allowed_non_write_users. Same steps as its
+      # own isolation setup, but failing the job instead of running unscrubbed.
+      - name: Install subprocess isolation dependencies
+        if: steps.gate.outputs.review == 'true'
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends bubblewrap socat
+          # Ubuntu 24.04 restricts unprivileged user namespaces via AppArmor,
+          # which bubblewrap needs.
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
       - if: steps.gate.outputs.review == 'true'
         uses: anthropics/claude-code-action@97c53473391bff1901034d4b454b5bac7ab7a029 # v1.0.239
         env:
