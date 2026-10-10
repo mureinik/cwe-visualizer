@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Graph } from '../lib/graph';
 import { ancestorsOf } from '../lib/graph';
 import { Glyph } from './Glyph';
@@ -114,6 +114,16 @@ interface TreeNodeProps {
 }
 
 function TreeNode({ id, graph, expanded, selectedId, onToggle, onSelect, ancestry }: TreeNodeProps) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const isSelected = selectedId === id;
+
+  // Bring a newly selected row on screen; a search pick can land on a node
+  // far outside the scrolled area. `nearest` leaves an already-visible row
+  // alone. scrollIntoView is unimplemented in jsdom.
+  useEffect(() => {
+    if (isSelected) rowRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [isSelected]);
+
   // Defends against a cycle in the source data (should not happen with real
   // CWE data, but a malformed Related_Weaknesses entry could otherwise
   // recurse forever).
@@ -124,7 +134,6 @@ function TreeNode({ id, graph, expanded, selectedId, onToggle, onSelect, ancestr
   const node = graph.nodes[id];
   const children = graph.childrenOf.get(id) ?? [];
   const isExpanded = expanded.has(id);
-  const isSelected = selectedId === id;
   const childAncestry = new Set(ancestry);
   childAncestry.add(id);
 
@@ -137,7 +146,7 @@ function TreeNode({ id, graph, expanded, selectedId, onToggle, onSelect, ancestr
       aria-expanded={children.length > 0 ? isExpanded : undefined}
       aria-selected={isSelected}
     >
-      <div className={`tree-row${isSelected ? ' tree-row--selected' : ''}`}>
+      <div ref={rowRef} className={`tree-row${isSelected ? ' tree-row--selected' : ''}`}>
         {children.length > 0 ? (
           <button
             type="button"

@@ -63,6 +63,26 @@ describe('TreeDrawer reveal and focus', () => {
     expect(screen.queryByRole('button', { name: 'CWE-285: Improper Authorization' })).not.toBeInTheDocument();
   });
 
+  it('scrolls the selected row into view, and only when it becomes selected', () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    try {
+      const { rerender } = render(
+        <TreeDrawer open onClose={() => {}} graph={graph} selectedId={null} onSelect={() => {}} />
+      );
+      expect(scrollIntoView).not.toHaveBeenCalled();
+
+      rerender(<TreeDrawer open onClose={() => {}} graph={graph} selectedId="285" onSelect={() => {}} />);
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      expect(scrollIntoView.mock.contexts[0]).toBe(
+        screen.getByRole('button', { name: 'CWE-285: Improper Authorization' }).closest('.tree-row')
+      );
+    } finally {
+      // @ts-expect-error jsdom does not define it; restore that.
+      delete Element.prototype.scrollIntoView;
+    }
+  });
+
   it('hands focus back to whatever opened it', async () => {
     function Harness() {
       const [open, setOpen] = useState(false);
