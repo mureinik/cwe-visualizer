@@ -150,6 +150,9 @@ jobs:
             Pass every --title and --body value in single quotes, writing a literal ' as '\''.
             Never use $(...), heredocs, or backticks inside double quotes: commands containing
             them are denied.
+          # Headless, anything not allowed is refused anyway; the deny list
+          # also names every other tool Claude Code loads (as of #105's run),
+          # so the limit holds even if those defaults change.
           claude_args: |
             --allowedTools "Read,Grep,Glob,Bash(gh pr view ${{ github.event.pull_request.number }}:*),Bash(gh issue list:*),Bash(gh issue create:*),Bash(gh pr review ${{ github.event.pull_request.number }} --approve:*)"
-            --disallowedTools "Edit,Write,MultiEdit,NotebookEdit,WebFetch,WebSearch,Read(./.git/**),Read(//proc/**)"
+            --disallowedTools "Edit,Write,MultiEdit,NotebookEdit,WebFetch,WebSearch,Read(./.git/**),Read(//proc/**),Task,Agent,Workflow,SendMessage,ListAgents,TaskStop,CronCreate,CronDelete,CronList,ScheduleWakeup,Monitor,PushNotification,RemoteTrigger,EnterWorktree,ExitWorktree,DesignSync,Skill,ReportFindings,ToolSearch"
