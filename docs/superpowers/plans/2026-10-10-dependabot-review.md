@@ -22,7 +22,7 @@ commit.
 ## Global Constraints
 
 - Never merge. No `gh pr merge` in any allowlist; `main-merge-owner-only` stays unchanged.
-- The reviewer authenticates to Claude with `ANTHROPIC_API_KEY`, a key from a dedicated Console workspace with a monthly spend limit, stored as a **Dependabot secret**.
+- The reviewer authenticates to Claude through workload identity federation: `anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}` and `anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}`. No API key, no secrets passed to the reusable workflow.
 - At most 3 issues per PR; when there were more candidates, the approval tags the owner and lists the unfiled ones.
 - The reviewer checks out the PR's **base** commit, never the head, with `persist-credentials: false`, and runs no `npm ci`.
 - No `workflow_run` or `pull_request_target` triggers (zizmor `dangerous-triggers`); no `secrets: inherit`.
@@ -150,7 +150,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 **Interfaces:**
 
-- Consumes: the `pull_request` event context of the calling `ci.yml` run (reusable workflows see the caller's `github.event`); the `ANTHROPIC_API_KEY` secret.
+- Consumes: the `pull_request` event context of the calling `ci.yml` run (reusable workflows see the caller's `github.event`); repository variables `ANTHROPIC_FEDERATION_RULE_ID` and `ANTHROPIC_ORGANIZATION_ID`.
 - Produces: one approving review from the Claude App (`claude[bot]`) per head SHA, plus 0–3 issues.
 
 - [ ] **Step 1: Write the reusable workflow**
@@ -166,9 +166,6 @@ name: Dependabot review
 # and no tool it's given can. See "Dependabot reviewer" in CONTRIBUTING.md.
 on:
   workflow_call:
-    secrets:
-      ANTHROPIC_API_KEY:
-        required: true
 
 permissions: {}
 
@@ -176,8 +173,9 @@ jobs:
   review:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    # Claude approves and opens issues with the Claude GitHub App's token;
-    # id-token mints it. The job token only reads.
+    # id-token federates to the Claude API (no stored key) and mints the
+    # Claude GitHub App token Claude approves and opens issues with. The job
+    # token only reads.
     permissions:
       contents: read
       pull-requests: read
@@ -217,8 +215,12 @@ jobs:
       - if: steps.gate.outputs.review == 'true'
         uses: anthropics/claude-code-action@97c53473391bff1901034d4b454b5bac7ab7a029 # v1.0.239
         with:
-          # From a capped Console workspace, so a runaway run has a cost ceiling.
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Workload identity federation: the job's OIDC token is exchanged
+          # for a short-lived Claude API token, so there's no key to leak. The
+          # rule targets a Console workspace with a spend limit, which caps
+          # what a runaway run can cost. IDs, not secrets.
+          anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
           # The run is triggered by Dependabot, which the action refuses by default.
           allowed_bots: dependabot[bot]
           prompt: |
@@ -274,8 +276,6 @@ Append after the `validate-issue-link` job:
       pull-requests: read
       id-token: write
     uses: ./.github/workflows/dependabot-review.yml
-    secrets:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
 - [ ] **Step 3: Lint**
@@ -313,7 +313,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 **Interfaces:**
 
-- Consumes: workflow file names and the secret name from Tasks 1–2.
+- Consumes: workflow file names and the variable names from Tasks 1–2.
 
 - [ ] **Step 1: Add the subsection**
 
@@ -334,13 +334,20 @@ The release notes are third-party text, so the reviewer only ever sees
 `main`'s code, never runs the update, and is limited to reading, opening
 issues and approving.
 
-It needs one thing set up outside the repo: an Anthropic API key from a
-dedicated [Console](https://console.anthropic.com) workspace with a monthly
-spend limit, stored as the `ANTHROPIC_API_KEY` **Dependabot** secret
-(Settings → Secrets and variables → Dependabot). Runs triggered by
-Dependabot can't see Actions secrets. The spend limit caps what a runaway
-or abused run can cost, and the key is separate from the agent's
-`CLAUDE_CODE_OAUTH_TOKEN`, so either can be revoked on its own.
+It authenticates to the Claude API with workload identity federation, which
+exchanges the job's GitHub OIDC token for a short-lived one, so no API key
+is stored anywhere. It needs this set up once, outside the repo:
+
+- In the [Anthropic Console](https://console.anthropic.com): a dedicated
+  workspace with a monthly spend limit, which caps what a runaway or
+  abused run can cost, and a federation rule targeting that workspace that
+  trusts GitHub's OIDC tokens only from this repository's
+  `dependabot-review.yml`.
+- In the repository's Actions variables (not secrets; these are
+  identifiers): `ANTHROPIC_FEDERATION_RULE_ID` (`fdrl_...`) and
+  `ANTHROPIC_ORGANIZATION_ID`.
+
+This is separate from the agent's `CLAUDE_CODE_OAUTH_TOKEN`.
 ```
 
 - [ ] **Step 2: Fix the "Workflow" section's claim about bots**
@@ -390,7 +397,7 @@ gh pr create --base main --title "ci: automate Dependabot PR review" --body "Clo
 
 Adds dependabot-rebase.yml (rebase requests on push to main) and dependabot-review.yml (Claude reviews, opens issues, approves; never merges), called from ci.yml. Spec and plan under docs/superpowers/.
 
-Needs the ANTHROPIC_API_KEY Dependabot secret before merging; see CONTRIBUTING.md.
+Needs the Anthropic federation setup and two repository variables before merging; see CONTRIBUTING.md.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)"
 ```
@@ -400,9 +407,13 @@ because the PR isn't Dependabot's.
 
 - [ ] **Step 3: Owner setup (the human does this before merging)**
 
-1. Console: create a workspace (for example `cwe-visualizer-dependabot`), set a monthly spend limit on it, and create an API key in it.
-2. GitHub: Settings → Secrets and variables → **Dependabot** → `ANTHROPIC_API_KEY`.
-3. Owner merges the PR.
+The controller (not a subagent) walks the owner through this
+interactively, since the exact Console screens need checking at the time:
+
+1. Console: create a workspace (for example `cwe-visualizer-dependabot`) and set a monthly spend limit on it.
+2. Console: create a workload identity federation rule targeting that workspace. Issuer: `https://token.actions.githubusercontent.com`. Audience: `https://api.anthropic.com`, the action's default. Restrict it to this repository and to `job_workflow_ref` starting with `mureinik/cwe-visualizer/.github/workflows/dependabot-review.yml@`. Note the rule ID (`fdrl_...`) and the organization ID.
+3. GitHub: Settings → Secrets and variables → Actions → **Variables**: add `ANTHROPIC_FEDERATION_RULE_ID` and `ANTHROPIC_ORGANIZATION_ID`.
+4. Owner merges the PR.
 
 - [ ] **Step 4: Live verification on #105 and the next batch**
 
@@ -410,7 +421,7 @@ because the PR isn't Dependabot's.
 | --- | --- | --- |
 | Merging this PR pushes to `main`; `Dependabot rebase` runs | #105 gets exactly one `@dependabot rebase` from `github-actions[bot]`, and Dependabot force-pushes a rebase | Spec risk 2 |
 | Run `Dependabot rebase` by hand again before Dependabot acts | No second comment on #105 | Review Focus: duplicate requests |
-| CI on the rebased #105 | `dependabot-review` runs; the action gets the key and mints the App token | Spec risk 1 |
+| CI on the rebased #105 | `dependabot-review` runs; the variables are visible, federation succeeds, and the App token is minted | Spec risk 1 |
 | The review on #105 (transitive bump, little or no notes) | Approval from `claude[bot]` tagging the owner and saying no or limited notes; no issues | Review Focus: no notes |
 | Re-run the CI workflow on #105 | Gate logs "already approved"; no second review | Review Focus: re-run |
 | Next grouped batch (for example `vite`, `lint`) | Per-package summary; truncation stated if the body was cut; ≤ 3 issues, deduped | Review Focus: truncated notes, cap |
@@ -419,8 +430,11 @@ Prompt injection (Review Focus 5) can't be triggered safely on a live PR.
 It's covered by the allowlist in Task 2, which reviewers should check by
 reading that line of the workflow.
 
-**If risk 1 fails** (the secret isn't visible, or the `id-token`/App-token
-exchange fails under Dependabot): capture the failing step's log, then open
+**If the variables are empty under Dependabot**: write the two IDs into
+`dependabot-review.yml` directly in a follow-up PR. They aren't secret.
+
+**If OIDC fails** (the `id-token` grant, the federation exchange, or the
+App-token exchange fails under Dependabot): capture the failing step's log, then open
 a follow-up issue that weighs passing `github_token: ${{ github.token }}`
 with `pull-requests: write` and `issues: write`. That option needs "Allow
 GitHub Actions to create and approve pull requests", which is currently

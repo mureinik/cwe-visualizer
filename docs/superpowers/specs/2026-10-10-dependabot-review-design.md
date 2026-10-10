@@ -61,10 +61,15 @@ Two workflows, both new files, plus one job added to `ci.yml`:
   dependabot-review:
     if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
     needs: [build, lint-workflows, dependency-review]
+    permissions:
+      contents: read
+      pull-requests: read
+      id-token: write
     uses: ./.github/workflows/dependabot-review.yml
-    secrets:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
   ```
+
+  No secrets are passed: the reviewer authenticates through OIDC (see
+  "Credentials").
 
   `needs` makes it start only once every required check except
   `validate-issue-link` (which Dependabot is exempt from) has passed.
@@ -79,7 +84,8 @@ Two workflows, both new files, plus one job added to `ci.yml`:
 - **Step 2, Claude.** `anthropics/claude-code-action`, pinned by SHA like
   the existing workflow, running on a checkout of `main` (the base), not
   the PR head, with `persist-credentials: false`. No `npm ci`: new
-  dependency code never runs in a job that holds the API key.
+  dependency code never runs in a job that can mint Claude or GitHub
+  credentials.
 
   Allowed tools:
   - `Read`, `Grep`, `Glob` over the checkout, to see how the app uses each
@@ -121,12 +127,20 @@ the owner still merges by hand.
 
 ## Credentials
 
-- **`ANTHROPIC_API_KEY`**, a key from a dedicated Anthropic Console
-  workspace with a monthly spend limit, stored as a **Dependabot secret**
-  (workflows triggered by Dependabot see only Dependabot secrets). The cap
-  bounds the cost of a runaway or abused run ("denial of wallet"), and the
-  key is separate from the `CLAUDE_CODE_OAUTH_TOKEN` the main Claude agent
-  uses, so either can be revoked alone.
+- **Claude API: workload identity federation, no stored key.** The action
+  exchanges the job's GitHub OIDC token for a short-lived Claude API token
+  (`anthropic_federation_rule_id` and `anthropic_organization_id`), so
+  there is no secret to leak. Setup in the Anthropic Console:
+  - a dedicated workspace with a monthly spend limit, which bounds the
+    cost of a runaway or abused run ("denial of wallet");
+  - a federation rule targeting that workspace, which trusts GitHub's OIDC
+    issuer only for this repository's `dependabot-review.yml` (matched on
+    the token's repository and `job_workflow_ref` claims).
+
+  The rule and organization IDs are identifiers, not secrets. They live in
+  repository variables (`ANTHROPIC_FEDERATION_RULE_ID`,
+  `ANTHROPIC_ORGANIZATION_ID`). The main Claude agent's
+  `CLAUDE_CODE_OAUTH_TOKEN` is untouched and unrelated.
 - **GitHub identity:** the Claude GitHub App token, minted through OIDC
   (`id-token: write`) as in `claude.yml`, for the approval and issues. The
   job's own `GITHUB_TOKEN` stays `contents: read`, `pull-requests: read`.
@@ -143,7 +157,8 @@ could achieve:
 - Its tools allow reading, opening issues, and approving; nothing that
   writes code, pushes, or merges.
 - The issue cap bounds spam to 3 issues per PR.
-- The spend cap bounds cost.
+- The workspace spend cap bounds cost, and there is no long-lived Claude
+  credential to steal.
 
 Worst case: up to 3 junk issues and an approval on a PR whose checks
 already passed, which the owner still has to merge by hand.
@@ -156,16 +171,18 @@ already passed, which the owner still has to merge by hand.
 - If a rebase request is ignored, the PR stays behind; the next push to
   `main` or a manual `workflow_dispatch` asks again.
 
-## Risks to verify before building
+## Risks to verify on the first live run
 
-A throwaway probe on a real Dependabot PR, before the full
-implementation:
+A `pull_request` workflow runs from the PR's merge with `main`, so a
+Dependabot-triggered run only picks up these workflows once they are on
+`main`. The first live run, on a Dependabot PR, is therefore the probe:
 
-1. **Secrets and OIDC under Dependabot.** A `pull_request` run triggered
-   by Dependabot gets a read-only `GITHUB_TOKEN` and only Dependabot
-   secrets. Confirm the Dependabot secret reaches the reusable workflow
-   and that `id-token: write` can be granted there so the action can mint
-   the Claude App token.
+1. **OIDC and variables under Dependabot.** A `pull_request` run triggered
+   by Dependabot gets a read-only `GITHUB_TOKEN` by default. Confirm that
+   `id-token: write` can be granted there, so the action can federate to
+   the Claude API and mint the Claude App token, and that the repository
+   variables are visible. If they aren't, write the IDs into the
+   workflow; they aren't secret.
 2. **Dependabot honouring `github-actions[bot]`.** Dependabot acts only on
    commands from users with write access. Confirm it obeys a
    `@dependabot rebase` comment posted with the job's `GITHUB_TOKEN`; if
@@ -186,7 +203,7 @@ implementation:
 
 - `CONTRIBUTING.md`: a "Dependabot reviewer" subsection under "Working
   with the Claude agent" covering what it does, that it never merges, and
-  the one-time setup (Console workspace with a spend cap, the
-  `ANTHROPIC_API_KEY` Dependabot secret).
+  the one-time setup (Console workspace with a spend cap, the federation
+  rule, the two repository variables).
 - Update the "Workflow" section's description of what bots may do, if the
   approval needs mentioning there.
