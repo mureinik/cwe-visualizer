@@ -21,14 +21,23 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read # compare and commit lookups
-      pull-requests: write # gh pr comment
+      pull-requests: read # gh pr list
     steps:
       - name: Ask Dependabot to rebase PRs that are behind main
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          # Dependabot obeys only users with push access, and doesn't count
+          # github-actions[bot]. A fine-grained token of the owner's (this
+          # repo, Pull requests: write) posts the comment; the job's own
+          # token does every lookup.
+          REBASE_TOKEN: ${{ secrets.DEPENDABOT_REBASE_TOKEN }}
         run: |
           set -euo pipefail
+          if [ -z "$REBASE_TOKEN" ]; then
+            echo "::error::Secret DEPENDABOT_REBASE_TOKEN is not set (see \"Dependabot reviewer\" in CONTRIBUTING.md)."
+            exit 1
+          fi
           gh pr list --author 'app/dependabot' --state open --base main --limit 100 \
             --json number,headRefOid --jq '.[] | "\(.number) \(.headRefOid)"' |
           while read -r pr sha; do
@@ -39,12 +48,13 @@ jobs:
               continue
             fi
             # Don't repeat a request Dependabot hasn't acted on yet: skip if
-            # our last request is newer than the PR's head commit. Ask again
-            # once it is a day old, in case Dependabot dropped it.
+            # the last one, ours or a manual one, is newer than the PR's head
+            # commit. Ask again once it is a day old, in case Dependabot
+            # dropped it.
             day_ago=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
             head_date=$(gh api "repos/$GH_REPO/commits/$sha" --jq .commit.committer.date)
             last_request=$(gh api --paginate "repos/$GH_REPO/issues/$pr/comments" \
-              --jq '.[] | select(.user.login == "github-actions[bot]" and .body == "@dependabot rebase") | .created_at' |
+              --jq '.[] | select(.body | ascii_downcase | startswith("@dependabot rebase")) | .created_at' |
               tail -n 1)
             if [ -n "$last_request" ] && [[ "$last_request" > "$head_date" ]] &&
               [[ "$last_request" > "$day_ago" ]]; then
@@ -52,5 +62,5 @@ jobs:
               continue
             fi
             echo "#$pr is $behind behind main; requesting a rebase."
-            gh pr comment "$pr" --body '@dependabot rebase'
+            GH_TOKEN="$REBASE_TOKEN" gh pr comment "$pr" --body '@dependabot rebase'
           done

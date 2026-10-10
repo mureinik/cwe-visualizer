@@ -41,16 +41,25 @@ Two workflows, both new files, plus one job added to `ci.yml`:
 
 - **Trigger:** `push` to `main` (that is what makes open PRs fall behind),
   plus `workflow_dispatch`.
-- **No LLM, no secrets.** A shell step using the job's `GITHUB_TOKEN`
-  (`pull-requests: write`):
+- **No LLM.** A shell step; the job's `GITHUB_TOKEN` (`contents: read`,
+  `pull-requests: read`) does every lookup:
   1. List open PRs authored by `dependabot[bot]` (up to 100).
   2. For each, read `behind_by` from the compare API
      (`main...<head sha>`), failing the run if it isn't a number.
-  3. If `behind_by > 0`, comment `@dependabot rebase`, unless our last
-     such request is newer than the PR's head commit and less than a day
-     old. One push never produces duplicate requests, and a request
-     Dependabot ignored is repeated on the next push or dispatch once it
-     is a day old.
+  3. If `behind_by > 0`, comment `@dependabot rebase`, unless the last
+     such request on the PR (ours or a manual one) is newer than the PR's
+     head commit and less than a day old. One push never produces
+     duplicate requests, and a request Dependabot ignored is repeated on
+     the next push or dispatch once it is a day old.
+- **The comment is posted as the repo owner.** Dependabot obeys only
+  users with push access and refuses `github-actions[bot]` ("Sorry, only
+  users with push access can use that command."), so the comment uses
+  `DEPENDABOT_REBASE_TOKEN`: an Actions secret holding a fine-grained
+  personal access token of the owner's, limited to this repository and
+  Pull requests read/write, with an expiry. The workflow runs only on
+  pushes to `main` and manual dispatch, never on PR code, so the token is
+  never in reach of untrusted code. It fails with an error if the secret
+  is missing.
 - Dependabot already rebases on its own when a PR conflicts; this covers
   the conflict-free "behind" case, which branch protection's strict
   status checks (the up-to-date requirement) still block.
@@ -234,8 +243,9 @@ Dependabot-triggered run only picks up these workflows once they are on
 2. **Dependabot honouring `github-actions[bot]`.** Dependabot acts only on
    commands from users with write access. Confirm it obeys a
    `@dependabot rebase` comment posted with the job's `GITHUB_TOKEN`; if
-   not, the rebase requester needs another identity (for example the
-   Claude App token).
+   not, the rebase requester needs another identity. Outcome: it refused
+   (#105), so the comment is now posted with the owner's fine-grained
+   token (#118).
 
 ## Testing
 

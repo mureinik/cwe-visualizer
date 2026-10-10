@@ -102,6 +102,11 @@ every push to `main` and comments `@dependabot rebase` on each one that
 fell behind, since branch protection's strict status checks won't let a PR
 that is behind merge, and Dependabot rebases on its own only when there is
 a conflict. It asks again if a request is still unanswered a day later.
+Dependabot only obeys users with push access, so the comment is posted
+with `DEPENDABOT_REBASE_TOKEN`, an Actions secret holding a fine-grained
+personal access token of the repo owner's: this repository only, Pull
+requests read and write, with an expiry. Renew it when it expires; until
+then the workflow fails, and you can comment `@dependabot rebase` by hand.
 Once every check on an up-to-date Dependabot PR passes, `ci.yml` calls
 `dependabot-review.yml`. There, Claude reads the release notes in the PR
 body, opens an issue (at most 3 per PR) for each new feature worth adopting
