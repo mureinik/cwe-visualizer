@@ -115,4 +115,7 @@ jobs:
       contents: read
       pull-requests: read
       id-token: write
-    uses: ./.github/workflows/dependabot-review.yml
+    # actionlint 1.7.12 rejects the `$/` self-repository syntax zizmor asks
+    # for; drop this suppression once actionlint is bumped to a version that
+    # accepts it.
+    uses: ./.github/workflows/dependabot-review.yml # zizmor: ignore[self-repository]
