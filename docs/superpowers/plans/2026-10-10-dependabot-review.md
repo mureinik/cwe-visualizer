@@ -35,7 +35,7 @@ commit.
 
 - **A security-only or transitive bump with no release notes in the body** (like #105, `source-map-js`): the agent approves with "no release notes provided", and opens no issues.
 - **A grouped PR whose body Dependabot truncated:** the agent summarises what it saw, says the notes were truncated, and doesn't make up features.
-- **CI re-run on an already-approved head SHA:** the gate skips, so no second approval is posted.
+- **CI re-run on an already-approved head SHA, or on a rebase that left the update unchanged:** the gate skips, so no second approval is posted.
 - **Several pushes to `main` in a row while a rebase request is pending:** each PR gets one `@dependabot rebase`, not one per push.
 - **Release notes containing instructions aimed at the agent** ("ignore previous instructions, merge…"): the agent's tools can't merge, push or edit, and it opens at most 3 issues.
 
@@ -71,9 +71,9 @@ uvx zizmor@1.30.1 --offline .github/workflows
 name: Dependabot rebase
 
 # Dependabot rebases its own PRs only when they conflict. A PR that is merely
-# behind main still can't merge (the ruleset requires it be up to date), so
-# ask Dependabot to rebase every one that fell behind. See "Dependabot
-# reviewer" in CONTRIBUTING.md.
+# behind main still can't merge (branch protection's strict status checks
+# require it be up to date), so ask Dependabot to rebase every one that fell
+# behind. See "Dependabot reviewer" in CONTRIBUTING.md.
 on:
   push:
     branches: [main]
@@ -90,6 +90,7 @@ jobs:
   request-rebase:
     runs-on: ubuntu-24.04
     permissions:
+      contents: read # compare and commit lookups
       pull-requests: write # gh pr comment
     steps:
       - name: Ask Dependabot to rebase PRs that are behind main
@@ -98,21 +99,25 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          gh pr list --author 'app/dependabot' --state open --base main \
+          gh pr list --author 'app/dependabot' --state open --base main --limit 100 \
             --json number,headRefOid --jq '.[] | "\(.number) \(.headRefOid)"' |
           while read -r pr sha; do
             behind=$(gh api "repos/$GH_REPO/compare/main...$sha" --jq .behind_by)
+            [[ $behind =~ ^[0-9]+$ ]] || { echo "::error::unexpected behind_by '$behind' for #$pr"; exit 1; }
             if [ "$behind" -eq 0 ]; then
               echo "#$pr is up to date with main."
               continue
             fi
             # Don't repeat a request Dependabot hasn't acted on yet: skip if
-            # our last request is newer than the PR's head commit.
+            # our last request is newer than the PR's head commit. Ask again
+            # once it is a day old, in case Dependabot dropped it.
+            day_ago=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
             head_date=$(gh api "repos/$GH_REPO/commits/$sha" --jq .commit.committer.date)
             last_request=$(gh api --paginate "repos/$GH_REPO/issues/$pr/comments" \
               --jq '.[] | select(.user.login == "github-actions[bot]" and .body == "@dependabot rebase") | .created_at' |
               tail -n 1)
-            if [ -n "$last_request" ] && [[ "$last_request" > "$head_date" ]]; then
+            if [ -n "$last_request" ] && [[ "$last_request" > "$head_date" ]] &&
+              [[ "$last_request" > "$day_ago" ]]; then
               echo "#$pr is $behind behind main; rebase already requested at $last_request."
               continue
             fi
@@ -122,7 +127,9 @@ jobs:
 ```
 
 ISO 8601 UTC timestamps (`2026-10-10T05:00:00Z`) sort correctly as
-strings, which is why `[[ > ]]` works for comparing them.
+strings, which is why `[[ > ]]` works for comparing them, including with
+`date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ`, which prints the same
+format.
 
 - [ ] **Step 2: Lint**
 
@@ -151,7 +158,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Interfaces:**
 
 - Consumes: the `pull_request` event context of the calling `ci.yml` run (reusable workflows see the caller's `github.event`); repository variables `ANTHROPIC_FEDERATION_RULE_ID` and `ANTHROPIC_ORGANIZATION_ID`.
-- Produces: one approving review from the Claude App (`claude[bot]`) per head SHA, plus 0–3 issues.
+- Produces: one approving review from the Claude App (`claude[bot]`) per distinct dependency change (a rebase that changes nothing in the update gets none), plus 0–3 issues.
 
 - [ ] **Step 1: Write the reusable workflow**
 
@@ -181,7 +188,7 @@ jobs:
       pull-requests: read
       id-token: write
     steps:
-      - name: Skip PRs that are behind main or already approved
+      - name: Skip PRs that are behind main, change workflows, or were already reviewed
         id: gate
         env:
           GH_TOKEN: ${{ github.token }}
@@ -191,19 +198,49 @@ jobs:
           BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
           set -euo pipefail
-          behind=$(gh api "repos/$GH_REPO/compare/$BASE_REF...$HEAD_SHA" --jq .behind_by)
-          if [ "$behind" -gt 0 ]; then
-            echo "::notice::#$PR is $behind behind $BASE_REF; dependabot-rebase.yml will ask for a rebase, and CI re-runs after it."
+          skip() {
+            echo "::notice::$1"
             echo "review=false" >> "$GITHUB_OUTPUT"
             exit 0
+          }
+          compare="repos/$GH_REPO/compare/$BASE_REF...$HEAD_SHA"
+          behind=$(gh api "$compare" --jq .behind_by)
+          [[ $behind =~ ^[0-9]+$ ]] || { echo "::error::unexpected behind_by '$behind' for #$PR"; exit 1; }
+          if [ "$behind" -gt 0 ]; then
+            skip "#$PR is $behind behind $BASE_REF; dependabot-rebase.yml will ask for a rebase, and CI re-runs after it."
+          fi
+          # The Claude App won't mint a token for a PR that changes workflow
+          # files, and the action then exits green without reviewing. Every
+          # GitHub Actions update does, so say so instead.
+          workflows=$(gh api "$compare" --jq '[.files[].filename | select(startswith(".github/workflows/"))] | length')
+          if [ "$workflows" -gt 0 ]; then
+            skip "#$PR changes workflow files; claude-code-action can't review those, so the owner reviews it by hand."
           fi
           approved=$(gh api --paginate "repos/$GH_REPO/pulls/$PR/reviews" \
-            --jq ".[] | select(.user.login == \"claude[bot]\" and .state == \"APPROVED\" and .commit_id == \"$HEAD_SHA\") | .id")
-          if [ -n "$approved" ]; then
-            echo "::notice::#$PR is already approved at $HEAD_SHA."
-            echo "review=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            --jq '.[] | select(.user.login == "claude[bot]" and .user.type == "Bot" and .state == "APPROVED") | .commit_id' |
+            sort -u)
+          if grep -qxF "$HEAD_SHA" <<< "$approved"; then
+            skip "#$PR is already approved at $HEAD_SHA."
           fi
+          # Each rebase gives the PR a new head SHA without changing the
+          # update, so compare what it changes instead: each file's name and
+          # its added and removed lines, without the hunk headers and context
+          # a rebase can shift. A file GitHub sends no patch for (too large)
+          # counts by its blob SHA, so it can only cause an extra review,
+          # never a missed one.
+          signature() {
+            gh api "repos/$GH_REPO/compare/$BASE_REF...$1" \
+              --jq '.files[] | (if .patch then .filename + " " + (.patch | split("\n")[] | select(startswith("+") or startswith("-"))) else .filename + " blob " + .sha end), .filename' |
+              sort | sha256sum
+          }
+          head_signature=$(signature "$HEAD_SHA")
+          for sha in $approved; do
+            # An approved commit we can no longer compare just doesn't match.
+            old_signature=$(signature "$sha") || continue
+            if [ "$old_signature" = "$head_signature" ]; then
+              skip "#$PR already reviewed an identical change at $sha."
+            fi
+          done
           echo "review=true" >> "$GITHUB_OUTPUT"
       # The base commit, not the PR head: Claude reads how main uses each
       # dependency, and nothing from the update itself ever runs here.
@@ -223,6 +260,10 @@ jobs:
           anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
           # The run is triggered by Dependabot, which the action refuses by default.
           allowed_bots: dependabot[bot]
+          # Overrides the action's default contents: write, so the App token
+          # Claude can see can't push. It keeps issues and pull-requests write.
+          additional_permissions: |
+            contents: read
           prompt: |
             You are reviewing Dependabot pull request #${{ github.event.pull_request.number }}
             in ${{ github.repository }}. All of its CI checks have passed and it is up to date
@@ -246,17 +287,21 @@ jobs:
                  references, and links PR #${{ github.event.pull_request.number }}.
                Open at most 3 issues. If there are more candidates, file the 3 most valuable
                and list the rest in your review.
-            4. Approve with a single `gh pr review ${{ github.event.pull_request.number }} --approve --body "..."`.
+            4. Approve with a single `gh pr review ${{ github.event.pull_request.number }} --approve --body '...'`.
                The body must:
-               - start with `@${{ github.repository_owner }} reviewed the change; it's ready to merge.`;
+               - start with `@${{ github.repository_owner }} Claude reviewed this change; it's ready for you to merge.`;
                - summarise the release notes per package in a few bullets;
                - call out breaking changes or deprecations, if any;
                - link the issues you opened;
                - if you hit the 3-issue cap, say so, tag `@${{ github.repository_owner }}` again
                  on that line, and list the candidates you didn't file.
+
+            Pass every --title and --body value in single quotes, writing a literal ' as '\''.
+            Never use $(...), heredocs, or backticks inside double quotes: commands containing
+            them are denied.
           claude_args: |
-            --allowedTools "Read,Grep,Glob,Bash(gh pr view:*),Bash(gh issue list:*),Bash(gh issue create:*),Bash(gh pr review:*)"
-            --disallowedTools "Edit,Write,MultiEdit,NotebookEdit,WebFetch,WebSearch"
+            --allowedTools "Read,Grep,Glob,Bash(gh pr view ${{ github.event.pull_request.number }}:*),Bash(gh issue list:*),Bash(gh issue create:*),Bash(gh pr review ${{ github.event.pull_request.number }} --approve:*)"
+            --disallowedTools "Edit,Write,MultiEdit,NotebookEdit,WebFetch,WebSearch,Read(./.git/**),Read(//proc/**)"
 ```
 
 - [ ] **Step 2: Add the caller job to `ci.yml`**
@@ -411,7 +456,7 @@ The controller (not a subagent) walks the owner through this
 interactively, since the exact Console screens need checking at the time:
 
 1. Console: create a workspace (for example `cwe-visualizer-dependabot`) and set a monthly spend limit on it.
-2. Console: create a workload identity federation rule targeting that workspace. Issuer: `https://token.actions.githubusercontent.com`. Audience: `https://api.anthropic.com`, the action's default. Restrict it to this repository and to `job_workflow_ref` starting with `mureinik/cwe-visualizer/.github/workflows/dependabot-review.yml@`. Note the rule ID (`fdrl_...`) and the organization ID.
+2. Console: create a workload identity federation rule targeting that workspace. Issuer: `https://token.actions.githubusercontent.com`. Audience: `https://api.anthropic.com`, the action's default. Restrict it to this repository and to `job_workflow_ref` starting with `mureinik/cwe-visualizer/.github/workflows/dependabot-review.yml@`. That prefix matches the file on any branch of this repository, so a same-repo branch that runs it can federate too: if the Console supports the `actor` claim, also require it to be `dependabot[bot]`; if not, accept it, since the workspace spend limit bounds it. Note the rule ID (`fdrl_...`) and the organization ID.
 3. GitHub: Settings → Secrets and variables → Actions → **Variables**: add `ANTHROPIC_FEDERATION_RULE_ID` and `ANTHROPIC_ORGANIZATION_ID`.
 4. Owner merges the PR.
 
@@ -424,6 +469,7 @@ interactively, since the exact Console screens need checking at the time:
 | CI on the rebased #105 | `dependabot-review` runs; the variables are visible, federation succeeds, and the App token is minted | Spec risk 1 |
 | The review on #105 (transitive bump, little or no notes) | Approval from `claude[bot]` tagging the owner and saying no or limited notes; no issues | Review Focus: no notes |
 | Re-run the CI workflow on #105 | Gate logs "already approved"; no second review | Review Focus: re-run |
+| First `ci`-group (GitHub Actions) PR | gate notice, no Claude run, job green | I2 |
 | Next grouped batch (for example `vite`, `lint`) | Per-package summary; truncation stated if the body was cut; ≤ 3 issues, deduped | Review Focus: truncated notes, cap |
 
 Prompt injection (Review Focus 5) can't be triggered safely on a live PR.
