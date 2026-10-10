@@ -6,6 +6,9 @@ name: Dependabot review
 # and no tool it's given can. See "Dependabot reviewer" in CONTRIBUTING.md.
 on:
   workflow_call:
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: true
 
 permissions: {}
 
@@ -13,9 +16,8 @@ jobs:
   review:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    # id-token federates to the Claude API (no stored key) and mints the
-    # Claude GitHub App token Claude approves and opens issues with. The job
-    # token only reads.
+    # id-token mints the Claude GitHub App token Claude approves and opens
+    # issues with. The job token only reads.
     permissions:
       contents: read
       pull-requests: read
@@ -84,13 +86,15 @@ jobs:
           persist-credentials: false
       - if: steps.gate.outputs.review == 'true'
         uses: anthropics/claude-code-action@97c53473391bff1901034d4b454b5bac7ab7a029 # v1.0.239
+        env:
+          # The token below is long-lived, so keep it (and other Anthropic
+          # credentials) out of the environment Claude's tools run in, where
+          # an allowlisted `gh ... --jq env.X` could otherwise print it.
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: '1'
         with:
-          # Workload identity federation: the job's OIDC token is exchanged
-          # for a short-lived Claude API token, so there's no key to leak. The
-          # rule targets a Console workspace with a spend limit, which caps
-          # what a runaway run can cost. IDs, not secrets.
-          anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
-          anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          # A dedicated subscription token: runs draw on the plan's usage
+          # limits rather than API credit, and it can be revoked on its own.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # The run is triggered by Dependabot, which the action refuses by default.
           allowed_bots: dependabot[bot]
           # Overrides the action's default contents: write, so the App token

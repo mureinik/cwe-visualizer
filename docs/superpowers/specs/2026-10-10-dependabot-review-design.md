@@ -68,10 +68,12 @@ Two workflows, both new files, plus one job added to `ci.yml`:
       pull-requests: read
       id-token: write
     uses: ./.github/workflows/dependabot-review.yml
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.DEPENDABOT_CLAUDE_CODE_OAUTH_TOKEN }}
   ```
 
-  No secrets are passed: the reviewer authenticates through OIDC (see
-  "Credentials").
+  Only the one secret is passed, by name (no `secrets: inherit`); see
+  "Credentials".
 
   `needs` makes it start only once every required check except
   `validate-issue-link` (which Dependabot is exempt from) has passed.
@@ -154,24 +156,21 @@ the owner still merges by hand.
 
 ## Credentials
 
-- **Claude API: workload identity federation, no stored key.** The action
-  exchanges the job's GitHub OIDC token for a short-lived Claude API token
-  (`anthropic_federation_rule_id` and `anthropic_organization_id`), so
-  there is no secret to leak. Setup in the Anthropic Console:
-  - a dedicated workspace with a monthly spend limit, which bounds the
-    cost of a runaway or abused run ("denial of wallet");
-  - a federation rule targeting that workspace, which trusts GitHub's OIDC
-    issuer only for this repository's `dependabot-review.yml` (matched on
-    the token's repository and `job_workflow_ref` claims). A
-    `job_workflow_ref` prefix match also admits runs of that file from any
-    branch of this repository, so the rule should also require `actor` to
-    be `dependabot[bot]` if the Console supports that claim; if not, the
-    spend limit bounds it.
+- **Claude: a dedicated subscription token.** `claude setup-token`
+  output, stored as the `DEPENDABOT_CLAUDE_CODE_OAUTH_TOKEN` Dependabot
+  secret (workflows triggered by Dependabot see only Dependabot secrets)
+  and passed to the action as `claude_code_oauth_token`. Runs draw on the
+  subscription's usage limits, so there is no per-run bill to run up
+  ("denial of wallet"); abuse can only use up those limits. It is a
+  different token from the main agent's `CLAUDE_CODE_OAUTH_TOKEN`, so
+  either can be revoked alone.
 
-  The rule and organization IDs are identifiers, not secrets. They live in
-  repository variables (`ANTHROPIC_FEDERATION_RULE_ID`,
-  `ANTHROPIC_ORGANIZATION_ID`). The main Claude agent's
-  `CLAUDE_CODE_OAUTH_TOKEN` is untouched and unrelated.
+  This replaced workload identity federation (#114). Federation worked —
+  with a CEL rule matching GitHub's ID-based `sub`
+  (`repo:<owner>@<owner_id>/<repo>@<repo_id>:pull_request`) — but API
+  requests then failed with `billing_error`: the API organization had no
+  purchased credit, and its promotional credit didn't cover Claude Code
+  usage.
 - **GitHub identity:** the Claude GitHub App token, minted through OIDC
   (`id-token: write`) as in `claude.yml`, for the approval and issues. It
   is requested with `contents: read`, `pull-requests: write` and
@@ -196,8 +195,12 @@ could achieve:
   write but no contents write, and is revoked when the step ends.
 - The prompt caps issues at 3 per PR (a cap the model keeps, not one
   the token enforces).
-- The workspace spend cap bounds cost, and there is no long-lived Claude
-  credential to steal.
+- The subscription token is long-lived, so the action step sets
+  `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`, which keeps Anthropic credentials
+  out of the environment Claude's tools run in; without it, an
+  allowlisted `gh ... --jq env.X` could print the token. Only the reviewer
+  job receives the secret, and it runs no code from the update.
+- Usage counts against the subscription's limits, not a bill.
 
 Worst case: for as long as the step runs, junk issues, comments and
 approvals on this repository, through Claude's tools or the leaked token.
@@ -205,7 +208,8 @@ No pushes and no merges; the owner still merges by hand.
 
 ## Error handling
 
-- If the agent fails or hits the spend cap, the `dependabot-review` job
+- If the agent fails or hits the subscription's usage limits, the
+  `dependabot-review` job
   fails and shows red on the PR. It is not a required check, so the owner
   can still review and merge by hand.
 - If a rebase request is ignored, the PR stays behind; the requester
@@ -247,7 +251,7 @@ Dependabot-triggered run only picks up these workflows once they are on
 
 - `CONTRIBUTING.md`: a "Dependabot reviewer" subsection under "Working
   with the Claude agent" covering what it does, that it never merges, and
-  the one-time setup (Console workspace with a spend cap, the federation
-  rule, the two repository variables).
+  the one-time setup (the `DEPENDABOT_CLAUDE_CODE_OAUTH_TOKEN`
+  Dependabot secret).
 - Update the "Workflow" section's description of what bots may do, if the
   approval needs mentioning there.

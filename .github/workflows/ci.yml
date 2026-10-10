@@ -119,3 +119,8 @@ jobs:
     # for; drop this suppression once actionlint is bumped to a version that
     # accepts it.
     uses: ./.github/workflows/dependabot-review.yml # zizmor: ignore[self-repository]
+    # A Dependabot secret: runs Dependabot triggers can't see Actions secrets.
+    # Passed by name rather than `secrets: inherit`, so the reviewer gets only
+    # this one.
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.DEPENDABOT_CLAUDE_CODE_OAUTH_TOKEN }}

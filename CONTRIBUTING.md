@@ -118,23 +118,16 @@ The release notes are third-party text, so the reviewer only ever sees
 `main`'s code, never runs the update, and is limited to reading, opening
 issues and approving.
 
-It authenticates to the Claude API with workload identity federation, which
-exchanges the job's GitHub OIDC token for a short-lived one, so no API key
-is stored anywhere. It needs this set up once, outside the repo:
-
-- In the [Anthropic Console](https://console.anthropic.com): a dedicated
-  workspace with a monthly spend limit, which caps what a runaway or
-  abused run can cost, and a federation rule targeting that workspace that
-  trusts GitHub's OIDC tokens only from this repository's
-  `dependabot-review.yml`. Matching `job_workflow_ref` by prefix means a
-  run of that file from any branch in this repository can federate too, so
-  also require the `actor` claim to be `dependabot[bot]` if the Console
-  supports it; otherwise the spend limit bounds the exposure.
-- In the repository's Actions variables (not secrets; these are
-  identifiers): `ANTHROPIC_FEDERATION_RULE_ID` (`fdrl_...`) and
-  `ANTHROPIC_ORGANIZATION_ID`.
-
-This is separate from the agent's `CLAUDE_CODE_OAUTH_TOKEN`.
+It authenticates with a Claude subscription token, so runs draw on that
+subscription's usage limits rather than API credit. It needs that set up
+once, outside the repo: run `claude setup-token` and store the token it
+prints as the `DEPENDABOT_CLAUDE_CODE_OAUTH_TOKEN` **Dependabot** secret
+(Settings → Secrets and variables → Dependabot), since runs Dependabot
+triggers can't see Actions secrets. Use a token of its own rather than a
+copy of the agent's `CLAUDE_CODE_OAUTH_TOKEN`, so either can be revoked
+without the other. The token is long-lived, so the workflow scrubs
+Anthropic credentials from the environment Claude's tools run in, and
+only the reviewer job is given it.
 
 ## Working with the Superpowers skillset
 
