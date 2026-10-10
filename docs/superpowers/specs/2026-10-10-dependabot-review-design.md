@@ -54,9 +54,10 @@ Two workflows, both new files, plus one job added to `ci.yml`:
 - **The comment is posted as the repo owner.** Dependabot obeys only
   users with push access and refuses `github-actions[bot]` ("Sorry, only
   users with push access can use that command."), so the comment uses
-  `DEPENDABOT_REBASE_TOKEN`: an Actions secret holding a fine-grained
-  personal access token of the owner's, limited to this repository and
-  Pull requests read/write, with an expiry. The workflow runs only on
+  `DEPENDABOT_REBASE_TOKEN`: a secret of the `dependabot-rebase`
+  environment, whose deployment branch policy allows only `main`, holding
+  a fine-grained personal access token of the owner's, limited to this
+  repository and Pull requests read/write, with an expiry. The workflow runs only on
   pushes to `main` and manual dispatch, never on PR code, so the token is
   never in reach of untrusted code. It fails with an error if the secret
   is missing.

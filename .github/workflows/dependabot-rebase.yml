@@ -19,6 +19,12 @@ concurrency:
 jobs:
   request-rebase:
     runs-on: ubuntu-24.04
+    # DEPENDABOT_REBASE_TOKEN lives in this environment, which only main may
+    # use, so no run from another branch can read it. Runs record no
+    # deployment.
+    environment:
+      name: dependabot-rebase
+      deployment: false
     permissions:
       contents: read # compare and commit lookups
       pull-requests: read # gh pr list
