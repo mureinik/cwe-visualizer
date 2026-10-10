@@ -20,6 +20,7 @@ jobs:
   request-rebase:
     runs-on: ubuntu-24.04
     permissions:
+      contents: read # compare and commit lookups
       pull-requests: write # gh pr comment
     steps:
       - name: Ask Dependabot to rebase PRs that are behind main
