@@ -115,9 +115,6 @@ jobs:
           # Claude can see can't push. It keeps issues and pull-requests write.
           additional_permissions: |
             contents: read
-          # TEMPORARY (#112): print the full session so the API's error on
-          # #105 is visible. Revert after one run; logs here are public.
-          show_full_output: true
           prompt: |
             You are reviewing Dependabot pull request #${{ github.event.pull_request.number }}
             in ${{ github.repository }}. All of its CI checks have passed and it is up to date
