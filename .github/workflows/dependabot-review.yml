@@ -21,7 +21,7 @@ jobs:
       pull-requests: read
       id-token: write
     steps:
-      - name: Skip PRs that are behind main or already approved
+      - name: Skip PRs that are behind main, change workflows, or were already reviewed
         id: gate
         env:
           GH_TOKEN: ${{ github.token }}
@@ -31,19 +31,49 @@ jobs:
           BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
           set -euo pipefail
-          behind=$(gh api "repos/$GH_REPO/compare/$BASE_REF...$HEAD_SHA" --jq .behind_by)
-          if [ "$behind" -gt 0 ]; then
-            echo "::notice::#$PR is $behind behind $BASE_REF; dependabot-rebase.yml will ask for a rebase, and CI re-runs after it."
+          skip() {
+            echo "::notice::$1"
             echo "review=false" >> "$GITHUB_OUTPUT"
             exit 0
+          }
+          compare="repos/$GH_REPO/compare/$BASE_REF...$HEAD_SHA"
+          behind=$(gh api "$compare" --jq .behind_by)
+          [[ $behind =~ ^[0-9]+$ ]] || { echo "::error::unexpected behind_by '$behind' for #$PR"; exit 1; }
+          if [ "$behind" -gt 0 ]; then
+            skip "#$PR is $behind behind $BASE_REF; dependabot-rebase.yml will ask for a rebase, and CI re-runs after it."
+          fi
+          # The Claude App won't mint a token for a PR that changes workflow
+          # files, and the action then exits green without reviewing. Every
+          # GitHub Actions update does, so say so instead.
+          workflows=$(gh api "$compare" --jq '[.files[].filename | select(startswith(".github/workflows/"))] | length')
+          if [ "$workflows" -gt 0 ]; then
+            skip "#$PR changes workflow files; claude-code-action can't review those, so the owner reviews it by hand."
           fi
           approved=$(gh api --paginate "repos/$GH_REPO/pulls/$PR/reviews" \
-            --jq ".[] | select(.user.login == \"claude[bot]\" and .state == \"APPROVED\" and .commit_id == \"$HEAD_SHA\") | .id")
-          if [ -n "$approved" ]; then
-            echo "::notice::#$PR is already approved at $HEAD_SHA."
-            echo "review=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            --jq '.[] | select(.user.login == "claude[bot]" and .user.type == "Bot" and .state == "APPROVED") | .commit_id' |
+            sort -u)
+          if grep -qxF "$HEAD_SHA" <<< "$approved"; then
+            skip "#$PR is already approved at $HEAD_SHA."
           fi
+          # Each rebase gives the PR a new head SHA without changing the
+          # update, so compare what it changes instead: each file's name and
+          # its added and removed lines, without the hunk headers and context
+          # a rebase can shift. A file GitHub sends no patch for (too large)
+          # counts by its blob SHA, so it can only cause an extra review,
+          # never a missed one.
+          signature() {
+            gh api "repos/$GH_REPO/compare/$BASE_REF...$1" \
+              --jq '.files[] | (if .patch then .filename + " " + (.patch | split("\n")[] | select(startswith("+") or startswith("-"))) else .filename + " blob " + .sha end), .filename' |
+              sort | sha256sum
+          }
+          head_signature=$(signature "$HEAD_SHA")
+          for sha in $approved; do
+            # An approved commit we can no longer compare just doesn't match.
+            old_signature=$(signature "$sha") || continue
+            if [ "$old_signature" = "$head_signature" ]; then
+              skip "#$PR already reviewed an identical change at $sha."
+            fi
+          done
           echo "review=true" >> "$GITHUB_OUTPUT"
       # The base commit, not the PR head: Claude reads how main uses each
       # dependency, and nothing from the update itself ever runs here.
@@ -90,7 +120,7 @@ jobs:
                  references, and links PR #${{ github.event.pull_request.number }}.
                Open at most 3 issues. If there are more candidates, file the 3 most valuable
                and list the rest in your review.
-            4. Approve with a single `gh pr review ${{ github.event.pull_request.number }} --approve --body "..."`.
+            4. Approve with a single `gh pr review ${{ github.event.pull_request.number }} --approve --body '...'`.
                The body must:
                - start with `@${{ github.repository_owner }} Claude reviewed this change; it's ready for you to merge.`;
                - summarise the release notes per package in a few bullets;
@@ -98,6 +128,10 @@ jobs:
                - link the issues you opened;
                - if you hit the 3-issue cap, say so, tag `@${{ github.repository_owner }}` again
                  on that line, and list the candidates you didn't file.
+
+            Pass every --title and --body value in single quotes, writing a literal ' as '\''.
+            Never use $(...), heredocs, or backticks inside double quotes: commands containing
+            them are denied.
           claude_args: |
             --allowedTools "Read,Grep,Glob,Bash(gh pr view ${{ github.event.pull_request.number }}:*),Bash(gh issue list:*),Bash(gh issue create:*),Bash(gh pr review ${{ github.event.pull_request.number }} --approve:*)"
             --disallowedTools "Edit,Write,MultiEdit,NotebookEdit,WebFetch,WebSearch,Read(./.git/**),Read(//proc/**)"
