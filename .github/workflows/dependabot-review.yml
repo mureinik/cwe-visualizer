@@ -63,6 +63,10 @@ jobs:
           anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
           # The run is triggered by Dependabot, which the action refuses by default.
           allowed_bots: dependabot[bot]
+          # Overrides the action's default contents: write, so the App token
+          # Claude can see can't push. It keeps issues and pull-requests write.
+          additional_permissions: |
+            contents: read
           prompt: |
             You are reviewing Dependabot pull request #${{ github.event.pull_request.number }}
             in ${{ github.repository }}. All of its CI checks have passed and it is up to date
@@ -96,4 +100,4 @@ jobs:
                  on that line, and list the candidates you didn't file.
           claude_args: |
             --allowedTools "Read,Grep,Glob,Bash(gh pr view ${{ github.event.pull_request.number }}:*),Bash(gh issue list:*),Bash(gh issue create:*),Bash(gh pr review ${{ github.event.pull_request.number }} --approve:*)"
-            --disallowedTools "Edit,Write,MultiEdit,NotebookEdit,WebFetch,WebSearch"
+            --disallowedTools "Edit,Write,MultiEdit,NotebookEdit,WebFetch,WebSearch,Read(./.git/**),Read(//proc/**)"
