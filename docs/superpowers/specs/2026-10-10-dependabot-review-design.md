@@ -125,8 +125,11 @@ Two workflows, both new files, plus one job added to `ci.yml`:
 
   Disallowed outright: `Edit`, `Write`, `MultiEdit`, `NotebookEdit`,
   `WebFetch`, `WebSearch`, and `Read(./.git/**)` and `Read(//proc/**)`,
-  where the GitHub token would otherwise be one read away. Also not
-  allowed: generic `gh api` (it can POST), `git push`, `gh pr merge`.
+  where the GitHub token would otherwise be one read away. Every other
+  tool Claude Code loads (subagents and workflows, messaging, scheduling,
+  notifications, remote triggers, worktrees, skills, tool search) is
+  disallowed by name too, so the limit doesn't rest on headless mode
+  refusing what isn't allowed. Also not allowed: generic `gh api` (it can POST), `git push`, `gh pr merge`.
   Claude is told to single-quote `--title` and `--body` values, since
   commands with `$(...)`, heredocs or backticks in double quotes are
   denied.
