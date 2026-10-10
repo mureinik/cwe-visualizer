@@ -88,12 +88,12 @@ jobs:
                and list the rest in your review.
             4. Approve with a single `gh pr review ${{ github.event.pull_request.number }} --approve --body "..."`.
                The body must:
-               - start with `@${{ github.repository_owner }} reviewed the change; it's ready to merge.`;
+               - start with `@${{ github.repository_owner }} Claude reviewed this change; it's ready for you to merge.`;
                - summarise the release notes per package in a few bullets;
                - call out breaking changes or deprecations, if any;
                - link the issues you opened;
                - if you hit the 3-issue cap, say so, tag `@${{ github.repository_owner }}` again
                  on that line, and list the candidates you didn't file.
           claude_args: |
-            --allowedTools "Read,Grep,Glob,Bash(gh pr view:*),Bash(gh issue list:*),Bash(gh issue create:*),Bash(gh pr review:*)"
+            --allowedTools "Read,Grep,Glob,Bash(gh pr view ${{ github.event.pull_request.number }}:*),Bash(gh issue list:*),Bash(gh issue create:*),Bash(gh pr review ${{ github.event.pull_request.number }} --approve:*)"
             --disallowedTools "Edit,Write,MultiEdit,NotebookEdit,WebFetch,WebSearch"
