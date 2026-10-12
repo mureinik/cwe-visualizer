@@ -101,7 +101,8 @@ jobs:
           if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           fi
-      - if: steps.gate.outputs.review == 'true'
+      - id: claude
+        if: steps.gate.outputs.review == 'true'
         uses: anthropics/claude-code-action@6c690188da61cf16ee7debb28383ba67f02abb4c # v1.0.242
         env:
           # The token below is long-lived, so keep it (and other Anthropic
@@ -159,6 +160,55 @@ jobs:
           claude_args: |
             --allowedTools "Read,Grep,Glob,Bash(gh pr view ${{ github.event.pull_request.number }}:*),Bash(gh issue list:*),Bash(gh issue create:*),Bash(gh pr review ${{ github.event.pull_request.number }} --approve:*)"
             --disallowedTools "Edit,Write,MultiEdit,NotebookEdit,WebFetch,WebSearch,Read(./.git/**),Read(//proc/**),Task,Agent,Workflow,SendMessage,ListAgents,TaskStop,CronCreate,CronDelete,CronList,ScheduleWakeup,Monitor,PushNotification,RemoteTrigger,EnterWorktree,ExitWorktree,DesignSync,Skill,ReportFindings,ToolSearch"
+      # The subscription token has no per-key usage report, so record each
+      # run's usage here: only the numbers from the result message that ends
+      # the execution file, never anything Claude wrote. Runs even if Claude
+      # failed, since a failed run still used tokens.
+      # scripts/dependabot-review-usage.sh totals the artifacts.
+      - name: Record token usage
+        id: usage
+        if: ${{ !cancelled() && steps.gate.outputs.review == 'true' }}
+        env:
+          EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          if [ -z "$EXECUTION_FILE" ] || [ ! -f "$EXECUTION_FILE" ]; then
+            echo "::warning::Claude left no execution file, so this run's usage isn't recorded."
+            exit 0
+          fi
+          dir="$RUNNER_TEMP/dependabot-review-usage"
+          mkdir -p "$dir"
+          jq --argjson pr "$PR" --arg sha "$HEAD_SHA" --argjson run "$RUN_ID" \
+            --argjson attempt "$RUN_ATTEMPT" --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '
+            (last(.[] | select(.type == "result")) // error("no result message")) |
+            {pr: $pr, head_sha: $sha, run_id: $run, run_attempt: $attempt, date: $date,
+             subtype, is_error, num_turns, duration_ms, total_cost_usd,
+             usage: (.usage | {input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens}),
+             models: ((.modelUsage // {}) | map_values({inputTokens, outputTokens, cacheCreationInputTokens, cacheReadInputTokens, costUSD}))}
+          ' "$EXECUTION_FILE" > "$dir/usage.json"
+          jq -r '
+            "### Claude usage\n",
+            "| | |", "|---|---|",
+            "| Input tokens | \(.usage.input_tokens) |",
+            "| Output tokens | \(.usage.output_tokens) |",
+            "| Cache write tokens | \(.usage.cache_creation_input_tokens) |",
+            "| Cache read tokens | \(.usage.cache_read_input_tokens) |",
+            "| Turns | \(.num_turns) |",
+            "| Duration | \(.duration_ms / 1000 | round) s |",
+            "| API-equivalent cost (not billed; counts against the subscription) | $\(.total_cost_usd) |"
+          ' "$dir/usage.json" >> "$GITHUB_STEP_SUMMARY"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+      - if: ${{ !cancelled() && steps.usage.outputs.dir != '' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          # One per attempt, so a re-run's usage is kept alongside the first.
+          name: dependabot-review-usage-${{ github.run_attempt }}
+          path: ${{ steps.usage.outputs.dir }}/usage.json
+          if-no-files-found: error
 
   # The gate's notice only shows in the run summary, and the review check
   # still passes, so a PR the reviewer can't handle would look reviewed. Say
