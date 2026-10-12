@@ -6,3 +6,5 @@ coverage/
 *.local
 public/data/
 .serena/
+# Vim swap files
+[._]*.sw[a-p]
