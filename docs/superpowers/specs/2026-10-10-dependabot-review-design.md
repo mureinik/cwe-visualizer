@@ -72,7 +72,7 @@ Two workflows, both new files, plus one job added to `ci.yml`:
   ```yaml
   dependabot-review:
     if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
-    needs: [build, lint-workflows, dependency-review]
+    needs: [build, lint-workflows, semgrep, dependency-review]
     permissions:
       contents: read
       pull-requests: write

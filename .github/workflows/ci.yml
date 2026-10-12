@@ -63,6 +63,35 @@ jobs:
         # Husky hooks have no .sh extension, so list them explicitly.
         run: git ls-files -z -- '*.sh' .husky/ | xargs -0 -r shellcheck
 
+  # Fails only on findings the PR introduces: Semgrep scans just the files
+  # it changed, then the same files on main, and reports the difference.
+  # Registry rules aren't versioned, so a rule added upstream never fails a
+  # PR for code it didn't touch.
+  semgrep:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # The PR's merge commit and its first parent, main's tip, which is
+          # the baseline below.
+          fetch-depth: 2
+      - name: semgrep
+        env:
+          # Pinned by digest, which fixes Semgrep's dependencies too.
+          # Dependabot doesn't update images run here, so bump both together.
+          SEMGREP_VERSION: 1.180.0
+          SEMGREP_DIGEST: sha256:529ee8a277ec8adc5b534d7c74eea0a47e9de21d62852b6ba7ac6ba9566845c3
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src \
+            "semgrep/semgrep:$SEMGREP_VERSION@$SEMGREP_DIGEST" \
+            semgrep scan --metrics=off --error \
+              --baseline-commit "$(git rev-parse HEAD^1)" \
+              --config p/default --config p/typescript --config p/javascript \
+              --config p/react --config p/github-actions --config p/secrets
+
   dependency-review:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
@@ -110,7 +139,7 @@ jobs:
   # union of its jobs'; each of those asks only for what it needs.
   dependabot-review:
     if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
-    needs: [build, lint-workflows, dependency-review]
+    needs: [build, lint-workflows, semgrep, dependency-review]
     permissions:
       contents: read
       pull-requests: write

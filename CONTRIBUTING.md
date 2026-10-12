@@ -41,6 +41,7 @@ admins included: changes land only through a PR, the PR must be up to date
 with `main`, and all CI checks must pass: `build` (lint, Markdown lint, test with coverage, build),
 `lint-workflows` (actionlint and zizmor over `.github/workflows/`, and
 shellcheck over `*.sh` files and Husky hooks),
+`semgrep` (no new Semgrep SAST finding in the files the PR changes),
 `dependency-review` (no new dependency with a known moderate-or-worse
 vulnerability), and `validate-issue-link` (the PR links an open issue).
 Dependabot's PRs are the one exemption from the issue link, since a bot
