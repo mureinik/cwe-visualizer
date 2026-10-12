@@ -58,15 +58,14 @@ jobs:
           approved=$(gh api --paginate "repos/$GH_REPO/pulls/$PR/reviews" \
             --jq '.[] | select(.user.login == "claude[bot]" and .user.type == "Bot" and .state == "APPROVED") | .commit_id' |
             sort -u)
-          if grep -qxF "$HEAD_SHA" <<< "$approved"; then
-            skip "#$PR is already approved at $HEAD_SHA."
-          fi
           # Each rebase gives the PR a new head SHA without changing the
           # update, so compare what it changes instead: each file's name and
           # its added and removed lines, without the hunk headers and context
           # a rebase can shift. A file GitHub sends no patch for (too large)
           # counts by its blob SHA, so it can only cause an extra review,
-          # never a missed one.
+          # never a missed one. This covers a re-run at the same SHA too; a
+          # review's commit_id alone isn't trusted, since GitHub can move an
+          # approval onto a later commit when the PR is force-pushed (#133).
           signature() {
             gh api "repos/$GH_REPO/compare/$BASE_REF...$1" \
               --jq '.files[] | (if .patch then .filename + " " + (.patch | split("\n")[] | select(startswith("+") or startswith("-"))) else .filename + " blob " + .sha end), .filename' |
