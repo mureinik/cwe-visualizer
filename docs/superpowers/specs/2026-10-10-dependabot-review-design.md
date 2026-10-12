@@ -104,10 +104,10 @@ Two workflows, both new files, plus one job added to `ci.yml`:
     tagging the owner. It is a job of its own, so it alone gets
     `pull-requests: write` on the job token, and the caller in `ci.yml`
     grants that union;
-  - `claude[bot]` (a `Bot` account) already approved this exact head SHA
-    (a re-run); or
-  - it approved an earlier commit of the PR with the same dependency
-    change signature. The signature is the SHA-256 of the sorted lines
+  - `claude[bot]` (a `Bot` account) approved a commit of the PR with the
+    same dependency change signature (a re-run, or a rebase that changed
+    nothing). An approval's commit alone isn't trusted: GitHub can move
+    one onto a later commit when the PR is force-pushed (#128, #133). The signature is the SHA-256 of the sorted lines
     `<file> <added or removed line>`, plus each file name, taken from the
     compare API (`<base>...<sha>`); hunk headers and context lines, which
     a rebase can shift, are left out. A file GitHub sends no patch for
