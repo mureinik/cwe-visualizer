@@ -103,7 +103,7 @@ jobs:
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           fi
       - if: steps.gate.outputs.review == 'true'
-        uses: anthropics/claude-code-action@97c53473391bff1901034d4b454b5bac7ab7a029 # v1.0.239
+        uses: anthropics/claude-code-action@6c690188da61cf16ee7debb28383ba67f02abb4c # v1.0.242
         env:
           # The token below is long-lived, so keep it (and other Anthropic
           # credentials) out of the environment Claude's tools run in, where
