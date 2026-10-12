@@ -136,6 +136,16 @@ without the other. The token is long-lived, so the workflow scrubs
 Anthropic credentials from the environment Claude's tools run in, and
 only the reviewer job is given it.
 
+A subscription token has no per-key usage report, so each review run
+records its own: token counts, turns, duration and the API-equivalent
+cost (an estimate; the run counts against the subscription's limits, not
+a bill) appear in the run's summary and are uploaded as a
+`dependabot-review-usage-<attempt>` artifact. Only those numbers are
+taken from Claude's output. `scripts/dependabot-review-usage.sh` totals
+them by month (`--raw` prints each run's record). Artifacts expire after
+the repository's retention period, 90 days by default, so save the
+`--raw` output if you want a longer history.
+
 ## Working with the Superpowers skillset
 
 This project's design, planning, and implementation history

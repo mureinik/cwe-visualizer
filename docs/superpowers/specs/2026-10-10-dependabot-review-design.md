@@ -190,6 +190,16 @@ the owner still merges by hand.
   requests then failed with `billing_error`: the API organization had no
   purchased credit, and its promotional credit didn't cover Claude Code
   usage.
+- **Usage tracking.** A subscription token has no per-key usage report
+  (the Console's usage and cost reports cover API keys only), so each run
+  records its own (#135). After the Claude step, even if it failed, a
+  shell step takes the result message that ends the action's execution
+  file and keeps only numbers: token counts by type, per-model counts,
+  turns, duration, and `total_cost_usd`, an API-equivalent estimate. It
+  writes them to the job summary and uploads them as a
+  `dependabot-review-usage-<attempt>` artifact. Nothing Claude wrote leaves
+  the run. `scripts/dependabot-review-usage.sh` downloads the unexpired
+  artifacts and totals them by month.
 - **GitHub identity:** the Claude GitHub App token, minted through OIDC
   (`id-token: write`) as in `claude.yml`, for the approval and issues. It
   is requested with `contents: read`, `pull-requests: write` and
