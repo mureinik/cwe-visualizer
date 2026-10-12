@@ -106,14 +106,14 @@ jobs:
 
   # Dependabot PRs only, once every other check has passed (validate-issue-link
   # is skipped for them). The reviewer lives in its own file; see it for what
-  # it does. A caller's permissions cap the called workflow's, so they're
-  # repeated here.
+  # it does. A caller's permissions cap the called workflow's, so this is the
+  # union of its jobs'; each of those asks only for what it needs.
   dependabot-review:
     if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
     needs: [build, lint-workflows, dependency-review]
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       id-token: write
     # actionlint 1.7.12 rejects the `$/` self-repository syntax zizmor asks
     # for; drop this suppression once actionlint is bumped to a version that

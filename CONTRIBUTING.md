@@ -117,8 +117,9 @@ the repo owner. It never merges; the owner still does.
 A rebase alone doesn't trigger a second review: the reviewer skips a PR
 whose changed lines match ones it already approved. It also skips PRs that
 change `.github/workflows/` (every GitHub Actions update does), since the
-Claude App won't act on those; the job notes it, and the owner reviews
-them by hand.
+Claude App won't act on those. For those, a separate job comments on the
+PR once, tagging the owner to review it by hand; it is the only part of
+the reviewer whose job token can write, and only to pull requests.
 
 The release notes are third-party text, so the reviewer only ever sees
 `main`'s code, never runs the update, and is limited to reading, opening
