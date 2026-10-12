@@ -22,6 +22,8 @@ jobs:
       contents: read
       pull-requests: read
       id-token: write
+    outputs:
+      manual: ${{ steps.gate.outputs.manual }}
     steps:
       - name: Skip PRs that are behind main, change workflows, or were already reviewed
         id: gate
@@ -46,9 +48,11 @@ jobs:
           fi
           # The Claude App won't mint a token for a PR that changes workflow
           # files, and the action then exits green without reviewing. Every
-          # GitHub Actions update does, so say so instead.
+          # GitHub Actions update does, so say so instead, and have the
+          # comment-manual-review job below say it on the PR.
           workflows=$(gh api "$compare" --jq '[.files[].filename | select(startswith(".github/workflows/"))] | length')
           if [ "$workflows" -gt 0 ]; then
+            echo "manual=true" >> "$GITHUB_OUTPUT"
             skip "#$PR changes workflow files; claude-code-action can't review those, so the owner reviews it by hand."
           fi
           approved=$(gh api --paginate "repos/$GH_REPO/pulls/$PR/reviews" \
@@ -156,3 +160,36 @@ jobs:
           claude_args: |
             --allowedTools "Read,Grep,Glob,Bash(gh pr view ${{ github.event.pull_request.number }}:*),Bash(gh issue list:*),Bash(gh issue create:*),Bash(gh pr review ${{ github.event.pull_request.number }} --approve:*)"
             --disallowedTools "Edit,Write,MultiEdit,NotebookEdit,WebFetch,WebSearch,Read(./.git/**),Read(//proc/**),Task,Agent,Workflow,SendMessage,ListAgents,TaskStop,CronCreate,CronDelete,CronList,ScheduleWakeup,Monitor,PushNotification,RemoteTrigger,EnterWorktree,ExitWorktree,DesignSync,Skill,ReportFindings,ToolSearch"
+
+  # The gate's notice only shows in the run summary, and the review check
+  # still passes, so a PR the reviewer can't handle would look reviewed. Say
+  # so on the PR instead. A job of its own, so the job that runs Claude keeps
+  # a read-only token.
+  comment-manual-review:
+    needs: review
+    if: needs.review.outputs.manual == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: write # comment on the PR
+    steps:
+      - name: Ask the owner to review the PR by hand
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          # Once per PR: a rebase or re-run finds the earlier comment by its
+          # marker and leaves it at that.
+          marker='<!-- dependabot-review:manual -->'
+          existing=$(gh api --paginate "repos/$GH_REPO/issues/$PR/comments" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | contains("<!-- dependabot-review:manual -->"))) | .id')
+          if [ -n "$existing" ]; then
+            echo "#$PR already has a manual-review comment."
+            exit 0
+          fi
+          gh api "repos/$GH_REPO/issues/$PR/comments" -f body="@$OWNER This PR changes files under \`.github/workflows/\`, which the Dependabot reviewer can't review: the Claude GitHub App won't act on such PRs. Please review it by hand.
+
+          $marker" > /dev/null
+          echo "Asked @$OWNER to review #$PR by hand."

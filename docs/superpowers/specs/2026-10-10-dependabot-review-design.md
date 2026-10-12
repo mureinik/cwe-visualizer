@@ -75,7 +75,7 @@ Two workflows, both new files, plus one job added to `ci.yml`:
     needs: [build, lint-workflows, dependency-review]
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       id-token: write
     uses: ./.github/workflows/dependabot-review.yml
     secrets:
@@ -97,7 +97,13 @@ Two workflows, both new files, plus one job added to `ci.yml`:
   - the PR changes anything under `.github/workflows/` (every GitHub
     Actions update, the `ci` group, does). The Claude App refuses to mint
     a token for such PRs, and the action would exit green without
-    reviewing, so the gate says so and the owner reviews them by hand;
+    reviewing, so the gate says so and the owner reviews them by hand.
+    The notice alone showed only in the run summary while the check
+    passed, so the PR looked reviewed (#126); a `comment-manual-review`
+    job now comments on the PR, once (found again by a hidden marker),
+    tagging the owner. It is a job of its own, so it alone gets
+    `pull-requests: write` on the job token, and the caller in `ci.yml`
+    grants that union;
   - `claude[bot]` (a `Bot` account) already approved this exact head SHA
     (a re-run); or
   - it approved an earlier commit of the PR with the same dependency
@@ -188,8 +194,10 @@ the owner still merges by hand.
   (`id-token: write`) as in `claude.yml`, for the approval and issues. It
   is requested with `contents: read`, `pull-requests: write` and
   `issues: write`, so it can't push. The action exposes it to Claude's
-  tools, and it is revoked when the step ends. The job's own
-  `GITHUB_TOKEN` stays `contents: read`, `pull-requests: read`.
+  tools, and it is revoked when the step ends. The review job's own
+  `GITHUB_TOKEN` stays `contents: read`, `pull-requests: read`; only the
+  `comment-manual-review` job, which runs no model, gets
+  `pull-requests: write`.
 
 ## Security
 
@@ -229,8 +237,8 @@ No pushes and no merges; the owner still merges by hand.
   asks again on the next push or dispatch once the previous request is a
   day old.
 - A PR that changes workflow files is out of scope: the Claude App won't
-  act on it, so the gate skips it with a notice and the owner reviews it
-  by hand.
+  act on it, so the gate skips it and a comment on the PR asks the owner
+  to review it by hand.
 
 ## Risks to verify on the first live run
 
