@@ -164,7 +164,7 @@ jobs:
       # run's usage here: only the numbers from the result message that ends
       # the execution file, never anything Claude wrote. Runs even if Claude
       # failed, since a failed run still used tokens.
-      # scripts/dependabot-review-usage.sh totals the artifacts.
+      # .github/scripts/dependabot-review-usage.sh totals the artifacts.
       - name: Record token usage
         id: usage
         if: ${{ !cancelled() && steps.gate.outputs.review == 'true' }}

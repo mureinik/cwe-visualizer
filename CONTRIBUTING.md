@@ -33,6 +33,11 @@ talks to MITRE at runtime.
 - `npm run test:coverage` — Vitest with coverage; fails below the thresholds
   in `vite.config.ts` (CI runs this one)
 
+`scripts/` holds only what the build runs, which today is
+`prepare-data.ts`. Helpers that only serve CI, deployment config or
+maintainers live in `.github/scripts/` instead. Coverage measures the app,
+`src/`, only: both kinds of script have tests, but neither ships.
+
 ## Workflow
 
 Every change starts as a GitHub issue, then a branch and a PR that
@@ -81,7 +86,7 @@ package used only by the data step in `devDependencies` too.
 
 Vercel builds a preview deployment for a PR only when it changes a path
 that feeds the deployed site. The paths are listed in
-`scripts/vercel-ignore-build.sh`, which `vercel.json` runs as its
+`.github/scripts/vercel-ignore-build.sh`, which `vercel.json` runs as its
 `ignoreCommand`. If you add a new build input outside them (a new top-level
 config file Vite reads, say), add it to that list, or its PRs will get no
 preview. Production deployments, including the daily data refresh, always
@@ -150,7 +155,7 @@ records its own: token counts, turns, duration and the API-equivalent
 cost (an estimate; the run counts against the subscription's limits, not
 a bill) appear in the run's summary and are uploaded as a
 `dependabot-review-usage-<attempt>` artifact. Only those numbers are
-taken from Claude's output. `scripts/dependabot-review-usage.sh` totals
+taken from Claude's output. `.github/scripts/dependabot-review-usage.sh` totals
 them by month (`--raw` prints each run's record). Artifacts expire after
 the repository's retention period, 90 days by default, so save the
 `--raw` output if you want a longer history.
