@@ -1,5 +1,5 @@
 import type { Graph } from './graph';
-import { relationGroup, type RelationGroup } from './relations';
+import { baseRelationType, isInverse, relationGroup, type RelationGroup } from './relations';
 
 export type Band = -2 | -1 | 0 | 1;
 export type Side = 'left' | 'center' | 'right';
@@ -121,8 +121,8 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
     // "<Type> (inverse)" is the direction buildGraph synthesized for a
     // relation with no named opposite, so it points the other way: treating
     // it as the forward type would draw the arrow backwards.
-    const inverted = / \(inverse\)$/.test(edge.type);
-    const base = edge.type.replace(/ \(inverse\)$/, '');
+    const inverted = isInverse(edge.type);
+    const base = baseRelationType(edge.type);
     let side: Side;
     if (LEADS_TO.has(base)) side = inverted ? 'left' : 'right';
     else if (LEADS_FROM.has(base)) side = inverted ? 'right' : 'left';
