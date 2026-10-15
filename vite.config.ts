@@ -2,6 +2,51 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+type CoverageMetric = 'statements' | 'branches' | 'functions' | 'lines';
+export type CoverageThresholds = Partial<Record<CoverageMetric, number>>;
+
+// A floor a few points under the measured baseline, to catch untested code
+// landing, not to chase a number. Raise it as coverage improves. It applies
+// to the total and to every file on its own.
+export const COVERAGE_FLOOR: CoverageThresholds = {
+  statements: 90,
+  branches: 78,
+  functions: 90,
+  lines: 92,
+};
+
+// Files still under the floor, each held at today's coverage so it can't slip
+// further. Only the metrics under the floor are listed; the rest use the
+// floor. Remove an entry once its file reaches the floor; the issue next to
+// each one tracks that.
+export const COVERAGE_EXCEPTIONS: Record<string, CoverageThresholds> = {
+  'src/App.tsx': { functions: 81, lines: 88 }, // #170
+  'src/components/GraphEdge.tsx': { branches: 72 }, // #171
+  'src/components/GraphStage.tsx': { statements: 84, branches: 71, functions: 83, lines: 86 }, // #169
+  'src/components/SearchBox.tsx': { functions: 88 }, // #172
+  'src/lib/graph.ts': { branches: 73 }, // #173
+  'src/lib/media.ts': { functions: 83 }, // #174
+};
+
+/** The thresholds a file is held to: the floor, lowered by its exception if it has one. */
+export function fileThresholds(file: string): CoverageThresholds {
+  return { ...COVERAGE_FLOOR, ...COVERAGE_EXCEPTIONS[file] };
+}
+
+// Vitest checks a file against every pattern that matches it, so an exception
+// can't simply override a per-file rule for all of src/. Instead, the floor
+// applies per file to everything except the exceptions, through a negated
+// pattern, and each exception has a pattern of its own.
+function coverageThresholds() {
+  const exceptions = Object.keys(COVERAGE_EXCEPTIONS);
+  const everyOtherFile = exceptions.length > 0 ? `!(${exceptions.join('|')})` : '**';
+  return {
+    ...COVERAGE_FLOOR,
+    [everyOtherFile]: { ...COVERAGE_FLOOR, perFile: true },
+    ...Object.fromEntries(exceptions.map((file) => [file, { ...fileThresholds(file), perFile: true }])),
+  };
+}
+
 export default defineConfig({
   plugins: [react()],
   test: {
@@ -13,20 +58,16 @@ export default defineConfig({
     restoreMocks: true,
     coverage: {
       provider: 'v8',
+      // Vitest's defaults, plus json-summary for the CI job summary that
+      // .github/scripts/coverage-summary.ts renders.
+      reporter: ['text', 'html', 'clover', 'json', 'json-summary'],
       // The app only. scripts/prepare-data.ts and the CI helpers in
       // .github/scripts/ have tests, but don't ship, so they aren't counted.
       include: ['src/**/*.{ts,tsx}'],
       // main.tsx only mounts <App /> into the page, and cwe-data.ts holds
       // only types, so there's nothing in either to cover.
       exclude: ['src/main.tsx', 'src/lib/cwe-data.ts'],
-      // A floor a few points under the measured baseline, to catch untested
-      // code landing, not to chase a number. Raise it as coverage improves.
-      thresholds: {
-        statements: 90,
-        branches: 78,
-        functions: 90,
-        lines: 92,
-      },
+      thresholds: coverageThresholds(),
     },
   },
 });

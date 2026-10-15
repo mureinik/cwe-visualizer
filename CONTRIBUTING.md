@@ -31,12 +31,20 @@ talks to MITRE at runtime.
 - `npm run lint:md` — markdownlint
 - `npm test` — Vitest
 - `npm run test:coverage` — Vitest with coverage; fails below the thresholds
-  in `vite.config.ts` (CI runs this one)
+  in `vite.config.ts` (CI runs this one, and
+  `.github/scripts/coverage-summary.ts` puts the results on the run's
+  Summary page)
 
 `scripts/` holds only what the build runs, which today is
 `prepare-data.ts`. Helpers that only serve CI, deployment config or
 maintainers live in `.github/scripts/` instead. Coverage measures the app,
 `src/`, only: both kinds of script have tests, but neither ships.
+
+The coverage thresholds in `vite.config.ts` apply to the total and to every
+file on its own. A few files are still under them, so `COVERAGE_EXCEPTIONS`
+holds each one at its current coverage, and each has an issue to bring it
+up to the floor. Don't add an entry to make a new change pass; add tests
+instead. Remove an entry once its file reaches the floor.
 
 ## Workflow
 

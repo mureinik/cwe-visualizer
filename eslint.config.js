@@ -57,11 +57,11 @@ export default tseslint.config(
     },
   },
   {
-    // Backend Node.js code: prepare-data.ts and any future scripts/*.ts.
-    // Not applied to src/** (browser code, never runs under Node) or to
+    // Backend Node.js code: prepare-data.ts, the CI helpers in
+    // .github/scripts/, and any future scripts of either kind. Not applied to src/** (browser code, never runs under Node) or to
     // *.config.{js,ts} (tooling config — its imports are devDependencies,
     // which eslint-plugin-n's unpublished-import rules would misflag).
-    files: ['scripts/**/*.ts'],
+    files: ['scripts/**/*.ts', '.github/scripts/**/*.ts'],
     extends: [...typeChecked, nodePlugin.configs['flat/recommended-module']],
     languageOptions: {
       ...projectService,
@@ -71,9 +71,22 @@ export default tseslint.config(
     },
   },
   {
-    files: ['*.config.{js,ts}'],
+    files: ['*.config.js'],
     extends: [js.configs.recommended],
     languageOptions: {
+      ecmaVersion: 2025,
+      sourceType: 'module',
+      globals: globals.node,
+    },
+  },
+  {
+    // vite.config.ts also defines the coverage thresholds, with types, so it
+    // needs the TypeScript parser. It's in tsconfig.json, so it gets the same
+    // type-aware rules as the rest of the TypeScript.
+    files: ['*.config.ts'],
+    extends: typeChecked,
+    languageOptions: {
+      ...projectService,
       ecmaVersion: 2025,
       sourceType: 'module',
       globals: globals.node,
