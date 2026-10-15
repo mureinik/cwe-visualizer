@@ -13,9 +13,12 @@ export default defineConfig({
     restoreMocks: true,
     coverage: {
       provider: 'v8',
-      include: ['src/**/*.{ts,tsx}', 'scripts/**/*.ts'],
-      // main.tsx only mounts <App /> into the page.
-      exclude: ['src/main.tsx'],
+      // The app only. scripts/prepare-data.ts and the CI helpers in
+      // .github/scripts/ have tests, but don't ship, so they aren't counted.
+      include: ['src/**/*.{ts,tsx}'],
+      // main.tsx only mounts <App /> into the page, and cwe-data.ts holds
+      // only types, so there's nothing in either to cover.
+      exclude: ['src/main.tsx', 'src/lib/cwe-data.ts'],
       // A floor a few points under the measured baseline, to catch untested
       // code landing, not to chase a number. Raise it as coverage improves.
       thresholds: {

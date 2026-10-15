@@ -5,7 +5,7 @@
 # retention period, so for a longer history, save the --raw output now and
 # then.
 #
-# Usage: scripts/dependabot-review-usage.sh [--raw]
+# Usage: .github/scripts/dependabot-review-usage.sh [--raw]
 #   --raw  print each run's record as a JSON line instead of the totals
 set -euo pipefail
 
