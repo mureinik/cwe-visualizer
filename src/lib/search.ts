@@ -1,4 +1,4 @@
-import type { CweNode, Graph } from './graph';
+import { compareIds, type CweNode, type Graph } from './graph';
 
 /** Lower sorts first. */
 function rank(node: CweNode, query: string): number {
@@ -26,7 +26,7 @@ export function searchNodes(graph: Graph, query: string): CweNode[] {
       const bDeprecated = b.node.status === 'Deprecated' ? 1 : 0;
       if (aDeprecated !== bDeprecated) return aDeprecated - bDeprecated;
       if (a.rank !== b.rank) return a.rank - b.rank;
-      return Number(a.node.id) - Number(b.node.id);
+      return compareIds(a.node.id, b.node.id);
     })
     .map((scored) => scored.node);
 }

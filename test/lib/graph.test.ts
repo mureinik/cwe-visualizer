@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildGraph, ancestorsOf, countDescendants, type CweData } from '../../src/lib/graph';
+import { buildGraph, ancestorsOf, compareIds, countDescendants, type CweData } from '../../src/lib/graph';
 
 const sampleData: CweData = {
   meta: { cweVersion: '4.15', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
@@ -91,6 +91,12 @@ describe('buildGraph ParentOf direction', () => {
     const graph = buildGraph(data);
     expect(graph.childrenOf.get('1')).toEqual(['2']);
     expect(graph.roots).toEqual(['1']);
+  });
+});
+
+describe('compareIds', () => {
+  it('orders ids numerically, not as strings', () => {
+    expect(['120', '79', '1000', '20'].sort(compareIds)).toEqual(['20', '79', '120', '1000']);
   });
 });
 

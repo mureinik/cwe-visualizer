@@ -46,6 +46,14 @@ function inverseNature(type: string): string {
   return inverses[type] ?? `${type}${INVERSE_SUFFIX}`;
 }
 
+/**
+ * Orders CWE ids numerically, so 79 sorts before 120. Every list of ids in
+ * the app (tree, ego graph, search ties) sorts with this, so they agree.
+ */
+export function compareIds(a: string, b: string): number {
+  return Number(a) - Number(b);
+}
+
 function addUnique(map: Map<string, string[]>, key: string, value: string) {
   const list = map.get(key);
   if (!list) {
@@ -98,22 +106,21 @@ export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
     }
   }
 
-  const byId = (a: string, b: string) => Number(a) - Number(b);
   const isDeprecated = (id: string) => data.nodes[id]?.status === 'Deprecated';
 
   let roots: string[];
   let deprecatedRoots: string[];
 
   if (options?.rootIds) {
-    roots = options.rootIds.filter((id) => id in data.nodes).sort(byId);
+    roots = options.rootIds.filter((id) => id in data.nodes).sort(compareIds);
     deprecatedRoots = [];
   } else {
     const parentless = Object.keys(data.nodes).filter((id) => (parentsOf.get(id) ?? []).length === 0);
-    roots = parentless.filter((id) => !isDeprecated(id)).sort(byId);
-    deprecatedRoots = parentless.filter(isDeprecated).sort(byId);
+    roots = parentless.filter((id) => !isDeprecated(id)).sort(compareIds);
+    deprecatedRoots = parentless.filter(isDeprecated).sort(compareIds);
   }
 
-  const all = Object.values(data.nodes).sort((a, b) => Number(a.id) - Number(b.id));
+  const all = Object.values(data.nodes).sort((a, b) => compareIds(a.id, b.id));
 
   return { meta: data.meta, nodes: data.nodes, childrenOf, parentsOf, relatedTo, roots, deprecatedRoots, all };
 }

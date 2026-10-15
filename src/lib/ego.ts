@@ -1,4 +1,4 @@
-import type { Graph } from './graph';
+import { compareIds, type Graph } from './graph';
 import { baseRelationType, isInverse, relationGroup, type RelationGroup } from './relations';
 
 export type Band = -2 | -1 | 0 | 1;
@@ -45,8 +45,6 @@ export interface EgoOptions {
   lateralCap?: number;
 }
 
-const byId = (a: string, b: string) => Number(a) - Number(b);
-
 /** Types whose direction means "this can lead to X" — X belongs on the right. */
 const LEADS_TO = new Set(['CanPrecede', 'StartsWith', 'Requires']);
 /** Types whose direction means "X can lead to this" — X belongs on the left. */
@@ -84,7 +82,7 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
     const band = (hop === 1 ? -1 : -2) as Band;
     const next: string[] = [];
     for (const childId of frontier) {
-      for (const parentId of [...(graph.parentsOf.get(childId) ?? [])].sort(byId)) {
+      for (const parentId of [...(graph.parentsOf.get(childId) ?? [])].sort(compareIds)) {
         if (!(parentId in graph.nodes)) continue;
         if (add(parentId, band, 'center')) next.push(parentId);
         edges.push({ from: childId, to: parentId, type: 'ChildOf', group: 'hierarchy' });
@@ -99,7 +97,7 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
     .filter((id) => id in graph.nodes)
     .sort((a, b) => {
       const byFanout = (graph.childrenOf.get(b) ?? []).length - (graph.childrenOf.get(a) ?? []).length;
-      return byFanout !== 0 ? byFanout : byId(a, b);
+      return byFanout !== 0 ? byFanout : compareIds(a, b);
     });
 
   for (const childId of allChildren.slice(0, childCap)) {
@@ -116,7 +114,7 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
   let right = 0;
   let leftHidden = 0;
   let rightHidden = 0;
-  for (const edge of [...(graph.relatedTo.get(centerId) ?? [])].sort((a, b) => byId(a.to, b.to))) {
+  for (const edge of [...(graph.relatedTo.get(centerId) ?? [])].sort((a, b) => compareIds(a.to, b.to))) {
     if (!(edge.to in graph.nodes) || edge.to === centerId) continue;
     // "<Type> (inverse)" is the direction buildGraph synthesized for a
     // relation with no named opposite, so it points the other way: treating
