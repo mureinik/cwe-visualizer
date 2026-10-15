@@ -24,11 +24,22 @@ const BY_TYPE: Record<string, RelationGroup> = {
 
 /**
  * buildGraph synthesizes the missing direction of one-sided relations and
- * labels anything with no known inverse "<Type> (inverse)". Group by the
- * underlying type so a synthesized edge lands with its counterpart.
+ * labels anything with no known inverse "<Type> (inverse)". This is the one
+ * place that spelling lives; everything else goes through the helpers below.
+ */
+export const INVERSE_SUFFIX = ' (inverse)';
+
+/** True for a direction buildGraph synthesized with the generic suffix. */
+export function isInverse(type: string): boolean {
+  return type.endsWith(INVERSE_SUFFIX);
+}
+
+/**
+ * The underlying type, without the synthesized-inverse suffix. Group by this
+ * so a synthesized edge lands with its counterpart.
  */
 export function baseRelationType(type: string): string {
-  return type.replace(/ \(inverse\)$/, '');
+  return isInverse(type) ? type.slice(0, -INVERSE_SUFFIX.length) : type;
 }
 
 export function relationGroup(type: string): RelationGroup {

@@ -1,5 +1,20 @@
 import { describe, it, expect } from 'vitest';
-import { RELATION_GROUPS, relationGroup, baseRelationType } from '../../src/lib/relations';
+import { RELATION_GROUPS, relationGroup, baseRelationType, isInverse } from '../../src/lib/relations';
+
+describe('isInverse', () => {
+  it('recognises the synthesized inverse suffix', () => {
+    expect(isInverse('StartsWith (inverse)')).toBe(true);
+  });
+
+  it('rejects a plain type, including a named inverse like CanFollow', () => {
+    expect(isInverse('PeerOf')).toBe(false);
+    expect(isInverse('CanFollow')).toBe(false);
+  });
+
+  it('only matches the suffix at the end', () => {
+    expect(isInverse('StartsWith (inverse) extra')).toBe(false);
+  });
+});
 
 describe('baseRelationType', () => {
   it('strips the synthesized inverse suffix', () => {

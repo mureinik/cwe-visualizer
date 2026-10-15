@@ -1,4 +1,5 @@
 import type { CweData, CweEdge, CweMeta, CweNode } from './cwe-data';
+import { INVERSE_SUFFIX } from './relations';
 
 export type { CweData, CweEdge, CweMeta, CweNode } from './cwe-data';
 
@@ -42,7 +43,7 @@ function inverseNature(type: string): string {
     Requires: 'RequiredBy',
     RequiredBy: 'Requires',
   };
-  return inverses[type] ?? `${type} (inverse)`;
+  return inverses[type] ?? `${type}${INVERSE_SUFFIX}`;
 }
 
 function addUnique(map: Map<string, string[]>, key: string, value: string) {
