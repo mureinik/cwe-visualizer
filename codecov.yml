@@ -1,0 +1,18 @@
+# CI uploads the coverage report (the build job's last step), and Codecov
+# posts the PR comment and the checks below, following these settings.
+# Validate edits with:
+#   curl --data-binary @codecov.yml https://codecov.io/validate
+coverage:
+  status:
+    # Total coverage against the PR's base. Fails when the PR lowers it by
+    # more than 1 percentage point, which the floor in vite.config.ts alone
+    # wouldn't catch while the total stays above it. A required check on main.
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    # Coverage of just the lines the PR adds or changes. Reported, but never
+    # fails, until we decide whether to enforce it.
+    patch:
+      default:
+        informational: true

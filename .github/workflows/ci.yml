@@ -35,6 +35,20 @@ jobs:
         if: ${{ !cancelled() }}
         run: node .github/scripts/coverage-summary.ts >> "$GITHUB_STEP_SUMMARY"
       - run: npm run build
+      # Sends the coverage report to Codecov, which comments on the PR and
+      # posts the codecov/project check (see codecov.yml). Last, so it only
+      # runs once everything else passed. CODECOV_TOKEN is both an Actions
+      # and a Dependabot secret, since Dependabot's runs can't see Actions
+      # secrets. The CLI version is pinned, like shellcheck's below, so an
+      # upstream release can't change what runs here; bump it on purpose.
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          version: v11.3.1
+          files: coverage/clover.xml
+          disable_search: true
+          fail_ci_if_error: true
 
   lint-workflows:
     runs-on: ubuntu-24.04

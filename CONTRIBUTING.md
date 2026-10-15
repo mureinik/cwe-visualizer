@@ -46,6 +46,16 @@ holds each one at its current coverage, and each has an issue to bring it
 up to the floor. Don't add an entry to make a new change pass; add tests
 instead. Remove an entry once its file reaches the floor.
 
+The floor can't tell when a PR lowers coverage while staying above it, so
+CI also uploads the report to [Codecov](https://about.codecov.io/), which
+compares it with the PR's base. It comments on the PR with the change, and
+its `codecov/project` check fails when total coverage drops by more than 1
+point. It also reports coverage of the lines the PR changed
+(`codecov/patch`), for information only. The settings are in
+`codecov.yml`. The upload needs a `CODECOV_TOKEN` secret, the repository's
+upload token from Codecov, stored both as an Actions secret and as a
+Dependabot secret, since Dependabot's runs can't see Actions secrets.
+
 ## Workflow
 
 Every change starts as a GitHub issue, then a branch and a PR that
@@ -56,7 +66,9 @@ with `main`, and all CI checks must pass: `build` (lint, Markdown lint, test wit
 shellcheck over `*.sh` files and Husky hooks),
 `semgrep` (no new Semgrep SAST finding in the files the PR changes),
 `dependency-review` (no new dependency with a known moderate-or-worse
-vulnerability), and `validate-issue-link` (the PR links an open issue).
+vulnerability), `validate-issue-link` (the PR links an open issue), and
+`codecov/project` (the PR doesn't lower total coverage by more than 1
+point; see below).
 Dependabot's PRs are the one exemption from the issue link, since a bot
 can't open issues for its own updates. No approving review is
 required, since GitHub doesn't let authors approve their own PRs and that
