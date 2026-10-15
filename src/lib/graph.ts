@@ -1,31 +1,6 @@
-export interface CweNode {
-  id: string;
-  name: string;
-  abstraction: string;
-  status: string;
-  description: string;
-  url: string;
-}
+import type { CweData, CweEdge, CweMeta, CweNode } from './cwe-data';
 
-export interface CweEdge {
-  from: string;
-  to: string;
-  type: string;
-  /** See the matching comment in scripts/prepare-data.ts. */
-  viewId?: string;
-}
-
-export interface CweMeta {
-  cweVersion: string;
-  lastModified: string;
-  generatedAt: string;
-}
-
-export interface CweData {
-  meta: CweMeta;
-  nodes: Record<string, CweNode>;
-  edges: CweEdge[];
-}
+export type { CweData, CweEdge, CweMeta, CweNode } from './cwe-data';
 
 export interface Graph {
   meta: CweMeta;

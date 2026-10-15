@@ -6,7 +6,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import AdmZip from 'adm-zip';
-import { extractXmlFromZip, parseCatalog, writeOutput, run, type CweData } from '../../scripts/prepare-data.ts';
+import { extractXmlFromZip, parseCatalog, writeOutput, run } from '../../scripts/prepare-data.ts';
+import type { CweData } from '../../src/lib/cwe-data';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURE_XML = path.join(__dirname, '..', 'fixtures', 'cwec-sample.xml');
