@@ -31,6 +31,10 @@ jobs:
           node-version: 24
       # Reads the lockfile only; nothing needs installing. No --audit-level:
       # any advisory, whatever its severity, fails the run. --omit=dev keeps
-      # it to what ships in the app: dev tooling only ever sees our own
-      # inputs, and Dependabot security updates still cover it.
+      # it to what ships in the app. Updating the CWE data is a build phase,
+      # not a production one: scripts/prepare-data.ts runs at build time and
+      # the site only serves its JSON output, so adm-zip and fast-xml-parser
+      # are dev dependencies and deliberately out of scope here, even though
+      # they parse MITRE's download rather than our own inputs. Dependabot
+      # security updates still cover every dev dependency.
       - run: npm audit --omit=dev

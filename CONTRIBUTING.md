@@ -67,9 +67,17 @@ show up in `dependency-review`. Dependabot security updates open fix PRs
 for them, and `.github/workflows/audit.yml` runs `npm audit --omit=dev`
 daily (and whenever `package-lock.json` changes on `main`) so those
 against production dependencies also show as a failed run in Actions.
-Advisories against dev-only tooling get the Dependabot PR but no failed
-run, since that tooling never ships and only sees our own inputs. The
-audit isn't a PR check, so a new advisory never blocks unrelated work.
+Advisories against dev dependencies get the Dependabot PR but no failed
+run, since none of them ship in the app. The audit isn't a PR check, so a
+new advisory never blocks unrelated work.
+
+"Production" here means what the deployed site runs, which is only React.
+Updating the CWE data is a build phase, not a production one:
+`scripts/prepare-data.ts` runs at build time, and the site only serves the
+JSON it writes. So its packages, `adm-zip` and `fast-xml-parser`, are dev
+dependencies, and the audit deliberately doesn't cover them, even though
+they parse MITRE's download rather than our own inputs. Keep any future
+package used only by the data step in `devDependencies` too.
 
 Vercel builds a preview deployment for a PR only when it changes a path
 that feeds the deployed site. The paths are listed in
