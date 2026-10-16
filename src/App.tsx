@@ -14,8 +14,9 @@ type LoadState =
   | { status: 'ready'; graph: Graph };
 
 // CWE ids are numeric. Anything else would be echoed back as "not found"
-// text, and keys like `constructor` resolve on the plain `graph.nodes`
-// object as if they were CWEs, so treat them as no selection.
+// text, so treat it as no selection. (`graph.nodes` has no prototype, so a
+// key like `constructor` wouldn't resolve as a CWE anyway; this is a second
+// guard, not the only one.)
 function readSelectedIdFromUrl(): string | null {
   const id = new URLSearchParams(window.location.search).get('cwe');
   return id !== null && /^\d+$/.test(id) ? id : null;

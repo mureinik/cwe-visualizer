@@ -111,6 +111,10 @@ describe('buildEgoGraph', () => {
     expect(missing.edges).toEqual([]);
   });
 
+  it.each(['constructor', '__proto__', 'toString'])('returns an empty graph for the object key %s', (key) => {
+    expect(buildEgoGraph(graph, key).nodes).toEqual([]);
+  });
+
   it('is deterministic — same input, same output', () => {
     expect(buildEgoGraph(graph, '3')).toEqual(buildEgoGraph(graph, '3'));
   });

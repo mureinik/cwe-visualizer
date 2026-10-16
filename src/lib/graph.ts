@@ -5,6 +5,10 @@ export type { CweData, CweEdge, CweMeta, CweNode } from './cwe-data';
 
 export interface Graph {
   meta: CweMeta;
+  /**
+   * Keyed by CWE id, with a null prototype, so `id in nodes` and
+   * `nodes[id]` see only CWEs and never an inherited key like `constructor`.
+   */
   nodes: Record<string, CweNode>;
   childrenOf: Map<string, string[]>;
   parentsOf: Map<string, string[]>;
@@ -66,11 +70,12 @@ function addUnique(map: Map<string, string[]>, key: string, value: string) {
 }
 
 export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
+  const nodes = Object.assign(Object.create(null) as Record<string, CweNode>, data.nodes);
   const childrenOf = new Map<string, string[]>();
   const parentsOf = new Map<string, string[]>();
   const relatedTo = new Map<string, CweEdge[]>();
 
-  for (const id of Object.keys(data.nodes)) {
+  for (const id of Object.keys(nodes)) {
     childrenOf.set(id, []);
     parentsOf.set(id, []);
     relatedTo.set(id, []);
@@ -106,23 +111,23 @@ export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
     }
   }
 
-  const isDeprecated = (id: string) => data.nodes[id]?.status === 'Deprecated';
+  const isDeprecated = (id: string) => nodes[id]?.status === 'Deprecated';
 
   let roots: string[];
   let deprecatedRoots: string[];
 
   if (options?.rootIds) {
-    roots = options.rootIds.filter((id) => id in data.nodes).sort(compareIds);
+    roots = options.rootIds.filter((id) => id in nodes).sort(compareIds);
     deprecatedRoots = [];
   } else {
-    const parentless = Object.keys(data.nodes).filter((id) => (parentsOf.get(id) ?? []).length === 0);
+    const parentless = Object.keys(nodes).filter((id) => (parentsOf.get(id) ?? []).length === 0);
     roots = parentless.filter((id) => !isDeprecated(id)).sort(compareIds);
     deprecatedRoots = parentless.filter(isDeprecated).sort(compareIds);
   }
 
-  const all = Object.values(data.nodes).sort((a, b) => compareIds(a.id, b.id));
+  const all = Object.values(nodes).sort((a, b) => compareIds(a.id, b.id));
 
-  return { meta: data.meta, nodes: data.nodes, childrenOf, parentsOf, relatedTo, roots, deprecatedRoots, all };
+  return { meta: data.meta, nodes, childrenOf, parentsOf, relatedTo, roots, deprecatedRoots, all };
 }
 
 export function ancestorsOf(graph: Graph, id: string): Set<string> {
