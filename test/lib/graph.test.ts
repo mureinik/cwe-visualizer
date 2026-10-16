@@ -25,6 +25,18 @@ describe('buildGraph', () => {
     expect(graph.childrenOf.get('74')?.slice().sort()).toEqual(['79', '80', '89']);
   });
 
+  it('has no inherited keys in nodes, so only CWE ids look up', () => {
+    for (const key of ['constructor', '__proto__', 'toString', 'hasOwnProperty']) {
+      expect(key in graph.nodes).toBe(false);
+      expect(graph.nodes[key]).toBeUndefined();
+    }
+    expect('79' in graph.nodes).toBe(true);
+  });
+
+  it('ignores object keys among the declared roots', () => {
+    expect(buildGraph(sampleData, { rootIds: ['constructor', '74'] }).roots).toEqual(['74']);
+  });
+
   it('treats nodes with no parent edge as roots', () => {
     expect(graph.roots).toEqual(['74']);
   });
