@@ -32,14 +32,13 @@ function relationSections(graph: Graph, id: string): Section[] {
     { label: 'Children', entries: (graph.childrenOf.get(id) ?? []).map((to) => ({ id: to })) },
   ];
 
+  // buildGraph already records each relation once per target and type.
   const related = graph.relatedTo.get(id) ?? [];
   const byGroup = new Map<RelationGroup, Entry[]>();
   for (const edge of related) {
     const group = relationGroup(edge.type);
     const list = byGroup.get(group) ?? [];
-    if (!list.some((entry) => entry.id === edge.to && entry.type === edge.type)) {
-      list.push({ id: edge.to, type: edge.type });
-    }
+    list.push({ id: edge.to, type: edge.type });
     byGroup.set(group, list);
   }
 
