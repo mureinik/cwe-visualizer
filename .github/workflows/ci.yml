@@ -29,12 +29,6 @@ jobs:
       - run: npm run lint:md
       - run: npm run lint:css
       - run: npm run test:coverage
-      # Puts the coverage totals against their thresholds, and per-file
-      # numbers, on the run's Summary page. Runs even when the step above
-      # fails, which is when knowing which threshold failed matters most.
-      - name: Coverage summary
-        if: ${{ !cancelled() }}
-        run: node .github/scripts/coverage-summary.ts >> "$GITHUB_STEP_SUMMARY"
       - run: npm run build
       # Sends the coverage report to Codecov, which comments on the PR and
       # posts the codecov/project check (see codecov.yml). Last, so it only
@@ -47,7 +41,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           version: v11.3.1
-          files: coverage/clover.xml
+          files: coverage/lcov.info
           disable_search: true
           fail_ci_if_error: true
 

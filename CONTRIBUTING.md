@@ -32,9 +32,7 @@ talks to MITRE at runtime.
 - `npm run lint:css` — Stylelint, which checks CSS formatting
 - `npm test` — Vitest
 - `npm run test:coverage` — Vitest with coverage; fails below the thresholds
-  in `vite.config.ts` (CI runs this one, and
-  `.github/scripts/coverage-summary.ts` puts the results on the run's
-  Summary page)
+  in `vite.config.ts` (CI runs this one)
 
 Formatting is enforced by linters, not by a separate formatter. ESLint
 checks it for JavaScript and TypeScript ([ESLint
@@ -48,7 +46,8 @@ the code already had; change them there, not file by file.
 `scripts/` holds only what the build runs, which today is
 `prepare-data.ts`. Helpers that only serve CI, deployment config or
 maintainers live in `.github/scripts/` instead. Coverage measures the app,
-`src/`, only: both kinds of script have tests, but neither ships.
+`src/`, only: `prepare-data.ts` has tests, but neither kind of script
+ships.
 
 The coverage thresholds in `vite.config.ts` apply to the total and to every
 file on its own. A few files are still under them, so `COVERAGE_EXCEPTIONS`
