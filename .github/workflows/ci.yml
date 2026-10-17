@@ -47,7 +47,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           version: v11.3.1
-          files: coverage/clover.xml
+          files: coverage/lcov.info
           disable_search: true
           fail_ci_if_error: true
 
