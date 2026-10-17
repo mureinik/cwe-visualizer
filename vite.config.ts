@@ -58,12 +58,13 @@ export default defineConfig({
     restoreMocks: true,
     coverage: {
       provider: 'v8',
-      // Vitest's defaults, except that LCOV replaces clover, plus
+      // Each has a reader: text for the log (it shows which file missed a
+      // threshold), html for browsing locally, lcovonly for Codecov, and
       // json-summary for the CI job summary that
-      // .github/scripts/coverage-summary.ts renders. LCOV is what CI uploads
-      // to Codecov, which reads clover's branch counts the wrong way round
-      // and so showed fully covered branches as partial (#181).
-      reporter: ['text', 'html', 'lcovonly', 'json', 'json-summary'],
+      // .github/scripts/coverage-summary.ts renders. Codecov gets LCOV, not
+      // clover, since it reads clover's branch counts the wrong way round
+      // and showed fully covered branches as partial (#181).
+      reporter: ['text', 'html', 'lcovonly', 'json-summary'],
       // The app only. scripts/prepare-data.ts and the CI helpers in
       // .github/scripts/ have tests, but don't ship, so they aren't counted.
       include: ['src/**/*.{ts,tsx}'],
