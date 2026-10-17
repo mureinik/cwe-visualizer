@@ -134,20 +134,20 @@ export function DetailPanel({ graph, selectedId, onSelect }: DetailPanelProps) {
       */}
       <div id={RELATIONS_ANCHOR_ID} className="detail-panel__relations">
         {sections.map((section) => (
-        <section key={section.label} className="relation-section">
-          <h3 className="relation-section__heading">
-            {section.label} ({section.entries.length})
-          </h3>
-          <ul className="relation-list">
-            {section.entries.map((entry) => (
-              <RelationChip
-                key={`${section.label}-${entry.id}-${entry.type ?? ''}`}
-                graph={graph}
-                entry={entry}
-                onSelect={onSelect}
-              />
-            ))}
-          </ul>
+          <section key={section.label} className="relation-section">
+            <h3 className="relation-section__heading">
+              {section.label} ({section.entries.length})
+            </h3>
+            <ul className="relation-list">
+              {section.entries.map((entry) => (
+                <RelationChip
+                  key={`${section.label}-${entry.id}-${entry.type ?? ''}`}
+                  graph={graph}
+                  entry={entry}
+                  onSelect={onSelect}
+                />
+              ))}
+            </ul>
           </section>
         ))}
       </div>

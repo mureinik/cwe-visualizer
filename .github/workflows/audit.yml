@@ -5,7 +5,7 @@ name: npm audit
 # schedule so a new advisory doesn't block unrelated PRs.
 on:
   schedule:
-    - cron: '37 5 * * *'
+    - cron: "37 5 * * *"
   workflow_dispatch:
   # Re-check as soon as a dependency change lands, so a fix turns this green.
   push:

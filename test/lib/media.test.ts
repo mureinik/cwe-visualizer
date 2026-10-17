@@ -9,7 +9,7 @@ function stubMatchMedia(matches: boolean) {
       matches,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
-    }))
+    })),
   );
 }
 

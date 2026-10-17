@@ -10,7 +10,7 @@ import {
 describe('longestCommonPrefix', () => {
   it('finds the shared opening text', () => {
     expect(
-      longestCommonPrefix(['Improper Neutralization of Script in Attributes', 'Improper Neutralization of Script-Related HTML Tags'])
+      longestCommonPrefix(['Improper Neutralization of Script in Attributes', 'Improper Neutralization of Script-Related HTML Tags']),
     ).toBe('Improper Neutralization of Script');
   });
 
@@ -87,7 +87,7 @@ describe('dominantPrefix', () => {
 
   it('prefers the longest qualifying prefix', () => {
     expect(
-      dominantPrefix(['Improper Neutralization of A', 'Improper Neutralization of B', 'Improper Access Control'])
+      dominantPrefix(['Improper Neutralization of A', 'Improper Neutralization of B', 'Improper Access Control']),
     ).toBe('Improper Neutralization of ');
   });
 });

@@ -31,7 +31,7 @@ export function Tree({ graph, selectedId, onSelect, revealId = null }: TreeProps
   // expanding the node as well as the path down to it.
   const revealed = revealId ? [revealId, ...ancestorsOf(graph, revealId)] : [];
   const effectiveExpanded = new Set(
-    [...expanded, ...ancestors, ...revealed].filter((id) => !collapsed.has(id))
+    [...expanded, ...ancestors, ...revealed].filter((id) => !collapsed.has(id)),
   );
 
   function toggle(id: string) {

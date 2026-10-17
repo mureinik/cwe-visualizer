@@ -42,10 +42,10 @@ describe('LandingPanel', () => {
   it('shows how much of the corpus sits beneath each pillar', () => {
     render(<LandingPanel graph={graph} onSelect={() => {}} onOpenTree={() => {}} />);
     expect(
-      screen.getByRole('button', { name: 'CWE-284: Improper Access Control, 2 weaknesses beneath it' })
+      screen.getByRole('button', { name: 'CWE-284: Improper Access Control, 2 weaknesses beneath it' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'CWE-707: Improper Neutralization, 0 weaknesses beneath it' })
+      screen.getByRole('button', { name: 'CWE-707: Improper Neutralization, 0 weaknesses beneath it' }),
     ).toBeInTheDocument();
   });
 

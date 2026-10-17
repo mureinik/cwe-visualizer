@@ -46,7 +46,7 @@ describe('DetailPanel', () => {
     render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} />);
     expect(screen.getByRole('link', { name: 'View on cwe.mitre.org' })).toHaveAttribute(
       'href',
-      'https://cwe.mitre.org/data/definitions/79.html'
+      'https://cwe.mitre.org/data/definitions/79.html',
     );
   });
 

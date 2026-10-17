@@ -16,12 +16,12 @@ export function useMediaQuery(query: string): boolean {
       list.addEventListener('change', onStoreChange);
       return () => list.removeEventListener('change', onStoreChange);
     },
-    [query]
+    [query],
   );
 
   const getSnapshot = useCallback(
     () => (typeof matchMedia === 'function' ? matchMedia(query).matches : false),
-    [query]
+    [query],
   );
 
   // Server snapshot: no viewport to measure, so assume the wide layout.

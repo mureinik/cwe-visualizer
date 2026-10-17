@@ -38,7 +38,7 @@ export function extractXmlFromZip(buffer: Buffer): string {
   }
   if (entries.length > 1) {
     throw new Error(
-      `Expected exactly one XML entry in CWE zip archive, found ${entries.length}: ${entries.map((e) => e.entryName).join(', ')}`
+      `Expected exactly one XML entry in CWE zip archive, found ${entries.length}: ${entries.map((e) => e.entryName).join(', ')}`,
     );
   }
   return entries[0].getData().toString('utf-8');

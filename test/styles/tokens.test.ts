@@ -9,7 +9,7 @@ const css = readFileSync(path.join(__dirname, '..', '..', 'src', 'styles', 'toke
 
 const THEMES = [
   { name: 'light', selector: ':root {' },
-  { name: 'dark', selector: ":root[data-theme='dark'] {" },
+  { name: 'dark', selector: ':root[data-theme="dark"] {' },
 ];
 
 const TEXT_ON_BG = ['--text', '--text-secondary', '--text-muted'];

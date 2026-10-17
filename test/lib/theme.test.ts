@@ -52,7 +52,7 @@ describe('theme', () => {
   it('reads the system preference from matchMedia', () => {
     vi.stubGlobal(
       'matchMedia',
-      vi.fn((query: string) => ({ matches: query.includes('dark'), media: query }))
+      vi.fn((query: string) => ({ matches: query.includes('dark'), media: query })),
     );
     expect(systemTheme()).toBe('dark');
   });
