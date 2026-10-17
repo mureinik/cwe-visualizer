@@ -3,12 +3,12 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 type CoverageMetric = 'statements' | 'branches' | 'functions' | 'lines';
-export type CoverageThresholds = Partial<Record<CoverageMetric, number>>;
+type CoverageThresholds = Partial<Record<CoverageMetric, number>>;
 
 // A floor a few points under the measured baseline, to catch untested code
 // landing, not to chase a number. Raise it as coverage improves. It applies
 // to the total and to every file on its own.
-export const COVERAGE_FLOOR: CoverageThresholds = {
+const COVERAGE_FLOOR: CoverageThresholds = {
   statements: 90,
   branches: 78,
   functions: 90,
@@ -19,7 +19,7 @@ export const COVERAGE_FLOOR: CoverageThresholds = {
 // further. Only the metrics under the floor are listed; the rest use the
 // floor. Remove an entry once its file reaches the floor; the issue next to
 // each one tracks that.
-export const COVERAGE_EXCEPTIONS: Record<string, CoverageThresholds> = {
+const COVERAGE_EXCEPTIONS: Record<string, CoverageThresholds> = {
   'src/App.tsx': { functions: 81, lines: 88 }, // #170
   'src/components/GraphEdge.tsx': { branches: 72 }, // #171
   'src/components/GraphStage.tsx': { statements: 84, branches: 71, functions: 83, lines: 86 }, // #169
@@ -29,7 +29,7 @@ export const COVERAGE_EXCEPTIONS: Record<string, CoverageThresholds> = {
 };
 
 /** The thresholds a file is held to: the floor, lowered by its exception if it has one. */
-export function fileThresholds(file: string): CoverageThresholds {
+function fileThresholds(file: string): CoverageThresholds {
   return { ...COVERAGE_FLOOR, ...COVERAGE_EXCEPTIONS[file] };
 }
 
@@ -58,15 +58,13 @@ export default defineConfig({
     restoreMocks: true,
     coverage: {
       provider: 'v8',
-      // Each has a reader: text for the log (it shows which file missed a
-      // threshold), html for browsing locally, lcovonly for Codecov, and
-      // json-summary for the CI job summary that
-      // .github/scripts/coverage-summary.ts renders. Codecov gets LCOV, not
+      // text for the log (it shows which file missed a threshold), html for
+      // browsing locally, and lcovonly for Codecov. Codecov gets LCOV, not
       // clover, since it reads clover's branch counts the wrong way round
       // and showed fully covered branches as partial (#181).
-      reporter: ['text', 'html', 'lcovonly', 'json-summary'],
-      // The app only. scripts/prepare-data.ts and the CI helpers in
-      // .github/scripts/ have tests, but don't ship, so they aren't counted.
+      reporter: ['text', 'html', 'lcovonly'],
+      // The app only. scripts/prepare-data.ts has tests, but doesn't ship,
+      // so it isn't counted.
       include: ['src/**/*.{ts,tsx}'],
       // main.tsx only mounts <App /> into the page, and cwe-data.ts holds
       // only types, so there's nothing in either to cover.
