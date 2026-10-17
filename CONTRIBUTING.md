@@ -27,13 +27,23 @@ talks to MITRE at runtime.
 - `npm run dev` — local dev server (Vite)
 - `npm run build` — type-check, prepare data, and build for production
 - `npm run preview` — serve the production build locally
-- `npm run lint` — ESLint
+- `npm run lint` — ESLint, which also checks formatting (see below)
 - `npm run lint:md` — markdownlint
+- `npm run lint:css` — Stylelint, which checks CSS formatting
 - `npm test` — Vitest
 - `npm run test:coverage` — Vitest with coverage; fails below the thresholds
   in `vite.config.ts` (CI runs this one, and
   `.github/scripts/coverage-summary.ts` puts the results on the run's
   Summary page)
+
+Formatting is enforced by linters, not by a separate formatter. ESLint
+checks it for JavaScript and TypeScript ([ESLint
+Stylistic](https://eslint.style/)), JSON, YAML and HTML, and Stylelint, with
+ESLint Stylistic's Stylelint config, checks it for CSS, which ESLint can't
+format. markdownlint covers Markdown. All of them run with `--fix` on the
+files a commit stages, so most formatting is corrected for you, and CI
+fails on anything left. The options in `eslint.config.js` follow the style
+the code already had; change them there, not file by file.
 
 `scripts/` holds only what the build runs, which today is
 `prepare-data.ts`. Helpers that only serve CI, deployment config or
@@ -61,7 +71,7 @@ Dependabot secret, since Dependabot's runs can't see Actions secrets.
 Every change starts as a GitHub issue, then a branch and a PR that
 references it (`Closes #N`). `main` is a protected branch with no bypass,
 admins included: changes land only through a PR, the PR must be up to date
-with `main`, and all CI checks must pass: `build` (lint, Markdown lint, test with coverage, build),
+with `main`, and all CI checks must pass: `build` (lint, Markdown and CSS lint, test with coverage, build),
 `lint-workflows` (actionlint and zizmor over `.github/workflows/`, and
 shellcheck over `*.sh` files and Husky hooks),
 `semgrep` (no new Semgrep SAST finding in the files the PR changes),

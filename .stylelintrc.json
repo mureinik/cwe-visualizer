@@ -1,0 +1,4 @@
+{
+  "extends": ["@stylistic/stylelint-config"],
+  "ignoreFiles": ["dist/**", "coverage/**", ".*/**"]
+}
