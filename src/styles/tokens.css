@@ -57,13 +57,13 @@
 
 /*
  * The dark palette is written twice on purpose: once for the OS preference
- * and once for an explicit override. Without the :not([data-theme='light'])
+ * and once for an explicit override. Without the :not([data-theme="light"])
  * guard, a user who picks light on a dark-mode machine would be overruled by
  * the media query. Keep the two blocks in sync — tokens.test.ts reads the
- * [data-theme='dark'] one.
+ * [data-theme="dark"] one.
  */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
+  :root:not([data-theme="light"]) {
     color-scheme: dark;
 
     --bg: #18181b;
@@ -94,7 +94,7 @@
   }
 }
 
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   color-scheme: dark;
 
   --bg: #18181b;

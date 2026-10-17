@@ -2,7 +2,7 @@ name: Update CWE Data
 
 on:
   schedule:
-    - cron: '17 4 * * *'
+    - cron: "17 4 * * *"
   workflow_dispatch:
 
 permissions: {}

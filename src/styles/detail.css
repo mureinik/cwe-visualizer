@@ -166,7 +166,7 @@
 
   /* Tap target the handle's own 4px cannot provide. */
   .detail-panel__grabber::after {
-    content: '';
+    content: "";
     display: block;
     height: 2.5rem;
     margin-block-start: -1.25rem;

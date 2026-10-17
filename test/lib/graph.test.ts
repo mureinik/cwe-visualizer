@@ -173,7 +173,7 @@ describe('countDescendants', () => {
       ['1', '2', '3', '4', '5'].map((id) => [
         id,
         { id, name: `N${id}`, abstraction: 'Base', status: 'Draft', description: '', url: '' },
-      ])
+      ]),
     ),
     edges: [
       { from: '2', to: '1', type: 'ChildOf' },

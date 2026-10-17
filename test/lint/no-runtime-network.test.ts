@@ -49,7 +49,7 @@ describe('no runtime network access from src/', () => {
   it('does not restrict scripts/, which fetches at build time', async () => {
     const messages = await restrictedMessages(
       "await fetch('https://cwe.mitre.org/data/xml/cwec_latest.xml.zip');",
-      'scripts/prepare-data.ts'
+      'scripts/prepare-data.ts',
     );
     expect(messages).toEqual([]);
   });

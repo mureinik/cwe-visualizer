@@ -15,7 +15,7 @@ describe('App', () => {
   beforeEach(() => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(sampleData) }))
+      vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(sampleData) })),
     );
   });
 
@@ -35,18 +35,18 @@ describe('App', () => {
     render(<App />);
     await waitFor(() => expect(screen.getByRole('contentinfo')).toBeInTheDocument());
     expect(screen.getByRole('contentinfo')).toHaveTextContent(
-      /not original to this project.*The MITRE Corporation/
+      /not original to this project.*The MITRE Corporation/,
     );
     expect(screen.getByRole('link', { name: 'Terms of Use' })).toHaveAttribute(
       'href',
-      'https://cwe.mitre.org/about/termsofuse.html'
+      'https://cwe.mitre.org/about/termsofuse.html',
     );
   });
 
   it('still renders the shell when the viewport reports as narrow', async () => {
     vi.stubGlobal(
       'matchMedia',
-      vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+      vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
     );
     render(<App />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'CWE Visualizer' })).toBeInTheDocument());
@@ -66,7 +66,7 @@ describe('App', () => {
     // open hides the graph the pick just re-centred.
     vi.stubGlobal(
       'matchMedia',
-      vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+      vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
     );
     render(<App />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'CWE Visualizer' })).toBeInTheDocument());

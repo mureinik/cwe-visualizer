@@ -71,7 +71,7 @@ export function GraphStage({
   const childCap = childCapFor(size.width, CHILD_CAP);
   const ego = useMemo(
     () => (selectedId ? buildEgoGraph(graph, selectedId, { ancestorHops: hops, childCap }) : null),
-    [graph, selectedId, hops, childCap]
+    [graph, selectedId, hops, childCap],
   );
   const layout = useMemo(() => (ego ? layoutEgoGraph(ego, size) : null), [ego, size]);
 
@@ -160,7 +160,7 @@ export function GraphStage({
         .sort(
           (a, b) =>
             Math.abs(a.y - current.y) - Math.abs(b.y - current.y) ||
-            Math.abs(a.x - current.x) - Math.abs(b.x - current.x)
+            Math.abs(a.x - current.x) - Math.abs(b.x - current.x),
         );
       if (candidates[0]) focusNode(candidates[0].id);
       return;

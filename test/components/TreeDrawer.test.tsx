@@ -52,7 +52,7 @@ describe('TreeDrawer', () => {
 describe('TreeDrawer reveal and focus', () => {
   it('opens the tree at a node so its children are on screen', () => {
     render(
-      <TreeDrawer open onClose={() => {}} graph={graph} selectedId={null} onSelect={() => {}} revealId="284" />
+      <TreeDrawer open onClose={() => {}} graph={graph} selectedId={null} onSelect={() => {}} revealId="284" />,
     );
     // 285 is a child of 284; without revealId the row is collapsed.
     expect(screen.getByRole('button', { name: 'CWE-285: Improper Authorization' })).toBeInTheDocument();
@@ -68,14 +68,14 @@ describe('TreeDrawer reveal and focus', () => {
     Element.prototype.scrollIntoView = scrollIntoView;
     try {
       const { rerender } = render(
-        <TreeDrawer open onClose={() => {}} graph={graph} selectedId={null} onSelect={() => {}} />
+        <TreeDrawer open onClose={() => {}} graph={graph} selectedId={null} onSelect={() => {}} />,
       );
       expect(scrollIntoView).not.toHaveBeenCalled();
 
       rerender(<TreeDrawer open onClose={() => {}} graph={graph} selectedId="285" onSelect={() => {}} />);
       expect(scrollIntoView).toHaveBeenCalledTimes(1);
       expect(scrollIntoView.mock.contexts[0]).toBe(
-        screen.getByRole('button', { name: 'CWE-285: Improper Authorization' }).closest('.tree-row')
+        screen.getByRole('button', { name: 'CWE-285: Improper Authorization' }).closest('.tree-row'),
       );
     } finally {
       // @ts-expect-error jsdom does not define it; restore that.

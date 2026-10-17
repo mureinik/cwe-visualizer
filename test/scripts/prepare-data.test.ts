@@ -77,7 +77,7 @@ describe('parseCatalog', () => {
   });
 
   it('defaults missing optional Weakness attributes to empty strings', () => {
-    const xml = `<Weakness_Catalog Version="4.15"><Weaknesses><Weakness ID="5"/></Weaknesses></Weakness_Catalog>`;
+    const xml = '<Weakness_Catalog Version="4.15"><Weaknesses><Weakness ID="5"/></Weaknesses></Weakness_Catalog>';
     expect(parseCatalog(xml, '"x"').nodes['5']).toMatchObject({ id: '5', name: '', abstraction: '', status: '', description: '' });
   });
 
@@ -170,7 +170,7 @@ describe('run', () => {
   it('throws when the source is unreachable and there is no cache', async () => {
     const failingFetch = vi.fn(() => Promise.reject(new Error('network down')));
     await expect(
-      run({ outDir: dir, fetchImpl: failingFetch as unknown as typeof fetch })
+      run({ outDir: dir, fetchImpl: failingFetch as unknown as typeof fetch }),
     ).rejects.toThrow(/no cached data/);
   });
 
@@ -198,14 +198,14 @@ describe('run', () => {
 
   it('throws when the GET returns a non-OK response after a successful HEAD', async () => {
     await expect(
-      run({ outDir: dir, fetchImpl: fakeFetch({ getStatus: 503 }) as unknown as typeof fetch })
+      run({ outDir: dir, fetchImpl: fakeFetch({ getStatus: 503 }) as unknown as typeof fetch }),
     ).rejects.toThrow(/Failed to download CWE data \(HTTP 503\)/);
   });
 
   it('throws when the GET itself throws after a successful HEAD', async () => {
     const base = fakeFetch();
     const fetchImpl = vi.fn((url: string, options?: { method?: string }) =>
-      options?.method === 'HEAD' ? base(url, options) : Promise.reject(new Error('connection reset'))
+      options?.method === 'HEAD' ? base(url, options) : Promise.reject(new Error('connection reset')),
     );
     await expect(run({ outDir: dir, fetchImpl: fetchImpl as unknown as typeof fetch })).rejects.toThrow(/connection reset/);
   });

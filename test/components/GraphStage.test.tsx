@@ -26,7 +26,7 @@ const graph = buildGraph(data);
 
 function renderStage(selectedId: string | null, onSelect = vi.fn()) {
   render(
-    <GraphStage graph={graph} selectedId={selectedId} onSelect={onSelect} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />
+    <GraphStage graph={graph} selectedId={selectedId} onSelect={onSelect} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
   );
   return onSelect;
 }
@@ -47,7 +47,7 @@ describe('GraphStage', () => {
   it('describes a node so the label stands alone without the picture', () => {
     renderStage('79');
     expect(
-      screen.getByRole('button', { name: 'CWE-79: Cross-site Scripting. Base, Draft. 1 parent, 1 child.' })
+      screen.getByRole('button', { name: 'CWE-79: Cross-site Scripting. Base, Draft. 1 parent, 1 child.' }),
     ).toBeInTheDocument();
   });
 
@@ -59,7 +59,7 @@ describe('GraphStage', () => {
 
   it('draws one path per edge', () => {
     const { container } = render(
-      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
     );
     expect(container.querySelectorAll('path.graph-edge')).toHaveLength(2);
   });
@@ -77,7 +77,7 @@ describe('GraphStage', () => {
     };
     const onShowChildren = vi.fn();
     render(
-      <GraphStage graph={buildGraph(wide)} selectedId="79" onSelect={() => {}} onShowChildren={onShowChildren} onShowRelations={() => {}} hops={2} />
+      <GraphStage graph={buildGraph(wide)} selectedId="79" onSelect={() => {}} onShowChildren={onShowChildren} onShowRelations={() => {}} hops={2} />,
     );
     await userEvent.click(screen.getByRole('button', { name: 'Show 5 more children of CWE-79' }));
     expect(onShowChildren).toHaveBeenCalledWith('79');
@@ -118,14 +118,14 @@ describe('GraphStage keyboard model', () => {
 describe('GraphStage highlighting', () => {
   it('shows no edge labels at rest', () => {
     const { container } = render(
-      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
     );
     expect(container.querySelectorAll('.graph-edge__label')).toHaveLength(0);
   });
 
   it('labels the incident edges when a node is hovered', async () => {
     const { container } = render(
-      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
     );
     await userEvent.hover(screen.getByRole('button', { name: /^CWE-74/ }));
     expect(container.querySelectorAll('.graph-edge__label').length).toBeGreaterThan(0);
@@ -136,7 +136,7 @@ describe('GraphStage highlighting', () => {
     // one label per edge on top of each other around it. On a phone this is
     // the resting state: the node just tapped keeps focus as it re-centres.
     const { container } = render(
-      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
     );
     await userEvent.hover(screen.getByRole('button', { name: /^CWE-79/ }));
     expect(container.querySelectorAll('.graph-edge__label')).toHaveLength(0);
@@ -144,7 +144,7 @@ describe('GraphStage highlighting', () => {
 
   it('dims the nodes that are not incident to the hovered one', async () => {
     const { container } = render(
-      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
     );
     await userEvent.hover(screen.getByRole('button', { name: /^CWE-74/ }));
     expect(container.querySelector('[data-node-id="80"]')).toHaveClass('graph-node--dimmed');
@@ -153,7 +153,7 @@ describe('GraphStage highlighting', () => {
 
   it('clears the highlight when the pointer leaves', async () => {
     const { container } = render(
-      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
     );
     const target = screen.getByRole('button', { name: /^CWE-74/ });
     await userEvent.hover(target);
@@ -172,7 +172,7 @@ describe('GraphStage overflow chip and stale hover', () => {
   it('activates the overflow chip from the keyboard', async () => {
     const onShowChildren = vi.fn();
     render(
-      <GraphStage graph={buildGraph(wide)} selectedId="79" onSelect={() => {}} onShowChildren={onShowChildren} onShowRelations={() => {}} hops={2} />
+      <GraphStage graph={buildGraph(wide)} selectedId="79" onSelect={() => {}} onShowChildren={onShowChildren} onShowRelations={() => {}} hops={2} />,
     );
     const chip = screen.getByRole('button', { name: /Show \d+ more children of CWE-79/ });
     chip.focus();
@@ -182,7 +182,7 @@ describe('GraphStage overflow chip and stale hover', () => {
 
   it('does not dim the whole graph when the hovered node leaves the layout', async () => {
     const { container, rerender } = render(
-      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
     );
     await userEvent.hover(screen.getByRole('button', { name: /^CWE-80/ }));
     expect(container.querySelectorAll('.graph-node--dimmed').length).toBeGreaterThan(0);
@@ -190,7 +190,7 @@ describe('GraphStage overflow chip and stale hover', () => {
     // Re-centre somewhere CWE-80 is absent. React fires no mouseleave for an
     // unmounted node, so a stale hover would dim every node with nothing lit.
     rerender(
-      <GraphStage graph={graph} selectedId="71" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />
+      <GraphStage graph={graph} selectedId="71" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
     );
     expect(container.querySelectorAll('.graph-node--dimmed')).toHaveLength(0);
   });
@@ -213,7 +213,7 @@ describe('GraphStage lateral overflow marker', () => {
         onShowChildren={() => {}}
         onShowRelations={onShowRelations}
         hops={2}
-      />
+      />,
     );
     return onShowRelations;
   }
