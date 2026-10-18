@@ -1,5 +1,5 @@
 import { compareIds, type Graph } from './graph';
-import { baseRelationType, isInverse, relationGroup, type RelationGroup } from './relations';
+import { baseRelationType, isInverse, relationGroup, type EdgeGroup } from './relations';
 
 export type Band = -2 | -1 | 0 | 1;
 export type Side = 'left' | 'center' | 'right';
@@ -19,7 +19,7 @@ export interface EgoEdge {
   from: string;
   to: string;
   type: string;
-  group: 'hierarchy' | RelationGroup;
+  group: EdgeGroup;
 }
 
 export interface EgoGraph {

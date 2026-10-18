@@ -1,31 +1,18 @@
+import { arrowMarkerId, EDGE_GROUPS } from '../lib/relations';
 import { GLYPHS } from '../lib/shapes';
 import { Glyph } from './Glyph';
-
-interface LineSample {
-  label: string;
-  token: string;
-  dashed?: boolean;
-  arrow?: boolean;
-}
-
-const LINES: LineSample[] = [
-  { label: 'Parent / child', token: '--rel-hierarchy' },
-  { label: 'Can precede', token: '--rel-sequence', arrow: true },
-  { label: 'Peer, can also be', token: '--rel-peer', dashed: true },
-  { label: 'Requires', token: '--rel-requires' },
-];
 
 export function Legend() {
   return (
     <aside className="legend" aria-label="Legend">
       <h2 className="legend__heading">Relations</h2>
       <ul className="legend__list">
-        {LINES.map((line) => (
-          <li key={line.label} className="legend__row">
+        {Object.values(EDGE_GROUPS).map(({ key, label, line }) => (
+          <li key={key} className="legend__row">
             <svg className="legend__swatch" width="28" height="10" viewBox="0 0 28 10" aria-hidden="true">
               {line.arrow && (
                 <marker
-                  id={`legend-arrow-${line.token.replace(/[^a-z]/g, '')}`}
+                  id={arrowMarkerId('legend', key)}
                   viewBox="0 0 8 8"
                   refX="7"
                   refY="4"
@@ -42,12 +29,12 @@ export function Legend() {
                 x2={line.arrow ? 22 : 27}
                 y2="5"
                 stroke={`var(${line.token})`}
-                strokeWidth="2"
-                strokeDasharray={line.dashed ? '4 3' : undefined}
-                markerEnd={line.arrow ? `url(#legend-arrow-${line.token.replace(/[^a-z]/g, '')})` : undefined}
+                strokeWidth={line.width}
+                strokeDasharray={line.dash ?? undefined}
+                markerEnd={line.arrow ? `url(#${arrowMarkerId('legend', key)})` : undefined}
               />
             </svg>
-            <span>{line.label}</span>
+            <span>{label}</span>
           </li>
         ))}
       </ul>

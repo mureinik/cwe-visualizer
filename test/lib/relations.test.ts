@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { RELATION_GROUPS, relationGroup, baseRelationType, isInverse } from '../../src/lib/relations';
+import { EDGE_GROUPS, RELATION_GROUPS, relationGroup, baseRelationType, isInverse } from '../../src/lib/relations';
 
 describe('isInverse', () => {
   it('recognises the synthesized inverse suffix', () => {
@@ -45,9 +45,13 @@ describe('relationGroup', () => {
   });
 
   it('gives every group a label and a colour token', () => {
-    for (const spec of Object.values(RELATION_GROUPS)) {
+    for (const spec of Object.values(EDGE_GROUPS)) {
       expect(spec.label).toBeTruthy();
-      expect(spec.token).toMatch(/^--rel-/);
+      expect(spec.line.token).toMatch(/^--rel-/);
     }
+  });
+
+  it('lists the hierarchy, then every relation group, as edge groups', () => {
+    expect(Object.keys(EDGE_GROUPS)).toEqual(['hierarchy', ...Object.keys(RELATION_GROUPS)]);
   });
 });
