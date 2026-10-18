@@ -3,6 +3,7 @@ import type { Graph } from '../lib/graph';
 import { buildEgoGraph } from '../lib/ego';
 import { childCapFor, edgeMargin, layoutEgoGraph, type StageSize } from '../lib/layout';
 import { elideSharedPrefix, fitLabel, labelBudget } from '../lib/labels';
+import { arrowMarkerId, EDGE_GROUPS } from '../lib/relations';
 import { GraphEdge } from './GraphEdge';
 import { GraphNode } from './GraphNode';
 import { Legend } from './Legend';
@@ -194,9 +195,13 @@ export function GraphStage({
             aria-label="Weakness neighbourhood"
           >
             <defs>
-              <marker id="graph-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M 0 0 L 8 4 L 0 8 z" fill="var(--rel-sequence)" />
-              </marker>
+              {Object.values(EDGE_GROUPS)
+                .filter(({ line }) => line.arrow)
+                .map(({ key, line }) => (
+                  <marker key={key} id={arrowMarkerId('graph', key)} viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+                    <path d="M 0 0 L 8 4 L 0 8 z" fill={`var(${line.token})`} />
+                  </marker>
+                ))}
             </defs>
             {layout.edges.map((edge) => {
               const key = `${edge.from}-${edge.to}-${edge.type}`;

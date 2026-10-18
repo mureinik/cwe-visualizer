@@ -1,16 +1,66 @@
 export type RelationGroup = 'sequence' | 'peer' | 'requires';
 
-export interface RelationGroupSpec {
-  key: RelationGroup;
-  label: string;
+/** Every kind of edge the graph draws: the hierarchy, then each relation group. */
+export type EdgeGroup = 'hierarchy' | RelationGroup;
+
+/**
+ * How a group's edges are drawn. The graph and the legend both read it, so
+ * restyling a group here restyles both.
+ */
+export interface LineStyle {
+  /** The CSS custom property holding the colour. */
   token: string;
+  width: number;
+  /** The stroke-dasharray, or null for a solid line. */
+  dash: string | null;
+  /** An arrowhead at the target end, for relations that have a direction. */
+  arrow: boolean;
+}
+
+export interface EdgeGroupSpec {
+  key: EdgeGroup;
+  label: string;
+  line: LineStyle;
+}
+
+export interface RelationGroupSpec extends EdgeGroupSpec {
+  key: RelationGroup;
 }
 
 export const RELATION_GROUPS: Record<RelationGroup, RelationGroupSpec> = {
-  sequence: { key: 'sequence', label: 'Sequence', token: '--rel-sequence' },
-  peer: { key: 'peer', label: 'Peers', token: '--rel-peer' },
-  requires: { key: 'requires', label: 'Requires', token: '--rel-requires' },
+  sequence: {
+    key: 'sequence',
+    label: 'Sequence',
+    line: { token: '--rel-sequence', width: 1.5, dash: null, arrow: true },
+  },
+  peer: {
+    key: 'peer',
+    label: 'Peers',
+    line: { token: '--rel-peer', width: 1.5, dash: '4 3', arrow: false },
+  },
+  requires: {
+    key: 'requires',
+    label: 'Requires',
+    line: { token: '--rel-requires', width: 1.5, dash: null, arrow: false },
+  },
 };
+
+export const EDGE_GROUPS: Record<EdgeGroup, EdgeGroupSpec> = {
+  hierarchy: {
+    key: 'hierarchy',
+    label: 'Parent / child',
+    line: { token: '--rel-hierarchy', width: 2, dash: null, arrow: false },
+  },
+  ...RELATION_GROUPS,
+};
+
+/**
+ * The id of a group's arrowhead marker. The graph and the legend each define
+ * their own, at different sizes, so the id names which one.
+ */
+export function arrowMarkerId(scope: 'graph' | 'legend', group: EdgeGroup): string {
+  return `${scope}-arrow-${group}`;
+}
 
 const BY_TYPE: Record<string, RelationGroup> = {
   CanPrecede: 'sequence',

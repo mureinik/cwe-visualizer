@@ -1,4 +1,4 @@
-import { RELATION_GROUPS } from '../lib/relations';
+import { arrowMarkerId, EDGE_GROUPS } from '../lib/relations';
 import type { PositionedEdge } from '../lib/layout';
 
 interface GraphEdgeProps {
@@ -8,8 +8,7 @@ interface GraphEdgeProps {
 }
 
 export function GraphEdge({ edge, dimmed, label }: GraphEdgeProps) {
-  const stroke =
-    edge.group === 'hierarchy' ? 'var(--rel-hierarchy)' : `var(${RELATION_GROUPS[edge.group].token})`;
+  const { line } = EDGE_GROUPS[edge.group];
 
   // The path's first and last coordinate pairs are its endpoints, which is
   // all the midpoint needs.
@@ -25,10 +24,10 @@ export function GraphEdge({ edge, dimmed, label }: GraphEdgeProps) {
         className={`graph-edge graph-edge--${edge.group}`}
         d={edge.path}
         fill="none"
-        stroke={stroke}
-        strokeWidth={edge.group === 'hierarchy' ? 2 : 1.5}
-        strokeDasharray={edge.group === 'peer' ? '4 3' : undefined}
-        markerEnd={edge.group === 'sequence' ? 'url(#graph-arrow)' : undefined}
+        stroke={`var(${line.token})`}
+        strokeWidth={line.width}
+        strokeDasharray={line.dash ?? undefined}
+        markerEnd={line.arrow ? `url(#${arrowMarkerId('graph', edge.group)})` : undefined}
       >
         <title>{edge.type}</title>
       </path>
