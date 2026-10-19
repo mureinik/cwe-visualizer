@@ -153,7 +153,7 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
         ? [margin, width / 2 - CENTER_CLEARANCE]
         : [width / 2 + CENTER_CLEARANCE, width - margin];
 
-    const hiddenCount = ego.lateralOverflow?.[side] ?? 0;
+    const hiddenCount = ego.lateralOverflow[side];
     const slots = hiddenCount > 0 ? members.length + 1 : members.length;
 
     // The marker takes the slot furthest from the centre, so the relations
@@ -187,7 +187,10 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
       }
     : null;
 
-  const nodes = ego.nodes.map((n) => positioned.get(n.id)!).filter(Boolean);
+  const nodes = ego.nodes.flatMap((n) => {
+    const node = positioned.get(n.id);
+    return node ? [node] : [];
+  });
 
   const edges: PositionedEdge[] = ego.edges.flatMap((edge) => {
     const from = positioned.get(edge.from);
