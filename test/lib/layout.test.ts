@@ -73,6 +73,11 @@ describe('layoutEgoGraph', () => {
     for (const path of paths) expect(path).toMatch(/^M [\d.-]+ [\d.-]+ C /);
   });
 
+  it('puts each edge label midway between its endpoints', () => {
+    const edge = layoutEgoGraph(ego, size).edges.find((e) => e.to === '30')!;
+    expect(edge.label).toEqual({ x: (at('3').x + at('30').x) / 2, y: (at('3').y + at('30').y) / 2 });
+  });
+
   it('positions the overflow chip on the children band', () => {
     const { overflow } = layoutEgoGraph(ego, size);
     expect(overflow?.hiddenCount).toBe(8);
