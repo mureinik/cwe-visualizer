@@ -3,6 +3,13 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SearchBox } from '../../src/components/SearchBox';
 import { buildGraph, type CweData } from '../../src/lib/graph';
+import { searchNodes } from '../../src/lib/search';
+
+// The real search, wrapped so a test can count how often it runs.
+vi.mock('../../src/lib/search', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/lib/search')>();
+  return { ...actual, searchNodes: vi.fn(actual.searchNodes) };
+});
 
 const data: CweData = {
   meta: { cweVersion: '4.15', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
@@ -63,6 +70,16 @@ describe('SearchBox keyboard behaviour', () => {
     const first = screen.getAllByRole('option')[0];
     expect(input).toHaveAttribute('aria-activedescendant', first.id);
     expect(first).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('does not search again when the arrow keys only move the active option', async () => {
+    const graph = buildGraph(data);
+    render(<SearchBox graph={graph} onSelect={() => {}} />);
+    await userEvent.type(screen.getByLabelText('Search CWEs'), 'i');
+    vi.mocked(searchNodes).mockClear();
+    await userEvent.keyboard('{ArrowDown}{ArrowDown}{ArrowUp}');
+    expect(screen.getByRole('option', { name: 'CWE-79: Cross-site Scripting' })).toHaveAttribute('aria-selected', 'true');
+    expect(searchNodes).not.toHaveBeenCalled();
   });
 
   it('selects the active option on Enter', async () => {

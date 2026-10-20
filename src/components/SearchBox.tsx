@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import type { Graph } from '../lib/graph';
 import { searchNodes } from '../lib/search';
 import { Glyph } from './Glyph';
@@ -16,7 +16,9 @@ export function SearchBox({ graph, onSelect }: SearchBoxProps) {
   const [dismissed, setDismissed] = useState(false);
   const listId = useId();
 
-  const results = searchNodes(graph, query).slice(0, MAX_RESULTS);
+  // Searching scores and sorts the whole corpus, so do it only when the query
+  // changes, not on every arrow key that just moves the active option.
+  const results = useMemo(() => searchNodes(graph, query).slice(0, MAX_RESULTS), [graph, query]);
   const open = query.trim() !== '' && !dismissed;
   const optionId = (index: number) => `${listId}-option-${index}`;
 
