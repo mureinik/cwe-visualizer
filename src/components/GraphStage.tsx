@@ -77,7 +77,7 @@ export function GraphStage({
   );
   const layout = useMemo(() => (ego ? layoutEgoGraph(ego, size) : null), [ego, size]);
   // A local const, so the chip's click handler keeps the narrowing to non-null.
-  const childOverflow = layout?.overflow ?? null;
+  const childOverflow = layout?.overflow;
 
   /**
    * Labels are shortened per band, not globally: siblings share far more
