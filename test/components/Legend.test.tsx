@@ -34,7 +34,7 @@ describe('Legend', () => {
     expect(swatches).toHaveLength(groups.length);
 
     groups.forEach((group, i) => {
-      const edge = { from: '1', to: '2', type: 'X', group, path: 'M 0 0 L 10 10' };
+      const edge = { from: '1', to: '2', type: 'X', group, path: 'M 0 0 L 10 10', label: { x: 5, y: 5 } };
       const { container: graph } = render(
         <svg><GraphEdge edge={edge} dimmed={false} label={null} /></svg>,
       );

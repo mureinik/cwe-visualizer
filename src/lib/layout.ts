@@ -12,6 +12,8 @@ export interface PositionedNode extends EgoNode {
 
 export interface PositionedEdge extends EgoEdge {
   path: string;
+  /** Where the edge's label goes: midway between its endpoints. */
+  label: { x: number; y: number };
 }
 
 export interface PositionedOverflow extends EgoOverflow {
@@ -195,7 +197,9 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
   const edges: PositionedEdge[] = ego.edges.flatMap((edge) => {
     const from = positioned.get(edge.from);
     const to = positioned.get(edge.to);
-    return from && to ? [{ ...edge, path: cubic(from, to) }] : [];
+    return from && to
+      ? [{ ...edge, path: cubic(from, to), label: { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 } }]
+      : [];
   });
 
   return { nodes, edges, overflow, lateralOverflow };
