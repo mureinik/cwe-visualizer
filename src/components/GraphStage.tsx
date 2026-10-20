@@ -96,21 +96,23 @@ export function GraphStage({
       const members = layout.nodes.filter((n) => n.band === band);
       if (members.length === 0) continue;
 
+      // Elide in band order, before sorting: dominantPrefix breaks ties by
+      // the order it sees the names in.
+      const elided = elideSharedPrefix(members.map((n) => graph.nodes[n.id].name));
+
       // Budget each node from its own nearest neighbour in the band, not from
       // one figure for the whole band: band 0 pins the centre and spreads the
       // laterals across the halves either side, so a single tight pair
       // anywhere in it would otherwise starve every other label — including
       // the selected node's own name.
-      const byX = members.slice().sort((a, b) => a.x - b.x);
-      const elided = elideSharedPrefix(members.map((n) => graph.nodes[n.id].name));
-      const nameOf = new Map(members.map((n, i) => [n.id, elided[i]]));
+      const byX = members.map((n, i) => ({ ...n, name: elided[i] })).sort((a, b) => a.x - b.x);
 
       byX.forEach((node, i) => {
         const left = i > 0 ? node.x - byX[i - 1].x : Infinity;
         const right = i < byX.length - 1 ? byX[i + 1].x - node.x : Infinity;
         const nearest = Math.min(left, right);
         const budget = labelBudget(Number.isFinite(nearest) ? nearest : usable);
-        result.set(node.id, fitLabel(nameOf.get(node.id) ?? '', budget));
+        result.set(node.id, fitLabel(node.name, budget));
         // "CWE-1085" is eight characters; below that the ids of neighbouring
         // nodes run into each other, and the bare number still identifies it.
         compact.set(node.id, budget < 8);

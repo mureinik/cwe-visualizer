@@ -154,7 +154,7 @@ export async function run({
   }
   const zipBuffer = Buffer.from(await getResponse.arrayBuffer());
   const xmlText = extractXmlFromZip(zipBuffer);
-  const data = parseCatalog(xmlText, currentLastModified ?? '');
+  const data = parseCatalog(xmlText, currentLastModified);
 
   await writeOutput(outDir, data);
   console.log(`CWE data updated to version ${data.meta.cweVersion} (last-modified ${currentLastModified}).`);

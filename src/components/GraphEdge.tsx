@@ -18,7 +18,7 @@ export function GraphEdge({ edge, dimmed, label }: GraphEdgeProps) {
         fill="none"
         stroke={`var(${line.token})`}
         strokeWidth={line.width}
-        strokeDasharray={line.dash ?? undefined}
+        strokeDasharray={line.dash}
         markerEnd={line.arrow ? `url(#${arrowMarkerId('graph', edge.group)})` : undefined}
       >
         <title>{edge.type}</title>
