@@ -22,7 +22,7 @@ const COVERAGE_FLOOR: CoverageThresholds = {
 const COVERAGE_EXCEPTIONS: Record<string, CoverageThresholds> = {
   'src/App.tsx': { functions: 81, lines: 88 }, // #170
   'src/components/GraphEdge.tsx': { branches: 72 }, // #171
-  'src/components/GraphStage.tsx': { statements: 83, branches: 72, functions: 83, lines: 86 }, // #169
+  'src/components/GraphStage.tsx': { statements: 89, functions: 87, lines: 91 }, // #169
   'src/components/SearchBox.tsx': { functions: 88 }, // #172
   'src/lib/graph.ts': { branches: 73 }, // #173
   'src/lib/media.ts': { functions: 83 }, // #174
