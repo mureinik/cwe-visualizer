@@ -44,6 +44,10 @@ describe('parseCatalog', () => {
     expect(data.meta.generatedAt).toEqual(expect.any(String));
   });
 
+  it('records an empty lastModified when the source sent none', () => {
+    expect(parseCatalog(xmlText, null).meta.lastModified).toBe('');
+  });
+
   it('parses every weakness into a node', () => {
     expect(Object.keys(data.nodes).sort()).toEqual(['74', '79', '80', '89']);
     expect(data.nodes['79']).toMatchObject({
