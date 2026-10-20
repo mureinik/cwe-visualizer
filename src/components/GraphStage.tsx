@@ -7,6 +7,7 @@ import { arrowMarkerId, EDGE_GROUPS } from '../lib/relations';
 import { GraphEdge } from './GraphEdge';
 import { GraphNode } from './GraphNode';
 import { Legend } from './Legend';
+import { OverflowChip } from './OverflowChip';
 
 const DEFAULT_STAGE: StageSize = { width: 960, height: 600 };
 
@@ -75,6 +76,8 @@ export function GraphStage({
     [graph, selectedId, hops, childCap],
   );
   const layout = useMemo(() => (ego ? layoutEgoGraph(ego, size) : null), [ego, size]);
+  // A local const, so the chip's click handler keeps the narrowing to non-null.
+  const childOverflow = layout?.overflow ?? null;
 
   /**
    * Labels are shortened per band, not globally: siblings share far more
@@ -227,49 +230,23 @@ export function GraphStage({
               />
             ))}
             {layout.lateralOverflow.map((marker) => (
-              <g
+              <OverflowChip
                 key={marker.side}
-                className="graph-overflow"
-                transform={`translate(${marker.x} ${marker.y})`}
-                role="button"
-                tabIndex={0}
-                aria-label={`Show ${marker.hiddenCount} more related weaknesses`}
-                onClick={onShowRelations}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    onShowRelations();
-                  }
-                }}
-              >
-                <rect x={-34} y={-12} width={68} height={24} rx={12} />
-                <text textAnchor="middle" y={4}>
-                  +{marker.hiddenCount} more
-                </text>
-              </g>
+                x={marker.x}
+                y={marker.y}
+                count={marker.hiddenCount}
+                label={`Show ${marker.hiddenCount} more related weaknesses`}
+                onActivate={onShowRelations}
+              />
             ))}
-            {layout.overflow && (
-              <g
-                className="graph-overflow"
-                transform={`translate(${layout.overflow.x} ${layout.overflow.y})`}
-                role="button"
-                tabIndex={0}
-                aria-label={`Show ${layout.overflow.hiddenCount} more children of CWE-${layout.overflow.parentId}`}
-                onClick={() => onShowChildren(layout.overflow!.parentId)}
-                onKeyDown={(event) => {
-                  // An SVG <g> is not a native button, so Enter and Space do
-                  // nothing unless we handle them.
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    onShowChildren(layout.overflow!.parentId);
-                  }
-                }}
-              >
-                <rect x={-34} y={-12} width={68} height={24} rx={12} />
-                <text textAnchor="middle" y={4}>
-                  +{layout.overflow.hiddenCount} more
-                </text>
-              </g>
+            {childOverflow && (
+              <OverflowChip
+                x={childOverflow.x}
+                y={childOverflow.y}
+                count={childOverflow.hiddenCount}
+                label={`Show ${childOverflow.hiddenCount} more children of CWE-${childOverflow.parentId}`}
+                onActivate={() => onShowChildren(childOverflow.parentId)}
+              />
             )}
           </svg>
           <Legend />
