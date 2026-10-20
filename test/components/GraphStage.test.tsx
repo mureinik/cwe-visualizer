@@ -100,6 +100,28 @@ describe('GraphStage keyboard model', () => {
     expect(screen.getByRole('button', { name: /^CWE-80/ })).toHaveFocus();
   });
 
+  it('moves focus along a band with ArrowLeft and ArrowRight, stopping at its ends', async () => {
+    // Two children, so the children band has somewhere to move to.
+    const siblings = buildGraph({
+      ...data,
+      nodes: { ...data.nodes, '81': node('81', 'Script in Attributes') },
+      edges: [...data.edges, { from: '81', to: '79', type: 'ChildOf' }],
+    });
+    render(
+      <GraphStage graph={siblings} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+    const first = screen.getByRole('button', { name: /^CWE-80/ });
+    const second = screen.getByRole('button', { name: /^CWE-81/ });
+    first.focus();
+
+    await userEvent.keyboard('{ArrowRight}');
+    expect(second).toHaveFocus();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(second).toHaveFocus();
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(first).toHaveFocus();
+  });
+
   it('re-centres on Enter', async () => {
     const onSelect = renderStage('79');
     screen.getByRole('button', { name: /^CWE-79/ }).focus();

@@ -11,8 +11,8 @@ export interface LineStyle {
   /** The CSS custom property holding the colour. */
   token: string;
   width: number;
-  /** The stroke-dasharray, or null for a solid line. */
-  dash: string | null;
+  /** The stroke-dasharray; left out for a solid line. */
+  dash?: string;
   /** An arrowhead at the target end, for relations that have a direction. */
   arrow: boolean;
 }
@@ -31,7 +31,7 @@ export const RELATION_GROUPS: Record<RelationGroup, RelationGroupSpec> = {
   sequence: {
     key: 'sequence',
     label: 'Sequence',
-    line: { token: '--rel-sequence', width: 1.5, dash: null, arrow: true },
+    line: { token: '--rel-sequence', width: 1.5, arrow: true },
   },
   peer: {
     key: 'peer',
@@ -41,7 +41,7 @@ export const RELATION_GROUPS: Record<RelationGroup, RelationGroupSpec> = {
   requires: {
     key: 'requires',
     label: 'Requires',
-    line: { token: '--rel-requires', width: 1.5, dash: null, arrow: false },
+    line: { token: '--rel-requires', width: 1.5, arrow: false },
   },
 };
 
@@ -49,7 +49,7 @@ export const EDGE_GROUPS: Record<EdgeGroup, EdgeGroupSpec> = {
   hierarchy: {
     key: 'hierarchy',
     label: 'Parent / child',
-    line: { token: '--rel-hierarchy', width: 2, dash: null, arrow: false },
+    line: { token: '--rel-hierarchy', width: 2, arrow: false },
   },
   ...RELATION_GROUPS,
 };
