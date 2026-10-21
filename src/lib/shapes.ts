@@ -11,15 +11,16 @@ export interface Glyph {
 /**
  * Keyed by CWE abstraction. Adding MITRE's Category or View constructs later
  * is an entry here plus a token, not a change to any consumer — every
- * renderer goes through glyphFor().
+ * renderer goes through glyphFor(). It has no prototype, so an abstraction
+ * named like an Object.prototype member still gets the fallback.
  */
-export const GLYPHS: Record<string, Glyph> = {
+export const GLYPHS = Object.assign(Object.create(null) as Record<string, Glyph>, {
   Pillar: { shape: 'diamond', token: '--abs-pillar', label: 'Pillar' },
   Class: { shape: 'ringed-circle', token: '--abs-class', label: 'Class' },
   Base: { shape: 'circle', token: '--abs-base', label: 'Base' },
   Variant: { shape: 'hollow-circle', token: '--abs-variant', label: 'Variant' },
   Compound: { shape: 'hexagon', token: '--abs-compound', label: 'Compound' },
-};
+});
 
 export const FALLBACK_GLYPH: Glyph = {
   shape: 'square',
