@@ -37,17 +37,20 @@ export interface BuildGraphOptions {
 // the node that lists them in Related_Weaknesses), so buildGraph synthesizes
 // the missing direction. This maps a relation's type to the name its inverse
 // should carry; anything not listed falls back to a generic "(inverse)"
-// label so it's never silently dropped or mislabeled as the original.
+// label so it's never silently dropped or mislabeled as the original. A Map,
+// so a type that happens to share a name with an Object.prototype member
+// still falls back.
+const INVERSE_NATURES = new Map([
+  ['PeerOf', 'PeerOf'],
+  ['CanAlsoBe', 'CanAlsoBe'],
+  ['CanPrecede', 'CanFollow'],
+  ['CanFollow', 'CanPrecede'],
+  ['Requires', 'RequiredBy'],
+  ['RequiredBy', 'Requires'],
+]);
+
 function inverseNature(type: string): string {
-  const inverses: Record<string, string> = {
-    PeerOf: 'PeerOf',
-    CanAlsoBe: 'CanAlsoBe',
-    CanPrecede: 'CanFollow',
-    CanFollow: 'CanPrecede',
-    Requires: 'RequiredBy',
-    RequiredBy: 'Requires',
-  };
-  return inverses[type] ?? `${type}${INVERSE_SUFFIX}`;
+  return INVERSE_NATURES.get(type) ?? `${type}${INVERSE_SUFFIX}`;
 }
 
 /**
