@@ -24,6 +24,11 @@ describe('glyphFor', () => {
     expect(glyphFor('')).toEqual(FALLBACK_GLYPH);
   });
 
+  it('falls back for an abstraction named like an Object.prototype member', () => {
+    expect(glyphFor('constructor')).toBe(FALLBACK_GLYPH);
+    expect(glyphFor('toString')).toBe(FALLBACK_GLYPH);
+  });
+
   it('keeps the registry open for future node kinds', () => {
     expect(Object.keys(GLYPHS)).toEqual(['Pillar', 'Class', 'Base', 'Variant', 'Compound']);
   });

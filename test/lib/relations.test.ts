@@ -44,6 +44,11 @@ describe('relationGroup', () => {
     expect(relationGroup('SomethingMitreAddsLater')).toBe('peer');
   });
 
+  it('falls back to peer for a type named like an Object.prototype member', () => {
+    expect(relationGroup('toString')).toBe('peer');
+    expect(relationGroup('constructor (inverse)')).toBe('peer');
+  });
+
   it('gives every group a label and a colour token', () => {
     for (const spec of Object.values(EDGE_GROUPS)) {
       expect(spec.label).toBeTruthy();

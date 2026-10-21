@@ -62,15 +62,16 @@ export function arrowMarkerId(scope: 'graph' | 'legend', group: EdgeGroup): stri
   return `${scope}-arrow-${group}`;
 }
 
-const BY_TYPE: Record<string, RelationGroup> = {
-  CanPrecede: 'sequence',
-  CanFollow: 'sequence',
-  StartsWith: 'sequence',
-  PeerOf: 'peer',
-  CanAlsoBe: 'peer',
-  Requires: 'requires',
-  RequiredBy: 'requires',
-};
+// A Map, so a type named like an Object.prototype member still falls back.
+const BY_TYPE = new Map<string, RelationGroup>([
+  ['CanPrecede', 'sequence'],
+  ['CanFollow', 'sequence'],
+  ['StartsWith', 'sequence'],
+  ['PeerOf', 'peer'],
+  ['CanAlsoBe', 'peer'],
+  ['Requires', 'requires'],
+  ['RequiredBy', 'requires'],
+]);
 
 /**
  * buildGraph synthesizes the missing direction of one-sided relations and
@@ -93,5 +94,5 @@ export function baseRelationType(type: string): string {
 }
 
 export function relationGroup(type: string): RelationGroup {
-  return BY_TYPE[baseRelationType(type)] ?? 'peer';
+  return BY_TYPE.get(baseRelationType(type)) ?? 'peer';
 }
