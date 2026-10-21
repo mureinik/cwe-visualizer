@@ -112,6 +112,25 @@ describe('compareIds', () => {
   });
 });
 
+// A small hierarchy for the walks below.
+const deep: CweData = {
+  meta: sampleData.meta,
+  nodes: Object.fromEntries(
+    ['1', '2', '3', '4', '5'].map((id) => [
+      id,
+      { id, name: `N${id}`, abstraction: 'Base', status: 'Draft', description: '', url: '' },
+    ]),
+  ),
+  edges: [
+    { from: '2', to: '1', type: 'ChildOf' },
+    { from: '3', to: '1', type: 'ChildOf' },
+    { from: '4', to: '2', type: 'ChildOf' },
+    // 5 sits under both 3 and 4 — the hierarchy is a DAG
+    { from: '5', to: '3', type: 'ChildOf' },
+    { from: '5', to: '4', type: 'ChildOf' },
+  ],
+};
+
 describe('ancestorsOf', () => {
   const graph = buildGraph(sampleData);
 
@@ -121,6 +140,10 @@ describe('ancestorsOf', () => {
 
   it('returns an empty set for a root node', () => {
     expect(ancestorsOf(graph, '74')).toEqual(new Set());
+  });
+
+  it('walks every level, visiting an ancestor reachable by two paths once', () => {
+    expect(ancestorsOf(buildGraph(deep), '5')).toEqual(new Set(['1', '2', '3', '4']));
   });
 });
 
@@ -167,24 +190,6 @@ describe('buildGraph roots', () => {
 });
 
 describe('countDescendants', () => {
-  const deep: CweData = {
-    meta: sampleData.meta,
-    nodes: Object.fromEntries(
-      ['1', '2', '3', '4', '5'].map((id) => [
-        id,
-        { id, name: `N${id}`, abstraction: 'Base', status: 'Draft', description: '', url: '' },
-      ]),
-    ),
-    edges: [
-      { from: '2', to: '1', type: 'ChildOf' },
-      { from: '3', to: '1', type: 'ChildOf' },
-      { from: '4', to: '2', type: 'ChildOf' },
-      // 5 sits under both 3 and 4 — the hierarchy is a DAG
-      { from: '5', to: '3', type: 'ChildOf' },
-      { from: '5', to: '4', type: 'ChildOf' },
-    ],
-  };
-
   it('counts every level beneath a node', () => {
     expect(countDescendants(buildGraph(deep), '1')).toBe(4);
   });

@@ -133,8 +133,9 @@ export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
 export function ancestorsOf(graph: Graph, id: string): Set<string> {
   const ancestors = new Set<string>();
   const queue = [...(graph.parentsOf.get(id) ?? [])];
-  while (queue.length > 0) {
-    const next = queue.shift()!;
+  // Walk by index rather than shift(), which is O(n) per call.
+  for (let i = 0; i < queue.length; i += 1) {
+    const next = queue[i];
     if (ancestors.has(next)) continue;
     ancestors.add(next);
     queue.push(...(graph.parentsOf.get(next) ?? []));
@@ -150,8 +151,9 @@ export function ancestorsOf(graph: Graph, id: string): Set<string> {
 export function countDescendants(graph: Graph, id: string): number {
   const seen = new Set<string>();
   const queue = [...(graph.childrenOf.get(id) ?? [])];
-  while (queue.length > 0) {
-    const next = queue.shift()!;
+  // Walk by index rather than shift(), which is O(n) per call.
+  for (let i = 0; i < queue.length; i += 1) {
+    const next = queue[i];
     if (seen.has(next)) continue;
     seen.add(next);
     queue.push(...(graph.childrenOf.get(next) ?? []));

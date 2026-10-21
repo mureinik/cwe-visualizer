@@ -24,7 +24,7 @@ const COVERAGE_EXCEPTIONS: Record<string, CoverageThresholds> = {
   'src/components/GraphEdge.tsx': { branches: 72 }, // #171
   'src/components/GraphStage.tsx': { statements: 89, functions: 87, lines: 91 }, // #169
   'src/components/SearchBox.tsx': { functions: 88 }, // #172
-  'src/lib/graph.ts': { branches: 73 }, // #173
+  'src/lib/graph.ts': { branches: 76 }, // #173
   'src/lib/media.ts': { functions: 83 }, // #174
 };
 
