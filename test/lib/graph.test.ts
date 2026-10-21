@@ -88,6 +88,19 @@ describe('buildGraph', () => {
     const graph = buildGraph(data);
     expect(graph.relatedTo.get('2')).toEqual([{ from: '2', to: '1', type: 'StartsWith (inverse)' }]);
   });
+
+  it('falls back for a relation type named like an Object.prototype member', () => {
+    const data: CweData = {
+      meta: sampleData.meta,
+      nodes: {
+        '1': { id: '1', name: 'A', abstraction: '', status: '', description: '', url: '' },
+        '2': { id: '2', name: 'B', abstraction: '', status: '', description: '', url: '' },
+      },
+      edges: [{ from: '1', to: '2', type: 'toString' }],
+    };
+    const graph = buildGraph(data);
+    expect(graph.relatedTo.get('2')).toEqual([{ from: '2', to: '1', type: 'toString (inverse)' }]);
+  });
 });
 
 describe('buildGraph ParentOf direction', () => {
