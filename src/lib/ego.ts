@@ -2,6 +2,9 @@ import { compareIds, type Graph } from './graph';
 import { baseRelationType, isInverse, relationGroup, type EdgeGroup } from './relations';
 
 export type Band = -2 | -1 | 0 | 1;
+
+/** How many generations of ancestors to show: one per band above the centre. */
+export type AncestorHops = 1 | 2;
 export type Side = 'left' | 'center' | 'right';
 
 export interface EgoNode {
@@ -32,8 +35,11 @@ export interface EgoGraph {
 }
 
 export interface EgoOptions {
-  /** How many hops up the hierarchy to include. Default 2. */
-  ancestorHops?: number;
+  /**
+   * How many hops up the hierarchy to include. Default 2. There are only two
+   * bands above the centre, so it can't go higher.
+   */
+  ancestorHops?: AncestorHops;
   /** Maximum children rendered before the rest collapse into overflow. Default 10. */
   childCap?: number;
   /**
@@ -78,8 +84,8 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
 
   // Ancestors, one band per hop upward.
   let frontier = [centerId];
-  for (let hop = 1; hop <= ancestorHops && hop <= 2; hop += 1) {
-    const band = (hop === 1 ? -1 : -2) as Band;
+  for (let hop = 1; hop <= ancestorHops; hop += 1) {
+    const band = hop === 1 ? -1 : -2;
     const next: string[] = [];
     for (const childId of frontier) {
       for (const parentId of [...(graph.parentsOf.get(childId) ?? [])].sort(compareIds)) {

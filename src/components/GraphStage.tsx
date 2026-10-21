@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Graph } from '../lib/graph';
-import { buildEgoGraph } from '../lib/ego';
+import { buildEgoGraph, type AncestorHops } from '../lib/ego';
 import { childCapFor, edgeMargin, layoutEgoGraph, type StageSize } from '../lib/layout';
 import { elideSharedPrefix, fitLabel, labelBudget } from '../lib/labels';
 import { arrowMarkerId, EDGE_GROUPS } from '../lib/relations';
@@ -22,7 +22,7 @@ interface GraphStageProps {
   /** Invoked by the lateral "+N more" marker, which stands for relations
    *  the detail card already lists in full. */
   onShowRelations: () => void;
-  hops: number;
+  hops: AncestorHops;
 }
 
 /**
