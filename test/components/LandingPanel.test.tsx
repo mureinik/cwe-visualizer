@@ -9,7 +9,7 @@ const node = (id: string, name: string, abstraction: string, status = 'Draft') =
 });
 
 const data: CweData = {
-  meta: { cweVersion: '4.20', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
+  meta: { cweVersion: '4.20', catalogDate: '2025-12-01', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
   nodes: {
     '284': node('284', 'Improper Access Control', 'Pillar'),
     '707': node('707', 'Improper Neutralization', 'Pillar'),

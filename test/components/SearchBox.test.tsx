@@ -12,7 +12,7 @@ vi.mock('../../src/lib/search', async (importOriginal) => {
 });
 
 const data: CweData = {
-  meta: { cweVersion: '4.15', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
+  meta: { cweVersion: '4.15', catalogDate: '2025-12-01', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
   nodes: {
     '79': { id: '79', name: 'Cross-site Scripting', abstraction: 'Base', status: 'Stable', description: '', url: '' },
     '89': { id: '89', name: 'SQL Injection', abstraction: 'Base', status: 'Stable', description: '', url: '' },

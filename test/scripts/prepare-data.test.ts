@@ -40,6 +40,7 @@ describe('parseCatalog', () => {
 
   it('extracts catalog metadata', () => {
     expect(data.meta.cweVersion).toBe('4.15');
+    expect(data.meta.catalogDate).toBe('2024-11-19');
     expect(data.meta.lastModified).toBe('"abc123"');
     expect(data.meta.generatedAt).toEqual(expect.any(String));
   });
@@ -81,12 +82,19 @@ describe('parseCatalog', () => {
   });
 
   it('defaults missing optional Weakness attributes to empty strings', () => {
-    const xml = '<Weakness_Catalog Version="4.15"><Weaknesses><Weakness ID="5"/></Weaknesses></Weakness_Catalog>';
+    const xml = '<Weakness_Catalog Version="4.15" Date="2024-11-19"><Weaknesses><Weakness ID="5"/></Weaknesses></Weakness_Catalog>';
     expect(parseCatalog(xml, '"x"').nodes['5']).toMatchObject({ id: '5', name: '', abstraction: '', status: '', description: '' });
   });
 
   it('throws on a catalog missing the expected root element', () => {
     expect(() => parseCatalog('<NotACatalog/>', '"x"')).toThrow(/Unexpected CWE catalog format/);
+  });
+
+  it('throws on a catalog whose Date is missing or not YYYY-MM-DD', () => {
+    for (const date of ['', ' Date="19 Nov 2024"']) {
+      const xml = `<Weakness_Catalog Version="4.15"${date}><Weaknesses/></Weakness_Catalog>`;
+      expect(() => parseCatalog(xml, '"x"'), date).toThrow(/Weakness_Catalog\/Date/);
+    }
   });
 });
 
@@ -95,7 +103,7 @@ describe('writeOutput', () => {
     const dir = await mkdtemp(path.join(tmpdir(), 'cwe-visualizer-test-'));
     try {
       const data: CweData = {
-        meta: { cweVersion: '4.15', lastModified: '"abc"', generatedAt: '2026-01-01T00:00:00.000Z' },
+        meta: { cweVersion: '4.15', catalogDate: '2025-12-01', lastModified: '"abc"', generatedAt: '2026-01-01T00:00:00.000Z' },
         nodes: {},
         edges: [],
       };
@@ -145,6 +153,18 @@ describe('run', () => {
     expect(result.meta.lastModified).toBe('"v1"');
     const cweJson = JSON.parse(await readFile(path.join(dir, 'cwe.json'), 'utf-8')) as CweData;
     expect(Object.keys(cweJson.nodes)).toContain('79');
+  });
+
+  it('re-downloads data cached before catalogDate existed, even when last-modified matches', async () => {
+    await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    const metaPath = path.join(dir, 'meta.json');
+    const { meta } = JSON.parse(await readFile(metaPath, 'utf-8')) as { meta: Record<string, unknown> };
+    delete meta.catalogDate;
+    await writeFile(metaPath, JSON.stringify({ meta }));
+
+    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    expect(result.updated).toBe(true);
+    expect(result.meta.catalogDate).toBe('2024-11-19');
   });
 
   it('skips the download when the cached last-modified matches', async () => {

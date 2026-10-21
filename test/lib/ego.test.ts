@@ -7,7 +7,7 @@ const node = (id: string) => ({
 });
 
 const data: CweData = {
-  meta: { cweVersion: '4.20', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
+  meta: { cweVersion: '4.20', catalogDate: '2025-12-01', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
   nodes: Object.fromEntries(
     ['1', '2', '3', '10', '11', '12', '20', '30', '40'].map((id) => [id, node(id)]),
   ),

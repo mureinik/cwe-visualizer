@@ -1,7 +1,12 @@
-export function Attribution() {
+interface AttributionProps {
+  /** The catalog's release date, YYYY-MM-DD; its year ends MITRE's copyright range. */
+  catalogDate: string;
+}
+
+export function Attribution({ catalogDate }: AttributionProps) {
   return (
     <footer className="app-footer">
-      CWE content is not original to this project. Copyright © 2006–2026,{' '}
+      CWE content is not original to this project. Copyright © 2006–{catalogDate.slice(0, 4)},{' '}
       <a href="https://www.mitre.org/" target="_blank" rel="noreferrer">
         The MITRE Corporation
       </a>
