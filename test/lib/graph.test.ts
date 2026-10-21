@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildGraph, ancestorsOf, compareIds, countDescendants, type CweData } from '../../src/lib/graph';
 
 const sampleData: CweData = {
-  meta: { cweVersion: '4.15', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
+  meta: { cweVersion: '4.15', catalogDate: '2025-12-01', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
   nodes: {
     '74': { id: '74', name: 'Injection', abstraction: 'Class', status: 'Incomplete', description: 'd74', url: 'https://cwe.mitre.org/data/definitions/74.html' },
     '79': { id: '79', name: 'Cross-site Scripting', abstraction: 'Base', status: 'Stable', description: 'd79', url: 'https://cwe.mitre.org/data/definitions/79.html' },

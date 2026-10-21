@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { App } from '../src/App';
 
 const sampleData = {
-  meta: { cweVersion: '4.15', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
+  meta: { cweVersion: '4.15', catalogDate: '2025-12-01', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
   nodes: {
     '74': { id: '74', name: 'Injection', abstraction: 'Class', status: 'Incomplete', description: 'd', url: '' },
   },

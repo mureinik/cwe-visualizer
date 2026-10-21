@@ -119,7 +119,7 @@ export function App() {
           revealId={revealId}
         />
       </main>
-      <Attribution />
+      <Attribution catalogDate={state.graph.meta.catalogDate} />
     </div>
   );
 }

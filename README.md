@@ -12,8 +12,11 @@ The CWE content shown by this app is **not original work** — it is copied
 verbatim from MITRE at build time and displayed as-is. Only the visualizer
 itself is original.
 
-> Copyright © 2006–2026, The MITRE Corporation. CWE and the CWE logo are
-> trademarks of The MITRE Corporation.
+> Copyright © The MITRE Corporation. CWE and the CWE logo are trademarks of
+> The MITRE Corporation.
+
+The app's footer carries the notice with its year range, ending in the year
+of the CWE release it displays.
 
 CWE is used under MITRE's
 [Terms of Use](https://cwe.mitre.org/about/termsofuse.html). This project is

@@ -22,6 +22,7 @@ interface RawWeakness {
 interface RawDocument {
   Weakness_Catalog?: {
     '@_Version'?: string;
+    '@_Date'?: string;
     Weaknesses?: { Weakness?: RawWeakness | RawWeakness[] };
   };
 }
@@ -50,6 +51,11 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
   const catalog = doc.Weakness_Catalog;
   if (!catalog?.['@_Version']) {
     throw new Error('Unexpected CWE catalog format: missing Weakness_Catalog/Version');
+  }
+  // The footer's copyright year comes from this, so refuse anything else.
+  const catalogDate = String(catalog['@_Date'] ?? '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(catalogDate)) {
+    throw new Error(`Unexpected CWE catalog format: Weakness_Catalog/Date is not YYYY-MM-DD: "${catalogDate}"`);
   }
 
   const weaknessList = toArray(catalog.Weaknesses?.Weakness);
@@ -86,6 +92,7 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
   return {
     meta: {
       cweVersion: String(catalog['@_Version']),
+      catalogDate,
       lastModified: lastModified ?? '',
       generatedAt: new Date().toISOString(),
     },
@@ -108,7 +115,10 @@ export async function readLocalMeta(outDir: string): Promise<CweMeta | null> {
     // or truncated, report no local meta so the slow path regenerates it.
     JSON.parse(await fs.readFile(path.join(outDir, 'cwe.json'), 'utf-8'));
     const raw = await fs.readFile(path.join(outDir, 'meta.json'), 'utf-8');
-    return (JSON.parse(raw) as { meta: CweMeta }).meta;
+    const { meta } = JSON.parse(raw) as { meta: Partial<CweMeta> };
+    // Data written before catalogDate existed is stale even when MITRE's
+    // Last-Modified hasn't moved; regenerate it rather than keep it.
+    return typeof meta.catalogDate === 'string' ? (meta as CweMeta) : null;
   } catch {
     return null;
   }

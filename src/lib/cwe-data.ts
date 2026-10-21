@@ -25,6 +25,11 @@ export interface CweEdge {
 
 export interface CweMeta {
   cweVersion: string;
+  /**
+   * The catalog's own release date (YYYY-MM-DD), from MITRE's
+   * Weakness_Catalog/Date. Its year ends the copyright range in the footer.
+   */
+  catalogDate: string;
   lastModified: string;
   generatedAt: string;
 }

@@ -8,8 +8,12 @@ relationships between them — is **not original work of this project**. It is
 downloaded verbatim from The MITRE Corporation at build time by
 `scripts/prepare-data.ts` and rendered as-is.
 
-    Copyright © 2006–2026, The MITRE Corporation. CWE and the CWE logo are
-    trademarks of The MITRE Corporation.
+    Copyright © The MITRE Corporation. CWE and the CWE logo are trademarks
+    of The MITRE Corporation.
+
+The app's footer carries this notice with its year range: from 2006 to the
+year of the CWE release it displays, read from that release's catalog date,
+so it stays current as the data does.
 
 CWE is used here under MITRE's Terms of Use:
 <https://cwe.mitre.org/about/termsofuse.html>. The authoritative source for
