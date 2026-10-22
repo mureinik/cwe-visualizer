@@ -23,7 +23,6 @@ const COVERAGE_EXCEPTIONS: Record<string, CoverageThresholds> = {
   'src/App.tsx': { functions: 81, lines: 88 }, // #170
   'src/components/GraphStage.tsx': { statements: 89, functions: 87, lines: 91 }, // #169
   'src/lib/graph.ts': { branches: 76 }, // #173
-  'src/lib/media.ts': { functions: 83 }, // #174
 };
 
 /** The thresholds a file is held to: the floor, lowered by its exception if it has one. */
