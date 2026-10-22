@@ -50,10 +50,24 @@ maintainers live in `.github/scripts/` instead. Coverage measures the app,
 ships.
 
 The coverage thresholds in `vite.config.ts` apply to the total and to every
-file on its own. A few files are still under them, so `COVERAGE_EXCEPTIONS`
-holds each one at its current coverage, and each has an issue to bring it
-up to the floor. Don't add an entry to make a new change pass; add tests
-instead. Remove an entry once its file reaches the floor.
+file on its own. An entry in `COVERAGE_EXCEPTIONS` can hold a file under
+them at its current coverage, with an issue to bring it up to the floor; no
+file has one today. An entry is the lowest coverage its file may drop to,
+so it only works if every PR keeps it current:
+
+- **Don't add an entry without asking.** Make a new change pass by adding
+  tests. If an entry really is needed, ask the maintainer first and add it
+  only with their explicit OK. That goes for agents too: ask the human in
+  the loop rather than deciding alone.
+- **Tighten an entry that coverage has passed.** If a PR raises a listed
+  file's coverage, raise that file's numbers in its entry to the new
+  coverage, rounded down. Otherwise the file can lose the gain again.
+- **Remove an entry once its file reaches the floor**, in the PR that gets
+  it there, and close the entry's issue with that PR.
+
+Since an entry can change when its file is touched for any reason, check
+the coverage report for the files a PR changes, not only for those it
+tests.
 
 The floor can't tell when a PR lowers coverage while staying above it, so
 CI also uploads the report to [Codecov](https://about.codecov.io/), which
