@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GraphStage } from '../../src/components/GraphStage';
 import { buildGraph, type CweData } from '../../src/lib/graph';
@@ -120,6 +120,42 @@ describe('GraphStage keyboard model', () => {
     expect(second).toHaveFocus();
     await userEvent.keyboard('{ArrowLeft}');
     expect(first).toHaveFocus();
+  });
+
+  // Three children, so a move along or down onto their band has to pick
+  // the nearest of several.
+  const threeChildren = buildGraph({
+    ...data,
+    nodes: { ...data.nodes, '81': node('81', 'Script in Attributes'), '82': node('82', 'Script in IMG Tags') },
+    edges: [...data.edges, { from: '81', to: '79', type: 'ChildOf' }, { from: '82', to: '79', type: 'ChildOf' }],
+  });
+
+  function renderThreeChildren() {
+    render(
+      <GraphStage graph={threeChildren} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+  }
+
+  it('moves along a band to the nearest node, not the farthest', async () => {
+    renderThreeChildren();
+    screen.getByRole('button', { name: /^CWE-82/ }).focus();
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(screen.getByRole('button', { name: /^CWE-81/ })).toHaveFocus();
+  });
+
+  it('moves down to the node most directly below', async () => {
+    renderThreeChildren();
+    screen.getByRole('button', { name: /^CWE-79/ }).focus();
+    await userEvent.keyboard('{ArrowDown}');
+    expect(screen.getByRole('button', { name: /^CWE-81/ })).toHaveFocus();
+  });
+
+  it('keeps focus where it is at the top of the hierarchy', async () => {
+    renderStage('79');
+    const top = screen.getByRole('button', { name: /^CWE-74/ });
+    top.focus();
+    await userEvent.keyboard('{ArrowUp}');
+    expect(top).toHaveFocus();
   });
 
   it('re-centres on Enter', async () => {
@@ -261,5 +297,66 @@ describe('GraphStage lateral overflow marker', () => {
   it('shows no marker when every relation fits', () => {
     renderStage('79');
     expect(screen.queryByRole('button', { name: /more related weaknesses/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('GraphStage sizing', () => {
+  /** A ResizeObserver that reports whatever size the test tells it to. */
+  function stubResizeObserver() {
+    const observers: { callback: ResizeObserverCallback; disconnect: ReturnType<typeof vi.fn> }[] = [];
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        disconnect = vi.fn();
+        constructor(callback: ResizeObserverCallback) {
+          observers.push({ callback, disconnect: this.disconnect });
+        }
+
+        observe() {}
+      },
+    );
+    return {
+      observers,
+      resize(width: number, height: number) {
+        act(() => {
+          for (const { callback } of observers) {
+            callback([{ contentRect: { width, height } } as ResizeObserverEntry], {} as ResizeObserver);
+          }
+        });
+      },
+    };
+  }
+
+  function canvas(container: HTMLElement) {
+    return container.querySelector('svg.graph-stage__canvas');
+  }
+
+  it('fits the layout to the stage\'s measured size', () => {
+    const stage = stubResizeObserver();
+    const { container } = render(
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+    stage.resize(640, 360);
+    expect(canvas(container)).toHaveAttribute('viewBox', '0 0 640 360');
+  });
+
+  it('ignores a size of zero, as a hidden stage reports', () => {
+    const stage = stubResizeObserver();
+    const { container } = render(
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+    stage.resize(640, 360);
+    stage.resize(0, 0);
+    expect(canvas(container)).toHaveAttribute('viewBox', '0 0 640 360');
+  });
+
+  it('stops observing once unmounted', () => {
+    const stage = stubResizeObserver();
+    const { unmount } = render(
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+    expect(stage.observers).toHaveLength(1);
+    unmount();
+    expect(stage.observers[0].disconnect).toHaveBeenCalledOnce();
   });
 });
