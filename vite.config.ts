@@ -15,10 +15,11 @@ const COVERAGE_FLOOR: CoverageThresholds = {
   lines: 92,
 };
 
-// Files still under the floor, each held at today's coverage so it can't slip
+// Files under the floor, each held at its current coverage so it can't slip
 // further. Only the metrics under the floor are listed; the rest use the
-// floor. Remove an entry once its file reaches the floor; the issue next to
-// each one tracks that.
+// floor. Raise an entry when its file's coverage rises, remove it once its file
+// reaches the floor, and add one only with the maintainer's OK; the issue next
+// to each one tracks bringing it up. See CONTRIBUTING.md.
 const COVERAGE_EXCEPTIONS: Record<string, CoverageThresholds> = {};
 
 /** The thresholds a file is held to: the floor, lowered by its exception if it has one. */
