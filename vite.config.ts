@@ -20,7 +20,6 @@ const COVERAGE_FLOOR: CoverageThresholds = {
 // floor. Remove an entry once its file reaches the floor; the issue next to
 // each one tracks that.
 const COVERAGE_EXCEPTIONS: Record<string, CoverageThresholds> = {
-  'src/App.tsx': { functions: 81, lines: 88 }, // #170
   'src/components/GraphStage.tsx': { statements: 89, functions: 87, lines: 91 }, // #169
 };
 
