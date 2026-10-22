@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../src/App';
+import { RELATIONS_ANCHOR_ID } from '../src/components/DetailPanel';
 
 const sampleData = {
   meta: { cweVersion: '4.15', catalogDate: '2025-12-01', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
@@ -108,6 +109,58 @@ describe('App', () => {
       await waitFor(() => expect(screen.getByRole('heading', { name: 'Start from a pillar' })).toBeInTheDocument());
       expect(screen.queryByText(/was not found/)).not.toBeInTheDocument();
     });
+  });
+
+  describe('graph overflow', () => {
+    const node = (id: string, name: string) => ({ id, name, abstraction: 'Base', status: 'Draft', description: '', url: '' });
+    // More children and more laterals than the stage shows, so it offers
+    // the rest through its overflow chips.
+    const crowded = {
+      meta: sampleData.meta,
+      nodes: Object.fromEntries(
+        [
+          node('1', 'Parent'),
+          ...Array.from({ length: 14 }, (_, i) => node(`${300 + i}`, `Child ${i}`)),
+          ...Array.from({ length: 9 }, (_, i) => node(`${500 + i}`, `Lateral ${i}`)),
+        ].map((n) => [n.id, n]),
+      ),
+      edges: [
+        ...Array.from({ length: 14 }, (_, i) => ({ from: `${300 + i}`, to: '1', type: 'ChildOf' })),
+        ...Array.from({ length: 9 }, (_, i) => ({ from: '1', to: `${500 + i}`, type: 'CanFollow' })),
+      ],
+    };
+
+    beforeEach(() => {
+      vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(crowded) })));
+      window.history.replaceState(null, '', '/?cwe=1');
+    });
+
+    it('opens the tree at the parent whose hidden children were asked for', async () => {
+      render(<App />);
+      await userEvent.click(await screen.findByRole('button', { name: /Show \d+ more children of CWE-1$/ }));
+      const tree = screen.getByRole('dialog', { name: 'Weakness tree' });
+      expect(within(tree).getByRole('button', { name: 'CWE-313: Child 13' })).toBeInTheDocument();
+    });
+
+    it('scrolls the detail card to its relations when the hidden relations are asked for', async () => {
+      const scrollIntoView = vi.fn();
+      Object.defineProperty(Element.prototype, 'scrollIntoView', { value: scrollIntoView, configurable: true });
+      try {
+        render(<App />);
+        await userEvent.click(await screen.findByRole('button', { name: /Show \d+ more related weaknesses/ }));
+        expect(scrollIntoView).toHaveBeenCalledExactlyOnceWith({ block: 'start', behavior: 'smooth' });
+        expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById(RELATIONS_ANCHOR_ID));
+      } finally {
+        delete (Element.prototype as Partial<Element>).scrollIntoView;
+      }
+    });
+  });
+
+  it('closes the tree from its close button', async () => {
+    render(<App />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Weakness tree' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Close the weakness tree' }));
+    expect(screen.queryByRole('dialog', { name: 'Weakness tree' })).not.toBeInTheDocument();
   });
 
   it('shows an error message when the fetch fails', async () => {
