@@ -19,9 +19,7 @@ const COVERAGE_FLOOR: CoverageThresholds = {
 // further. Only the metrics under the floor are listed; the rest use the
 // floor. Remove an entry once its file reaches the floor; the issue next to
 // each one tracks that.
-const COVERAGE_EXCEPTIONS: Record<string, CoverageThresholds> = {
-  'src/components/GraphStage.tsx': { statements: 89, functions: 87, lines: 91 }, // #169
-};
+const COVERAGE_EXCEPTIONS: Record<string, CoverageThresholds> = {};
 
 /** The thresholds a file is held to: the floor, lowered by its exception if it has one. */
 function fileThresholds(file: string): CoverageThresholds {
