@@ -101,6 +101,18 @@ describe('buildGraph', () => {
     const graph = buildGraph(data);
     expect(graph.relatedTo.get('2')).toEqual([{ from: '2', to: '1', type: 'toString (inverse)' }]);
   });
+
+  it('carries a relation\'s view onto its synthesized inverse', () => {
+    const data: CweData = {
+      meta: sampleData.meta,
+      nodes: {
+        '1': { id: '1', name: 'A', abstraction: '', status: '', description: '', url: '' },
+        '2': { id: '2', name: 'B', abstraction: '', status: '', description: '', url: '' },
+      },
+      edges: [{ from: '1', to: '2', type: 'CanPrecede', viewId: '1000' }],
+    };
+    expect(buildGraph(data).relatedTo.get('2')).toEqual([{ from: '2', to: '1', type: 'CanFollow', viewId: '1000' }]);
+  });
 });
 
 describe('buildGraph ParentOf direction', () => {
@@ -116,6 +128,23 @@ describe('buildGraph ParentOf direction', () => {
     const graph = buildGraph(data);
     expect(graph.childrenOf.get('1')).toEqual(['2']);
     expect(graph.roots).toEqual(['1']);
+  });
+
+  it('records a link once when both ChildOf and ParentOf state it', () => {
+    const data: CweData = {
+      meta: sampleData.meta,
+      nodes: {
+        '1': { id: '1', name: 'A', abstraction: '', status: '', description: '', url: '' },
+        '2': { id: '2', name: 'B', abstraction: '', status: '', description: '', url: '' },
+      },
+      edges: [
+        { from: '1', to: '2', type: 'ParentOf' },
+        { from: '2', to: '1', type: 'ChildOf' },
+      ],
+    };
+    const graph = buildGraph(data);
+    expect(graph.childrenOf.get('1')).toEqual(['2']);
+    expect(graph.parentsOf.get('2')).toEqual(['1']);
   });
 });
 
@@ -157,6 +186,10 @@ describe('ancestorsOf', () => {
 
   it('walks every level, visiting an ancestor reachable by two paths once', () => {
     expect(ancestorsOf(buildGraph(deep), '5')).toEqual(new Set(['1', '2', '3', '4']));
+  });
+
+  it('returns an empty set for an id not in the corpus', () => {
+    expect(ancestorsOf(graph, '99999')).toEqual(new Set());
   });
 });
 
@@ -214,6 +247,10 @@ describe('countDescendants', () => {
   it('is zero for a leaf', () => {
     expect(countDescendants(buildGraph(deep), '5')).toBe(0);
   });
+
+  it('is zero for an id not in the corpus', () => {
+    expect(countDescendants(buildGraph(deep), '99999')).toBe(0);
+  });
 });
 
 describe('buildGraph relation de-duplication', () => {
@@ -247,5 +284,31 @@ describe('buildGraph relation de-duplication', () => {
       ],
     };
     expect(buildGraph(twoKinds).relatedTo.get('1')).toHaveLength(2);
+  });
+});
+
+describe('hierarchy edges with an end outside the corpus', () => {
+  // MITRE's relations can name an entry the download doesn't include, and
+  // prepare-data keeps such edges, so the walks must step over the gap.
+  const dangling: CweData = {
+    meta: sampleData.meta,
+    nodes: {
+      '1': { id: '1', name: 'A', abstraction: 'Base', status: 'Draft', description: '', url: '' },
+    },
+    edges: [{ from: '1', to: '99999', type: 'ChildOf' }],
+  };
+  const graph = buildGraph(dangling);
+
+  it('indexes the edge under the missing id too', () => {
+    expect(graph.childrenOf.get('99999')).toEqual(['1']);
+    expect(graph.parentsOf.get('1')).toEqual(['99999']);
+  });
+
+  it('walks up to the missing parent and stops there', () => {
+    expect(ancestorsOf(graph, '1')).toEqual(new Set(['99999']));
+  });
+
+  it('counts down from the missing parent and stops at the leaf', () => {
+    expect(countDescendants(graph, '99999')).toBe(1);
   });
 });
