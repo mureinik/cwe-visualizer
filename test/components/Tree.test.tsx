@@ -133,3 +133,29 @@ describe('Tree with a graph that has no hierarchy lists', () => {
     expect(screen.queryByLabelText(/^CWE-74 also appears under/)).not.toBeInTheDocument();
   });
 });
+
+describe('Tree with a cycle in the hierarchy', () => {
+  // 79 and 80 are each other's child, under the root 74. MITRE's data has no
+  // such loop, but a malformed relation could make one.
+  const cyclic: CweData = {
+    meta: data.meta,
+    nodes: {
+      ...data.nodes,
+      '80': { id: '80', name: 'Improper Neutralization', abstraction: 'Base', status: 'Stable', description: '', url: '' },
+    },
+    edges: [
+      ...data.edges,
+      { from: '80', to: '79', type: 'ChildOf' },
+      { from: '79', to: '80', type: 'ChildOf' },
+    ],
+  };
+
+  it('stops at a node already on the path instead of recursing', () => {
+    const graph = buildGraph(cyclic);
+    // Selecting 80 expands its ancestors, 74 and 79, and 80 itself through
+    // the loop, so every row on the cycle is open.
+    render(<Tree graph={graph} selectedId="80" onSelect={() => {}} />);
+    expect(screen.getAllByRole('button', { name: 'CWE-79: Cross-site Scripting' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'CWE-80: Improper Neutralization' })).toHaveLength(1);
+  });
+});
