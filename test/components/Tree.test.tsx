@@ -122,3 +122,14 @@ describe('Tree with a hierarchy edge to an id outside the corpus', () => {
     expect(screen.queryByLabelText(/^CWE-79 also appears under/)).not.toBeInTheDocument();
   });
 });
+
+describe('Tree with a graph that has no hierarchy lists', () => {
+  it('renders a node with no childrenOf or parentsOf entry as a lone leaf', () => {
+    // buildGraph gives every node both lists, but Tree accepts any Graph.
+    const graph = { ...buildGraph(data), childrenOf: new Map<string, string[]>(), parentsOf: new Map<string, string[]>() };
+    render(<Tree graph={graph} selectedId={null} onSelect={() => {}} />);
+    expect(screen.getByRole('button', { name: 'CWE-74: Injection' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Expand CWE-74' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^CWE-74 also appears under/)).not.toBeInTheDocument();
+  });
+});
