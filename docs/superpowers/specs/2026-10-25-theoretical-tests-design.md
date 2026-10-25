@@ -28,8 +28,8 @@ A test is theoretical when its input can't happen, for one of these
 reasons:
 
 1. **MITRE's schema forbids it.** "The schema" means the rules the CWE XML
-   schema (`cwe_schema_latest.xsd`, v7.3 at the time of writing) actually
-   states: required attributes and enumerated values. Examples: a
+   schema ([`cwe_schema_latest.xsd`][schema], v7.3 at the time of writing)
+   actually states: required attributes and enumerated values. Examples: a
    `Related_Weakness` with no `View_ID`, a weakness with no `Name`, a
    relation `Nature` or an `Abstraction` that isn't on its enumeration.
 2. **It would be a MITRE mistake the schema can't express.** The schema
@@ -50,7 +50,8 @@ reasons:
 Everything else, including:
 
 - **Anything the schema allows, even if today's data never uses it**, such
-  as a `ParentOf` relation, or the `Obsolete` and `Usable` statuses (#219).
+  as a `ParentOf` relation, or the `Obsolete` and `Usable` statuses
+  ([#219][i219]).
 - **Changes outside our control that aren't mistakes**, such as MITRE
   changing its download format. The data script's checks that fail the
   build on an unexpected format are real-world.
@@ -67,8 +68,8 @@ the empty-maps tree test would be promoted.
 
 ## The rules
 
-These go into `CONTRIBUTING.md`, with a pointer from `CLAUDE.md` (see
-[Documentation](#documentation)):
+These go into [`CONTRIBUTING.md`][contributing], with a pointer from
+[`CLAUDE.md`][claude-md] (see [Documentation](#documentation)):
 
 - **Real-world tests** may only change when the change explicitly sets out
   to alter the behaviour they cover. A real-world test failing otherwise
@@ -90,7 +91,7 @@ These go into `CONTRIBUTING.md`, with a pointer from `CLAUDE.md` (see
 
 ## Marking theoretical tests
 
-Vitest 5.0.3, the version the repo uses, supports test tags:
+Vitest 5.0.5, the version the repo uses, supports [test tags][vitest-tags]:
 
 - tags are declared in the Vitest config (`test.tags`, each with a name
   and a description);
@@ -101,9 +102,9 @@ Vitest 5.0.3, the version the repo uses, supports test tags:
 - by default (`strictTags`), a tag that isn't declared in the config is an
   error, so a typo can't silently leave a test in the wrong group.
 
-The design uses one tag, `theoretical`, declared in `vite.config.ts` with a
-description that summarises the definition above. Real-world tests carry
-no tag: that's the default.
+The design uses one tag, `theoretical`, declared in
+[`vite.config.ts`][vite-config] with a description that summarises the
+definition above. Real-world tests carry no tag: that's the default.
 
 **My call: group, then tag the group.** In each file, the theoretical tests
 move into their own `describe` block (or blocks, one per case), and the
@@ -120,7 +121,7 @@ rather than duplicated.
 
 ## `test:realworld` script
 
-Add to `package.json`:
+Add to [`package.json`][package-json]:
 
 ```json
 "test:realworld": "vitest run --tags-filter='!theoretical'"
@@ -138,36 +139,39 @@ It exists for quick local runs only. It changes nothing else:
   real-world tests under coverage is expected to fail thresholds and isn't
   supported.
 
-List it in `CONTRIBUTING.md`'s Scripts section, with the note that it's
-for local development and isn't what the hook or CI runs.
+List it in the [Scripts section of `CONTRIBUTING.md`][contributing-scripts],
+with the note that it's for local development and isn't what the hook or
+CI runs.
 
 ## Classification of the existing suite
 
 The suite has 363 tests in 27 files. I checked each borderline case
 against the real data (CWE 4.20: 969 weaknesses, 1,602 relations) and the
-schema (v7.3). Line numbers are as of `a27e800`.
+schema (v7.3). Line numbers are as of [`a27e800`][a27e800]: file names
+link to the current file, and line numbers link to that line at
+`a27e800`, since the implementation will move them.
 
 ### Theoretical today
 
 | File | Test(s) | Reason |
 | --- | --- | --- |
-| `test/components/Tree.test.tsx` | `describe` at 86: missing child, only child missing, missing parent (3 tests) | MITRE mistake: the data has no hierarchy link to a missing entry |
-| `test/components/Tree.test.tsx` | `describe` at 126: graph with no hierarchy lists | Our code: `buildGraph` gives every node both lists |
-| `test/components/Tree.test.tsx` | `describe` at 137: cycle in the hierarchy | MITRE mistake: the data has no loops |
-| `test/lib/graph.test.ts` | `describe` at 290: hierarchy edges with an end outside the corpus (3 tests) | MITRE mistake, as above |
-| `test/lib/graph.test.ts` | 28: no inherited keys in `nodes` | Our code: ids reaching a lookup are numeric (schema `CWE_ID` is an integer; `App.tsx` rejects non-numeric `?cwe=`) |
-| `test/lib/graph.test.ts` | 92: relation type named like an `Object.prototype` member | Schema: `Nature` is enumerated |
-| `test/lib/graph.test.ts` | 36, 227, 233: `rootIds` option (object keys among roots, explicit root set, unknown root ids) | Our code: nothing in `src/` passes `rootIds` |
-| `test/lib/graph.test.ts` | 251: `countDescendants` of an id not in the corpus | Our code: its only caller (`LandingPanel`) passes ids from `graph.roots` |
-| `test/lib/ego.test.ts` | 100: relation targets not in the corpus | MITRE mistake, as above |
-| `test/lib/ego.test.ts` | 114: object keys as the centre (3 cases) | Our code: as for `graph.test.ts:28` |
-| `test/lib/relations.test.ts` | 43, 47: unrecognised type, type named like an `Object.prototype` member | Schema: `Nature` is enumerated, and every value is mapped |
-| `test/lib/shapes.test.ts` | 22, 27: unknown abstraction, abstraction named like an `Object.prototype` member | Schema: `Abstraction` is enumerated, and every value has a glyph |
-| `test/scripts/prepare-data.test.ts` | 72: relation with no `View_ID` | Schema: `View_ID` is required |
-| `test/scripts/prepare-data.test.ts` | 84: weakness missing `Name`/`Abstraction`/`Status` | Schema: all three are required |
-| `test/lib/media.test.tsx` | 51: `matchMedia` unavailable | Our code: only jsdom lacks it |
-| `test/lib/media.test.tsx` | 73: rendered on the server | Our code: the app only renders in the browser |
-| `test/lib/theme.test.ts` | 52, 60: `systemTheme()`, with and without `matchMedia` | Our code: nothing in `src/` calls `systemTheme()` (and only jsdom lacks `matchMedia`) |
+| [`test/components/Tree.test.tsx`][tree-test] | `describe` at [86][tree-86]: missing child, only child missing, missing parent (3 tests) | MITRE mistake: the data has no hierarchy link to a missing entry |
+| [`test/components/Tree.test.tsx`][tree-test] | `describe` at [126][tree-126]: graph with no hierarchy lists | Our code: `buildGraph` gives every node both lists |
+| [`test/components/Tree.test.tsx`][tree-test] | `describe` at [137][tree-137]: cycle in the hierarchy | MITRE mistake: the data has no loops |
+| [`test/lib/graph.test.ts`][graph-test] | `describe` at [290][graph-290]: hierarchy edges with an end outside the corpus (3 tests) | MITRE mistake, as above |
+| [`test/lib/graph.test.ts`][graph-test] | [28][graph-28]: no inherited keys in `nodes` | Our code: ids reaching a lookup are numeric (schema `CWE_ID` is an integer; [`App.tsx`][app] rejects non-numeric `?cwe=`) |
+| [`test/lib/graph.test.ts`][graph-test] | [92][graph-92]: relation type named like an `Object.prototype` member | Schema: `Nature` is enumerated |
+| [`test/lib/graph.test.ts`][graph-test] | [36][graph-36], [227][graph-227], [233][graph-233]: `rootIds` option (object keys among roots, explicit root set, unknown root ids) | Our code: nothing in `src/` passes `rootIds` |
+| [`test/lib/graph.test.ts`][graph-test] | [251][graph-251]: `countDescendants` of an id not in the corpus | Our code: its only caller ([`LandingPanel.tsx`][landing]) passes ids from `graph.roots` |
+| [`test/lib/ego.test.ts`][ego-test] | [100][ego-100]: relation targets not in the corpus | MITRE mistake, as above |
+| [`test/lib/ego.test.ts`][ego-test] | [114][ego-114]: object keys as the centre (3 cases) | Our code: as for `graph.test.ts:28` |
+| [`test/lib/relations.test.ts`][relations-test] | [43][relations-43], [47][relations-47]: unrecognised type, type named like an `Object.prototype` member | Schema: `Nature` is enumerated, and every value is mapped |
+| [`test/lib/shapes.test.ts`][shapes-test] | [22][shapes-22], [27][shapes-27]: unknown abstraction, abstraction named like an `Object.prototype` member | Schema: `Abstraction` is enumerated, and every value has a glyph |
+| [`test/scripts/prepare-data.test.ts`][prepare-test] | [72][prepare-72]: relation with no `View_ID` | Schema: `View_ID` is required |
+| [`test/scripts/prepare-data.test.ts`][prepare-test] | [84][prepare-84]: weakness missing `Name`/`Abstraction`/`Status` | Schema: all three are required |
+| [`test/lib/media.test.tsx`][media-test] | [51][media-51]: `matchMedia` unavailable | Our code: only jsdom lacks it |
+| [`test/lib/media.test.tsx`][media-test] | [73][media-73]: rendered on the server | Our code: the app only renders in the browser |
+| [`test/lib/theme.test.ts`][theme-test] | [52][theme-52], [60][theme-60]: `systemTheme()`, with and without `matchMedia` | Our code: nothing in `src/` calls `systemTheme()` (and only jsdom lacks `matchMedia`) |
 
 That's 28 test cases, counting each `it.each` case separately.
 
@@ -175,57 +179,62 @@ That's 28 test cases, counting each `it.each` case separately.
 
 Recorded so they aren't moved by mistake:
 
-- `graph.test.ts:79`, the generic "(inverse)" label: the data has 3
-  `StartsWith` relations, which have no named inverse.
-- `shapes.test.ts:32`, the glyph registry: it pins the registry to exactly
-  the schema's five abstractions, which the legend lists.
-- `graph.test.ts:256` block, relations recorded once: 16 relations are
-  stated from both ends; 118 weaknesses repeat a `ChildOf` (once per
-  view).
-- `graph.test.ts:118` block, `ParentOf`: allowed by the schema, absent
-  from the data. **Needs the "why it's real" comment.**
-- `prepare-data.test.ts:89`, `:93`, the format checks: MITRE may change
-  its format. **Need the "why it's real" comment.**
-- Unknown numeric ids: `App.test.tsx:95`, `DetailPanel.test.tsx:32`,
-  `ego.test.ts:108`, `graph.test.ts:191` (`ancestorsOf`, which the tree
-  calls with the selected id), `layout.test.ts:91` (an unknown id
+- [`graph.test.ts:79`][graph-79], the generic "(inverse)" label: the data
+  has 3 `StartsWith` relations, which have no named inverse.
+- [`shapes.test.ts:32`][shapes-32], the glyph registry: it pins the
+  registry to exactly the schema's five abstractions, which the legend
+  lists.
+- [`graph.test.ts:256`][graph-256] block, relations recorded once: 16
+  relations are stated from both ends; 118 weaknesses repeat a `ChildOf`
+  (once per view).
+- [`graph.test.ts:118`][graph-118] block, `ParentOf`: allowed by the
+  schema, absent from the data. **Needs the "why it's real" comment.**
+- [`prepare-data.test.ts:89`][prepare-89], [`:93`][prepare-93], the format
+  checks: MITRE may change its format. **Need the "why it's real"
+  comment.**
+- Unknown numeric ids: [`App.test.tsx:95`][app-95],
+  [`DetailPanel.test.tsx:32`][detail-32], [`ego.test.ts:108`][ego-108],
+  [`graph.test.ts:191`][graph-191] (`ancestorsOf`, which the tree calls
+  with the selected id), [`layout.test.ts:91`][layout-91] (an unknown id
   produces an empty ego graph, which is laid out). All reachable by
   typing `?cwe=99999`.
-- `App.test.tsx:101`, junk in `?cwe=`: user input.
-- `theme.test.ts:26`, `:31`, `:38`, unknown stored value and blocked
-  storage: user-controlled or browser conditions.
+- [`App.test.tsx:101`][app-101], junk in `?cwe=`: user input.
+- [`theme.test.ts:26`][theme-26], [`:31`][theme-31], [`:38`][theme-38],
+  unknown stored value and blocked storage: user-controlled or browser
+  conditions.
 - Fixtures that use `CanFollow` or `RequiredBy`: `buildGraph` synthesises
   both as the inverses of `CanPrecede` (143) and `Requires` (13), so the
   site shows them. No comment needed.
 
 ### Corrections made along the way
 
-- `graph.test.ts:291`'s comment says MITRE's relations can name an entry
-  the download doesn't include. Today's data has none; reword it to say
-  this would be a MITRE mistake.
-- `prepare-data.test.ts:84` calls `Name`, `Abstraction` and `Status`
-  "optional"; the schema requires them. Fix the test name.
+- [`graph.test.ts:291`][graph-291]'s comment says MITRE's relations can
+  name an entry the download doesn't include. Today's data has none;
+  reword it to say this would be a MITRE mistake.
+- [`prepare-data.test.ts:84`][prepare-84] calls `Name`, `Abstraction` and
+  `Status` "optional"; the schema requires them. Fix the test name.
 
 ## Documentation
 
-- **`CONTRIBUTING.md`**: a new section (placement is the builder's call;
-  near the coverage text is natural, since both are about test rules)
-  with the definitions, the rules, the promotion rule, the comment rule,
-  how to tag a test, and the `test:realworld` script. Keep the repo's
-  prose style: plain sentences, no marketing.
-- **`CLAUDE.md`**: one bullet under "Constraints nothing enforces", since
-  nothing checks that a test is in the right group: never change a
-  real-world test unless the behaviour change is intended; propose, don't
-  perform, changes to theoretical ones; classify new tests. Point to
+- **[`CONTRIBUTING.md`][contributing]**: a new section (placement is the
+  builder's call; near the coverage text is natural, since both are about
+  test rules) with the definitions, the rules, the promotion rule, the
+  comment rule, how to tag a test, and the `test:realworld` script. Keep
+  the repo's prose style: plain sentences, no marketing.
+- **[`CLAUDE.md`][claude-md]**: one bullet under
+  ["Constraints nothing enforces"][claude-md-constraints], since nothing
+  checks that a test is in the right group: never change a real-world
+  test unless the behaviour change is intended; propose, don't perform,
+  changes to theoretical ones; classify new tests. Point to
   `CONTRIBUTING.md` for the details.
 
 ## Delivery
 
-One GitHub issue and one PR that closes it, following the usual workflow.
-The PR contains this document, the config and script, the regrouped and
-tagged tests, the new comments, and the documentation. Moving tests
-between `describe` blocks must not change what they assert: the test count
-stays at 363, and coverage must not drop.
+Issue [#223][i223], delivered by PR [#224][pr224] following the usual
+workflow. The PR contains this document, the config and script, the
+regrouped and tagged tests, the new comments, and the documentation.
+Moving tests between `describe` blocks must not change what they assert:
+the test count stays at 363, and coverage must not drop.
 
 Verification: `npm run lint && npx tsc --noEmit && npm test`, plus
 `npm run test:realworld` passing and running exactly 28 fewer tests than
@@ -233,7 +242,7 @@ Verification: `npm run lint && npx tsc --noEmit && npm test`, plus
 
 ## Out of scope
 
-- Handling the `Obsolete` and `Usable` statuses (#219).
+- Handling the `Obsolete` and `Usable` statuses ([#219][i219]).
 - Removing any theoretical test or guard. This design only labels them;
   removal is a per-case proposal under the new rules. That includes the
   uncalled code itself (`buildGraph`'s `rootIds` option and
@@ -241,3 +250,71 @@ Verification: `npm run lint && npx tsc --noEmit && npm test`, plus
 - Enforcing classification automatically (e.g. a lint rule). The rule is
   documented, not checked.
 - Other tags (for example "slow" or "integration").
+
+<!-- Issues and PRs -->
+[i219]: https://github.com/mureinik/cwe-visualizer/issues/219
+[i223]: https://github.com/mureinik/cwe-visualizer/issues/223
+[pr224]: https://github.com/mureinik/cwe-visualizer/pull/224
+
+<!-- External -->
+[schema]: https://cwe.mitre.org/data/xsd/cwe_schema_latest.xsd
+[vitest-tags]: https://vitest.dev/guide/test-tags
+
+<!-- Files in the repo, as they are now -->
+[contributing]: ../../../CONTRIBUTING.md
+[contributing-scripts]: ../../../CONTRIBUTING.md#scripts
+[claude-md]: ../../../CLAUDE.md
+[claude-md-constraints]: ../../../CLAUDE.md#constraints-nothing-enforces
+[vite-config]: ../../../vite.config.ts
+[package-json]: ../../../package.json
+[app]: ../../../src/App.tsx
+[landing]: ../../../src/components/LandingPanel.tsx
+[tree-test]: ../../../test/components/Tree.test.tsx
+[graph-test]: ../../../test/lib/graph.test.ts
+[ego-test]: ../../../test/lib/ego.test.ts
+[relations-test]: ../../../test/lib/relations.test.ts
+[shapes-test]: ../../../test/lib/shapes.test.ts
+[prepare-test]: ../../../test/scripts/prepare-data.test.ts
+[media-test]: ../../../test/lib/media.test.tsx
+[theme-test]: ../../../test/lib/theme.test.ts
+
+<!-- Lines as of a27e800 -->
+[a27e800]: https://github.com/mureinik/cwe-visualizer/commit/a27e8002db82b029213a7ed80a34be623a2a1d73
+[tree-86]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/components/Tree.test.tsx#L86
+[tree-126]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/components/Tree.test.tsx#L126
+[tree-137]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/components/Tree.test.tsx#L137
+[graph-28]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/graph.test.ts#L28
+[graph-36]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/graph.test.ts#L36
+[graph-79]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/graph.test.ts#L79
+[graph-92]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/graph.test.ts#L92
+[graph-118]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/graph.test.ts#L118
+[graph-191]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/graph.test.ts#L191
+[graph-227]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/graph.test.ts#L227
+[graph-233]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/graph.test.ts#L233
+[graph-251]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/graph.test.ts#L251
+[graph-256]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/graph.test.ts#L256
+[graph-290]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/graph.test.ts#L290
+[graph-291]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/graph.test.ts#L291
+[ego-100]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/ego.test.ts#L100
+[ego-108]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/ego.test.ts#L108
+[ego-114]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/ego.test.ts#L114
+[relations-43]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/relations.test.ts#L43
+[relations-47]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/relations.test.ts#L47
+[shapes-22]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/shapes.test.ts#L22
+[shapes-27]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/shapes.test.ts#L27
+[shapes-32]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/shapes.test.ts#L32
+[prepare-72]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/scripts/prepare-data.test.ts#L72
+[prepare-84]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/scripts/prepare-data.test.ts#L84
+[prepare-89]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/scripts/prepare-data.test.ts#L89
+[prepare-93]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/scripts/prepare-data.test.ts#L93
+[media-51]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/media.test.tsx#L51
+[media-73]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/media.test.tsx#L73
+[theme-26]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/theme.test.ts#L26
+[theme-31]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/theme.test.ts#L31
+[theme-38]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/theme.test.ts#L38
+[theme-52]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/theme.test.ts#L52
+[theme-60]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/theme.test.ts#L60
+[app-95]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/App.test.tsx#L95
+[app-101]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/App.test.tsx#L101
+[detail-32]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/components/DetailPanel.test.tsx#L32
+[layout-91]: https://github.com/mureinik/cwe-visualizer/blob/a27e8002db82b029213a7ed80a34be623a2a1d73/test/lib/layout.test.ts#L91
