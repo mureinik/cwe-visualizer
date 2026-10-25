@@ -82,3 +82,43 @@ describe('Tree presentation', () => {
     expect(screen.getByLabelText('CWE-79 also appears under 1 other parent')).toBeInTheDocument();
   });
 });
+
+describe('Tree with a hierarchy edge to an id outside the corpus', () => {
+  // buildGraph keeps such edges (see graph.test.ts), so childrenOf and
+  // parentsOf can name an id with no entry in graph.nodes.
+  const dangling: CweData = {
+    meta: data.meta,
+    nodes: {
+      ...data.nodes,
+      '20': { id: '20', name: 'Improper Input Validation', abstraction: 'Class', status: 'Stable', description: '', url: '' },
+    },
+    edges: [
+      ...data.edges,
+      { from: '74', to: '99999', type: 'ParentOf' },
+      { from: '20', to: '99998', type: 'ParentOf' },
+      { from: '79', to: '99997', type: 'ChildOf' },
+    ],
+  };
+
+  it('skips the missing child and still renders the known ones', async () => {
+    const graph = buildGraph(dangling);
+    render(<Tree graph={graph} selectedId={null} onSelect={() => {}} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Expand CWE-74' }));
+    expect(screen.getByRole('button', { name: 'CWE-79: Cross-site Scripting' })).toBeInTheDocument();
+    expect(screen.queryByText('CWE-99999')).not.toBeInTheDocument();
+  });
+
+  it('offers no toggle on a node whose only child is missing', () => {
+    const graph = buildGraph(dangling);
+    render(<Tree graph={graph} selectedId={null} onSelect={() => {}} />);
+    expect(screen.getByRole('button', { name: 'CWE-20: Improper Input Validation' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Expand CWE-20' })).not.toBeInTheDocument();
+  });
+
+  it('does not count a missing parent as another place the node appears', async () => {
+    const graph = buildGraph(dangling);
+    render(<Tree graph={graph} selectedId={null} onSelect={() => {}} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Expand CWE-74' }));
+    expect(screen.queryByLabelText(/^CWE-79 also appears under/)).not.toBeInTheDocument();
+  });
+});

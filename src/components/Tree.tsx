@@ -131,13 +131,17 @@ function TreeNode({ id, graph, expanded, selectedId, onToggle, onSelect, ancestr
     return null;
   }
 
+  // Hierarchy edges can name an id outside the corpus, which buildGraph keeps
+  // indexed, so only ids with a node to render count as children or parents.
+  const known = (ids: string[] | undefined) => (ids ?? []).filter((other) => other in graph.nodes);
+
   const node = graph.nodes[id];
-  const children = graph.childrenOf.get(id) ?? [];
+  const children = known(graph.childrenOf.get(id));
   const isExpanded = expanded.has(id);
   const childAncestry = new Set(ancestry);
   childAncestry.add(id);
 
-  const parentCount = (graph.parentsOf.get(id) ?? []).length;
+  const parentCount = known(graph.parentsOf.get(id)).length;
   const deprecated = node.status === 'Deprecated';
 
   return (
