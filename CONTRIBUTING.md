@@ -100,7 +100,8 @@ is theoretical when its input can't happen, for one of these reasons:
 3. **Our own code never produces it.** That covers a state `buildGraph`
    never builds, a function or option nothing in `src/` calls, and a
    fallback only the test environment reaches, like jsdom's missing
-   `matchMedia`.
+   `matchMedia`. Every test of code nothing in `src/` calls is theoretical,
+   and they're all promoted together once something in `src/` calls it.
 
 Every other test is real-world. That includes what the schema allows but
 today's data doesn't use (a `ParentOf` relation), changes outside our
@@ -108,7 +109,7 @@ control that aren't mistakes (MITRE changing its download format, or a
 future schema adding a relation type), user input such as anything typed
 into `?cwe=`, and browser conditions such as blocked storage.
 
-The two kinds are changed differently:
+How to treat each kind, and how to classify one:
 
 - **A real-world test changes only when the change sets out to alter the
   behaviour it covers.** If one fails otherwise, the change is wrong.
@@ -121,8 +122,9 @@ The two kinds are changed differently:
   When in doubt, it's real-world.
 - **Promote a theoretical test in the change that makes its case possible**,
   whether the code stops ruling it out or the schema starts allowing it.
-  If `buildGraph` stopped giving every node a child list, the empty-maps
-  tree test would become real-world.
+  If `buildGraph` stopped giving every node a child list, the `Tree with a
+  graph that has no hierarchy lists` block in
+  `test/components/Tree.test.tsx` would become real-world.
 - **Say why a real-world test is real when its case is absent from today's
   data**, in a comment: the schema allows it, or it's outside our control.
   Otherwise a reader who checks the data takes it for a theoretical test.
@@ -131,7 +133,9 @@ The two kinds are changed differently:
 
 Mark a theoretical test by tagging it `theoretical`, which `vite.config.ts`
 declares, since Vitest rejects a tag it doesn't know. Group such tests in
-their own `describe` block and put the tag on the block, as in the cycle
+a `describe` block nested inside the block they were in, so they keep its
+hooks and fixtures, and put the tag on that block (a single `it` can carry
+the tag when moving it would split a fixture), as in the cycle
 test in `test/components/Tree.test.tsx`:
 
 ```ts
