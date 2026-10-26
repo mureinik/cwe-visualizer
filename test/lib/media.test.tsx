@@ -68,7 +68,7 @@ describe('useMediaQuery', () => {
   // Every supported browser has matchMedia (only jsdom lacks it), and the app
   // only renders in the browser. The guard stays: most component tests run
   // without a matchMedia stub and rely on it.
-  describe('without a browser matchMedia', { tags: ['theoretical'] }, () => {
+  describe('outside a browser', { tags: ['theoretical'] }, () => {
     it('returns false rather than throwing where matchMedia is unavailable', () => {
       vi.stubGlobal('matchMedia', undefined);
       expect(renderHook(() => useMediaQuery(NARROW_QUERY)).result.current).toBe(false);

@@ -97,6 +97,8 @@ describe('buildEgoGraph', () => {
     expect(lone.edges).toEqual([]);
   });
 
+  // Real: `?cwe=99999` reaches this, since the graph view builds the ego
+  // graph for the selected id.
   it('returns an empty graph for an unknown centre', () => {
     const missing = buildEgoGraph(graph, '99999');
     expect(missing.nodes).toEqual([]);

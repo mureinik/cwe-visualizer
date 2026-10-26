@@ -194,6 +194,8 @@ describe('ancestorsOf', () => {
     expect(ancestorsOf(buildGraph(deep), '5')).toEqual(new Set(['1', '2', '3', '4']));
   });
 
+  // Real: `?cwe=99999` reaches this, since the tree calls `ancestorsOf` with
+  // the selected id.
   it('returns an empty set for an id not in the corpus', () => {
     expect(ancestorsOf(graph, '99999')).toEqual(new Set());
   });

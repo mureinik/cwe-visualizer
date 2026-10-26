@@ -31,7 +31,7 @@ describe('glyphFor', () => {
   });
 
   // The schema enumerates Abstraction, none of its values is an
-  // Object.prototype member, and no future one would be named like one.
+  // Object.prototype member, and no future abstraction would be named like one.
   describe('an abstraction named like an object key', { tags: ['theoretical'] }, () => {
     it('falls back for an abstraction named like an Object.prototype member', () => {
       expect(glyphFor('constructor')).toBe(FALLBACK_GLYPH);
