@@ -2,21 +2,23 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Tag the 28 theoretical tests with a Vitest `theoretical` tag, add
+**Goal:** Tag the 26 theoretical tests with a Vitest `theoretical` tag, add
 a `test:realworld` script that skips them, and write the rules for both
-kinds of test into `CONTRIBUTING.md` and `CLAUDE.md`.
+kinds of test into [`CONTRIBUTING.md`][contributing] and
+[`CLAUDE.md`][claude-md]. Delivered on PR [#224][pr224] for issue
+[#223][i223].
 
-**Architecture:** One tag declared in `vite.config.ts`. In each test file,
-the theoretical tests move into tagged `describe` blocks, nested inside
-the block they're in today so they keep its fixtures and hooks. Each
-block opens with a comment naming the reason. Real-world tests whose case
-is absent from today's data get a comment saying why they're real. No
-`src/` code changes.
+**Architecture:** One tag declared in [`vite.config.ts`][vite-config]. In
+each test file, the theoretical tests move into tagged `describe` blocks,
+nested inside the block they're in today so they keep its fixtures and
+hooks. Each block opens with a comment naming the reason. Real-world tests
+whose case is absent from today's data get a comment saying why they're
+real. No `src/` code changes.
 
-**Tech Stack:** Vitest 5.0.5 (test tags), TypeScript, React Testing
-Library, npm scripts.
+**Tech Stack:** Vitest 5.0.5 ([test tags][vitest-tags]), TypeScript, React
+Testing Library, npm scripts.
 
-**Spec:** [`docs/superpowers/specs/2026-10-25-theoretical-tests-design.md`](../specs/2026-10-25-theoretical-tests-design.md)
+**Spec:** [`docs/superpowers/specs/2026-10-25-theoretical-tests-design.md`][spec]
 
 ## Global Constraints
 
@@ -28,9 +30,9 @@ Library, npm scripts.
   title that changes is the one Task 5 renames.
 - The suite stays at 363 tests. `npm run test:realworld` reports the
   theoretical ones as *skipped*, not missing: the end state is
-  `335 passed | 28 skipped (363)`.
-- Coverage thresholds in `vite.config.ts` stay as they are, and every file
-  stays above them (`npm run test:coverage`).
+  `337 passed | 26 skipped (363)`.
+- Coverage thresholds in [`vite.config.ts`][vite-config] stay as they are,
+  and every file stays above them (`npm run test:coverage`).
 - Commits use conventional types: `test:` for test and tooling changes,
   `docs:` for the rules. Each task's commit step gives the subject line.
   The body says why in a few lines and ends with a `Refs #223` line, then
@@ -64,9 +66,9 @@ Library, npm scripts.
 
 **Files:**
 
-- Modify: `vite.config.ts` (the `test` block)
-- Modify: `package.json` (`scripts`)
-- Modify: `CONTRIBUTING.md` (the Scripts list)
+- Modify: [`vite.config.ts`][vite-config] (the `test` block)
+- Modify: [`package.json`][package-json] (`scripts`)
+- Modify: [`CONTRIBUTING.md`][contributing] (the Scripts list)
 
 **Interfaces:**
 
@@ -136,8 +138,8 @@ git commit  # subject: test: add a theoretical tag and a test:realworld script
 
 **Files:**
 
-- Modify: `test/lib/graph.test.ts`
-- Modify: `test/lib/ego.test.ts`
+- Modify: [`test/lib/graph.test.ts`][graph-test]
+- Modify: [`test/lib/ego.test.ts`][ego-test]
 
 **Interfaces:**
 
@@ -151,13 +153,14 @@ names below are suggestions; the comment reasons are not.
 Move `has no inherited keys in nodes, so only CWE ids look up` into a
 tagged block (e.g. `lookups by an object key`). Comment: ids that reach a
 lookup are always numeric (`CWE_ID` is an integer in the schema, and
-`App.tsx` drops a non-numeric `?cwe=`), so nothing in the app looks up a
-key like `constructor`.
+[`App.tsx`][app] drops a non-numeric `?cwe=`), so nothing in the app looks
+up a key like `constructor`.
 
 Move `falls back for a relation type named like an Object.prototype
-member` into a second tagged block (e.g. `a relation type outside the
-schema`). Comment: the schema enumerates `Nature`, and none of its values
-is an `Object.prototype` member.
+member` into a second tagged block (e.g. `a relation type named like an
+object key`). Comment: the schema enumerates `Nature`, none of its values
+is an `Object.prototype` member, and no future type would be named like
+one.
 
 - [ ] **Step 2: `graph.test.ts`, the `rootIds` option**
 
@@ -172,8 +175,8 @@ to.
 - [ ] **Step 3: `graph.test.ts`, `countDescendants`**
 
 Inside `describe('countDescendants')`, move `is zero for an id not in the
-corpus` into a tagged block. Comment: its only caller, `LandingPanel`,
-passes ids from `graph.roots`.
+corpus` into a tagged block. Comment: its only caller,
+[`LandingPanel`][landing], passes ids from `graph.roots`.
 
 - [ ] **Step 4: `graph.test.ts`, the dangling-edge block and `ParentOf`**
 
@@ -213,33 +216,44 @@ git add test/lib/graph.test.ts test/lib/ego.test.ts
 git commit  # subject: test(graph): tag the graph and ego-graph tests that can't happen
 ```
 
-### Task 3: Tag the relation-type and abstraction fallbacks
+### Task 3: Sort the relation-type and abstraction fallbacks
 
 **Files:**
 
-- Modify: `test/lib/relations.test.ts`
-- Modify: `test/lib/shapes.test.ts`
+- Modify: [`test/lib/relations.test.ts`][relations-test]
+- Modify: [`test/lib/shapes.test.ts`][shapes-test]
+
+A value MITRE adds in a future schema is a format change, so the
+unknown-value fallbacks are real-world. Only the cases named like an
+`Object.prototype` member are theoretical.
 
 - [ ] **Step 1: `relations.test.ts`, inside `describe('relationGroup')`**
 
-Move `falls back to peer for an unrecognised type rather than throwing`
-and `falls back to peer for a type named like an Object.prototype member`
-into one tagged block. Comment: the schema enumerates `Nature`, and every
-value on it has a group.
+Move `falls back to peer for a type named like an Object.prototype member`
+into a tagged block. Comment: the schema enumerates `Nature`, none of its
+values is an `Object.prototype` member, and no future type would be named
+like one.
+
+Give `falls back to peer for an unrecognised type rather than throwing` a
+"why it's real" comment: MITRE may add a relation type in a future schema,
+which isn't a mistake and is outside our control, and it should show as a
+peer rather than break the page.
 
 - [ ] **Step 2: `shapes.test.ts`, inside `describe('glyphFor')`**
 
-Move `falls back for an unknown abstraction rather than throwing` and
-`falls back for an abstraction named like an Object.prototype member` into
-one tagged block. Comment: the schema enumerates `Abstraction`, and every
-value on it has a glyph. `keeps the registry open for future node kinds`
-stays put: it pins the registry to the schema's five abstractions, which
-the legend lists.
+Move `falls back for an abstraction named like an Object.prototype member`
+into a tagged block, with the same reasoning for `Abstraction`.
+
+Give `falls back for an unknown abstraction rather than throwing` a "why
+it's real" comment: MITRE may add an abstraction in a future schema, and
+it should get the fallback glyph. `keeps the registry open for future node
+kinds` stays as it is: it pins the registry to the schema's five
+abstractions, which the legend lists.
 
 - [ ] **Step 3: Check the count**
 
 Run: `npm run test:realworld`
-Expected: PASS, `346 passed | 17 skipped (363)`.
+Expected: PASS, `348 passed | 15 skipped (363)`.
 
 - [ ] **Step 4: Lint, type-check, test, commit**
 
@@ -248,14 +262,14 @@ Expected: all pass.
 
 ```bash
 git add test/lib/relations.test.ts test/lib/shapes.test.ts
-git commit  # subject: test: tag the fallbacks for types outside the CWE schema
+git commit  # subject: test: tag the fallbacks for types named like object keys
 ```
 
 ### Task 4: Tag the tree's theoretical blocks
 
 **Files:**
 
-- Modify: `test/components/Tree.test.tsx`
+- Modify: [`test/components/Tree.test.tsx`][tree-test]
 
 These three blocks already exist, so this only adds tags and makes their
 comments name the reason.
@@ -274,7 +288,7 @@ comments name the reason.
 - [ ] **Step 2: Check the count**
 
 Run: `npm run test:realworld`
-Expected: PASS, `341 passed | 22 skipped (363)`.
+Expected: PASS, `343 passed | 20 skipped (363)`.
 
 - [ ] **Step 3: Lint, type-check, test, commit**
 
@@ -290,7 +304,7 @@ git commit  # subject: test(tree): tag the tree tests for input that can't happe
 
 **Files:**
 
-- Modify: `test/scripts/prepare-data.test.ts`
+- Modify: [`test/scripts/prepare-data.test.ts`][prepare-test]
 
 - [ ] **Step 1: Tag and rename, inside `describe('parseCatalog')`**
 
@@ -314,7 +328,7 @@ than ship data the app can't read.
 - [ ] **Step 3: Check the count**
 
 Run: `npm run test:realworld`
-Expected: PASS, `339 passed | 24 skipped (363)`.
+Expected: PASS, `341 passed | 22 skipped (363)`.
 
 - [ ] **Step 4: Lint, type-check, test, commit**
 
@@ -330,8 +344,8 @@ git commit  # subject: test(prepare-data): tag input the CWE schema forbids
 
 **Files:**
 
-- Modify: `test/lib/media.test.tsx`
-- Modify: `test/lib/theme.test.ts`
+- Modify: [`test/lib/media.test.tsx`][media-test]
+- Modify: [`test/lib/theme.test.ts`][theme-test]
 
 - [ ] **Step 1: `media.test.tsx`, inside `describe('useMediaQuery')`**
 
@@ -347,13 +361,13 @@ it.
 Move `reads the system preference from matchMedia` and `falls back to
 light when matchMedia is unavailable` into one tagged block nested in
 `describe('theme')`, so the `beforeEach` still applies. Comment: nothing
-in `src/` calls `systemTheme()` (`ThemeToggle` reads the preference
-through `useMediaQuery`). Promote both if something starts to.
+in `src/` calls `systemTheme()` ([`ThemeToggle`][theme-toggle] reads the
+preference through `useMediaQuery`). Promote both if something starts to.
 
 - [ ] **Step 3: Check the count**
 
 Run: `npm run test:realworld`
-Expected: PASS, `335 passed | 28 skipped (363)`.
+Expected: PASS, `337 passed | 26 skipped (363)`.
 
 - [ ] **Step 4: Lint, type-check, test, commit**
 
@@ -369,8 +383,9 @@ git commit  # subject: test: tag the matchMedia and systemTheme tests
 
 **Files:**
 
-- Modify: `CONTRIBUTING.md` (new section after Scripts, before Workflow)
-- Modify: `CLAUDE.md` ("Constraints nothing enforces")
+- Modify: [`CONTRIBUTING.md`][contributing] (new section after Scripts,
+  before Workflow)
+- Modify: [`CLAUDE.md`][claude-md] ("Constraints nothing enforces")
 
 - [ ] **Step 1: Add `## Real-world and theoretical tests` to
   `CONTRIBUTING.md`**
@@ -380,7 +395,7 @@ rules sections:
 
 - what makes a test theoretical (the three reasons), and that everything
   else is real-world, including what the schema allows but today's data
-  doesn't use;
+  doesn't use, and values a future schema could add;
 - the rules for changing each kind, including asking the maintainer and
   waiting for agreement before removing or rewriting a theoretical test;
 - classifying new tests when they're written (real-world when in doubt),
@@ -422,7 +437,7 @@ No commit unless a check fails and needs fixing.
 Run Task 1 Step 1's two commands again, writing to
 `theoretical-after.txt`, then
 `diff "${TMPDIR:-/tmp}/theoretical-before.txt" "${TMPDIR:-/tmp}/theoretical-after.txt"`.
-Expected: exactly one changed line, the Task 5 rename.
+Expected: only the Task 5 rename, as one line removed and one added.
 
 - [ ] **Step 2: A typo in the tag fails the run**
 
@@ -440,9 +455,35 @@ Expected: all pass, `363 passed (363)`, and no coverage threshold errors.
 - [ ] **Step 4: Final count**
 
 Run: `npm run test:realworld`
-Expected: `335 passed | 28 skipped (363)`.
+Expected: `337 passed | 26 skipped (363)`.
 
 - [ ] **Step 5: Push and update the PR**
 
-Push the branch. Update PR #224's description so "Still to come" becomes
-what was done. Leave it as a draft for the maintainer to mark ready.
+Push the branch. Update the description of PR [#224][pr224] so "Still to
+come" becomes what was done. Leave it as a draft for the maintainer to
+mark ready.
+
+<!-- Issues and PRs -->
+[i223]: https://github.com/mureinik/cwe-visualizer/issues/223
+[pr224]: https://github.com/mureinik/cwe-visualizer/pull/224
+
+<!-- External -->
+[vitest-tags]: https://vitest.dev/guide/test-tags
+
+<!-- Files in the repo -->
+[spec]: ../specs/2026-10-25-theoretical-tests-design.md
+[contributing]: ../../../CONTRIBUTING.md
+[claude-md]: ../../../CLAUDE.md
+[vite-config]: ../../../vite.config.ts
+[package-json]: ../../../package.json
+[app]: ../../../src/App.tsx
+[landing]: ../../../src/components/LandingPanel.tsx
+[theme-toggle]: ../../../src/components/ThemeToggle.tsx
+[graph-test]: ../../../test/lib/graph.test.ts
+[ego-test]: ../../../test/lib/ego.test.ts
+[relations-test]: ../../../test/lib/relations.test.ts
+[shapes-test]: ../../../test/lib/shapes.test.ts
+[tree-test]: ../../../test/components/Tree.test.tsx
+[prepare-test]: ../../../test/scripts/prepare-data.test.ts
+[media-test]: ../../../test/lib/media.test.tsx
+[theme-test]: ../../../test/lib/theme.test.ts

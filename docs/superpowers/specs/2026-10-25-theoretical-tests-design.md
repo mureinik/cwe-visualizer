@@ -31,7 +31,9 @@ reasons:
    schema ([`cwe_schema_latest.xsd`][schema], v7.3 at the time of writing)
    actually states: required attributes and enumerated values. Examples: a
    `Related_Weakness` with no `View_ID`, a weakness with no `Name`, a
-   relation `Nature` or an `Abstraction` that isn't on its enumeration.
+   relation `Nature` or an `Abstraction` named like an `Object.prototype`
+   member. A value a future schema could add to an enumeration, like a new
+   relation type, is a format change, so it's real-world (below).
 2. **It would be a MITRE mistake the schema can't express.** The schema
    checks the form of a relation, not whether it makes sense. A relation
    whose `CWE_ID` names an entry that doesn't exist, or `ChildOf` links
@@ -53,8 +55,10 @@ Everything else, including:
   as a `ParentOf` relation, or the `Obsolete` and `Usable` statuses
   ([#219][i219]).
 - **Changes outside our control that aren't mistakes**, such as MITRE
-  changing its download format. The data script's checks that fail the
-  build on an unexpected format are real-world.
+  changing its download format, or adding a relation type or an
+  abstraction in a future schema. The data script's checks that fail the
+  build on an unexpected format are real-world, and so are the fallbacks
+  for a relation type or abstraction we don't know.
 - **User input**, such as anything typed into `?cwe=`, and browser
   conditions like blocked storage.
 
@@ -165,15 +169,15 @@ link to the current file, and line numbers link to that line at
 | [`test/lib/graph.test.ts`][graph-test] | [251][graph-251]: `countDescendants` of an id not in the corpus | Our code: its only caller ([`LandingPanel.tsx`][landing]) passes ids from `graph.roots` |
 | [`test/lib/ego.test.ts`][ego-test] | [100][ego-100]: relation targets not in the corpus | MITRE mistake, as above |
 | [`test/lib/ego.test.ts`][ego-test] | [114][ego-114]: object keys as the centre (3 cases) | Our code: as for `graph.test.ts:28` |
-| [`test/lib/relations.test.ts`][relations-test] | [43][relations-43], [47][relations-47]: unrecognised type, type named like an `Object.prototype` member | Schema: `Nature` is enumerated, and every value is mapped |
-| [`test/lib/shapes.test.ts`][shapes-test] | [22][shapes-22], [27][shapes-27]: unknown abstraction, abstraction named like an `Object.prototype` member | Schema: `Abstraction` is enumerated, and every value has a glyph |
+| [`test/lib/relations.test.ts`][relations-test] | [47][relations-47]: type named like an `Object.prototype` member | Schema: `Nature` is enumerated, and no value is, or would be, named like one |
+| [`test/lib/shapes.test.ts`][shapes-test] | [27][shapes-27]: abstraction named like an `Object.prototype` member | Schema: `Abstraction` is enumerated, and no value is, or would be, named like one |
 | [`test/scripts/prepare-data.test.ts`][prepare-test] | [72][prepare-72]: relation with no `View_ID` | Schema: `View_ID` is required |
 | [`test/scripts/prepare-data.test.ts`][prepare-test] | [84][prepare-84]: weakness missing `Name`/`Abstraction`/`Status` | Schema: all three are required |
 | [`test/lib/media.test.tsx`][media-test] | [51][media-51]: `matchMedia` unavailable | Our code: only jsdom lacks it |
 | [`test/lib/media.test.tsx`][media-test] | [73][media-73]: rendered on the server | Our code: the app only renders in the browser |
 | [`test/lib/theme.test.ts`][theme-test] | [52][theme-52], [60][theme-60]: `systemTheme()`, with and without `matchMedia` | Our code: nothing in `src/` calls `systemTheme()` (and only jsdom lacks `matchMedia`) |
 
-That's 28 test cases, counting each `it.each` case separately.
+That's 26 test cases, counting each `it.each` case separately.
 
 ### Real-world, though they look defensive
 
@@ -181,6 +185,10 @@ Recorded so they aren't moved by mistake:
 
 - [`graph.test.ts:79`][graph-79], the generic "(inverse)" label: the data
   has 3 `StartsWith` relations, which have no named inverse.
+- [`relations.test.ts:43`][relations-43] and
+  [`shapes.test.ts:22`][shapes-22], the fallbacks for a relation type or
+  abstraction we don't know: MITRE may add one in a future schema.
+  **Need the "why it's real" comment.**
 - [`shapes.test.ts:32`][shapes-32], the glyph registry: it pins the
   registry to exactly the schema's five abstractions, which the legend
   lists.
@@ -237,7 +245,7 @@ Moving tests between `describe` blocks must not change what they assert:
 the test count stays at 363, and coverage must not drop.
 
 Verification: `npm run lint && npx tsc --noEmit && npm test`, plus
-`npm run test:realworld` passing and running exactly 28 fewer tests than
+`npm run test:realworld` passing and running exactly 26 fewer tests than
 `npm test`, and a deliberate typo in a tag failing the run.
 
 ## Out of scope
