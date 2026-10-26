@@ -97,26 +97,33 @@ describe('buildEgoGraph', () => {
     expect(lone.edges).toEqual([]);
   });
 
-  it('skips relation targets that are not in the corpus', () => {
-    const dangling = buildGraph({
-      ...data,
-      edges: [...data.edges, { from: '3', to: '99999', type: 'PeerOf' }],
-    });
-    expect(bandOf(buildEgoGraph(dangling, '3'), '99999')).toBeUndefined();
-  });
-
   it('returns an empty graph for an unknown centre', () => {
     const missing = buildEgoGraph(graph, '99999');
     expect(missing.nodes).toEqual([]);
     expect(missing.edges).toEqual([]);
   });
 
-  it.each(['constructor', '__proto__', 'toString'])('returns an empty graph for the object key %s', (key) => {
-    expect(buildEgoGraph(graph, key).nodes).toEqual([]);
-  });
-
   it('is deterministic — same input, same output', () => {
     expect(buildEgoGraph(graph, '3')).toEqual(buildEgoGraph(graph, '3'));
+  });
+
+  // A relation to an entry that isn't in the download would be a MITRE
+  // mistake.
+  describe('a relation target outside the corpus', { tags: ['theoretical'] }, () => {
+    it('skips relation targets that are not in the corpus', () => {
+      const dangling = buildGraph({
+        ...data,
+        edges: [...data.edges, { from: '3', to: '99999', type: 'PeerOf' }],
+      });
+      expect(bandOf(buildEgoGraph(dangling, '3'), '99999')).toBeUndefined();
+    });
+  });
+
+  // As for the lookups in graph.test.ts, the centre is always a numeric id.
+  describe('an object key as the centre', { tags: ['theoretical'] }, () => {
+    it.each(['constructor', '__proto__', 'toString'])('returns an empty graph for the object key %s', (key) => {
+      expect(buildEgoGraph(graph, key).nodes).toEqual([]);
+    });
   });
 });
 

@@ -25,18 +25,6 @@ describe('buildGraph', () => {
     expect(graph.childrenOf.get('74')?.slice().sort()).toEqual(['79', '80', '89']);
   });
 
-  it('has no inherited keys in nodes, so only CWE ids look up', () => {
-    for (const key of ['constructor', '__proto__', 'toString', 'hasOwnProperty']) {
-      expect(key in graph.nodes).toBe(false);
-      expect(graph.nodes[key]).toBeUndefined();
-    }
-    expect('79' in graph.nodes).toBe(true);
-  });
-
-  it('ignores object keys among the declared roots', () => {
-    expect(buildGraph(sampleData, { rootIds: ['constructor', '74'] }).roots).toEqual(['74']);
-  });
-
   it('treats nodes with no parent edge as roots', () => {
     expect(graph.roots).toEqual(['74']);
   });
@@ -89,19 +77,6 @@ describe('buildGraph', () => {
     expect(graph.relatedTo.get('2')).toEqual([{ from: '2', to: '1', type: 'StartsWith (inverse)' }]);
   });
 
-  it('falls back for a relation type named like an Object.prototype member', () => {
-    const data: CweData = {
-      meta: sampleData.meta,
-      nodes: {
-        '1': { id: '1', name: 'A', abstraction: '', status: '', description: '', url: '' },
-        '2': { id: '2', name: 'B', abstraction: '', status: '', description: '', url: '' },
-      },
-      edges: [{ from: '1', to: '2', type: 'toString' }],
-    };
-    const graph = buildGraph(data);
-    expect(graph.relatedTo.get('2')).toEqual([{ from: '2', to: '1', type: 'toString (inverse)' }]);
-  });
-
   it('carries a relation\'s view onto its synthesized inverse', () => {
     const data: CweData = {
       meta: sampleData.meta,
@@ -113,8 +88,39 @@ describe('buildGraph', () => {
     };
     expect(buildGraph(data).relatedTo.get('2')).toEqual([{ from: '2', to: '1', type: 'CanFollow', viewId: '1000' }]);
   });
+
+  // Ids that reach a lookup are always numeric (CWE_ID is an integer in the
+  // schema, and App.tsx drops a non-numeric ?cwe=), so nothing in the app looks
+  // up a key like constructor.
+  describe('lookups by an object key', { tags: ['theoretical'] }, () => {
+    it('has no inherited keys in nodes, so only CWE ids look up', () => {
+      for (const key of ['constructor', '__proto__', 'toString', 'hasOwnProperty']) {
+        expect(key in graph.nodes).toBe(false);
+        expect(graph.nodes[key]).toBeUndefined();
+      }
+      expect('79' in graph.nodes).toBe(true);
+    });
+  });
+
+  // The schema enumerates Nature, none of its values is an Object.prototype
+  // member, and no future type would be named like one.
+  describe('a relation type named like an object key', { tags: ['theoretical'] }, () => {
+    it('falls back for a relation type named like an Object.prototype member', () => {
+      const data: CweData = {
+        meta: sampleData.meta,
+        nodes: {
+          '1': { id: '1', name: 'A', abstraction: '', status: '', description: '', url: '' },
+          '2': { id: '2', name: 'B', abstraction: '', status: '', description: '', url: '' },
+        },
+        edges: [{ from: '1', to: '2', type: 'toString' }],
+      };
+      const graph = buildGraph(data);
+      expect(graph.relatedTo.get('2')).toEqual([{ from: '2', to: '1', type: 'toString (inverse)' }]);
+    });
+  });
 });
 
+// The schema allows ParentOf, though today's data only states ChildOf.
 describe('buildGraph ParentOf direction', () => {
   it('treats a ParentOf edge as establishing the same child relationship as ChildOf', () => {
     const data: CweData = {
@@ -224,14 +230,22 @@ describe('buildGraph roots', () => {
     expect(buildGraph(data).roots).toEqual(['99', '1000']);
   });
 
-  it('accepts an explicit root set, which a view would supply', () => {
-    const graph = buildGraph(withDeprecated, { rootIds: ['285'] });
-    expect(graph.roots).toEqual(['285']);
-    expect(graph.deprecatedRoots).toEqual([]);
-  });
+  // Nothing in src/ passes rootIds. Promote all three tests if something
+  // starts to.
+  describe('the rootIds option', { tags: ['theoretical'] }, () => {
+    it('accepts an explicit root set, which a view would supply', () => {
+      const graph = buildGraph(withDeprecated, { rootIds: ['285'] });
+      expect(graph.roots).toEqual(['285']);
+      expect(graph.deprecatedRoots).toEqual([]);
+    });
 
-  it('ignores explicit root ids that are not in the corpus', () => {
-    expect(buildGraph(withDeprecated, { rootIds: ['285', '99999'] }).roots).toEqual(['285']);
+    it('ignores explicit root ids that are not in the corpus', () => {
+      expect(buildGraph(withDeprecated, { rootIds: ['285', '99999'] }).roots).toEqual(['285']);
+    });
+
+    it('ignores object keys among the declared roots', () => {
+      expect(buildGraph(sampleData, { rootIds: ['constructor', '74'] }).roots).toEqual(['74']);
+    });
   });
 });
 
@@ -248,8 +262,11 @@ describe('countDescendants', () => {
     expect(countDescendants(buildGraph(deep), '5')).toBe(0);
   });
 
-  it('is zero for an id not in the corpus', () => {
-    expect(countDescendants(buildGraph(deep), '99999')).toBe(0);
+  // Its only caller, LandingPanel, passes ids from graph.roots.
+  describe('an id outside the corpus', { tags: ['theoretical'] }, () => {
+    it('is zero for an id not in the corpus', () => {
+      expect(countDescendants(buildGraph(deep), '99999')).toBe(0);
+    });
   });
 });
 
@@ -287,9 +304,10 @@ describe('buildGraph relation de-duplication', () => {
   });
 });
 
-describe('hierarchy edges with an end outside the corpus', () => {
-  // MITRE's relations can name an entry the download doesn't include, and
-  // prepare-data keeps such edges, so the walks must step over the gap.
+// A hierarchy relation to an entry that isn't in the download would be a
+// MITRE mistake, and the schema can't rule it out. buildGraph keeps such
+// edges, so the walks must step over the gap.
+describe('hierarchy edges with an end outside the corpus', { tags: ['theoretical'] }, () => {
   const dangling: CweData = {
     meta: sampleData.meta,
     nodes: {
