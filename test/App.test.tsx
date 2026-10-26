@@ -20,6 +20,19 @@ describe('App', () => {
     );
   });
 
+  it('fetches the prebuilt data from the domain root by default', () => {
+    render(<App />);
+    expect(fetch).toHaveBeenCalledExactlyOnceWith('/data/cwe.json');
+  });
+
+  it('fetches the prebuilt data from under the base path the app is built for', () => {
+    // Vite's `base` option. vite.config.ts doesn't set it today, but a deploy
+    // under a sub-path (a fork on GitHub Pages, say) would, so this is real.
+    vi.stubEnv('BASE_URL', '/cwe-visualizer/');
+    render(<App />);
+    expect(fetch).toHaveBeenCalledExactlyOnceWith('/cwe-visualizer/data/cwe.json');
+  });
+
   it('shows a loading state before data arrives', () => {
     render(<App />);
     expect(screen.getByText('Loading CWE data…')).toBeInTheDocument();
@@ -90,6 +103,33 @@ describe('App', () => {
       window.history.replaceState(null, '', '/?cwe=74');
       render(<App />);
       await waitFor(() => expect(screen.getByRole('heading', { name: 'CWE-74: Injection' })).toBeInTheDocument());
+    });
+
+    it('records a pick in the address, keeping its other parameters', async () => {
+      window.history.replaceState(null, '', '/?ref=share');
+      render(<App />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Weakness tree' }));
+      await userEvent.click(screen.getByRole('button', { name: 'CWE-74: Injection' }));
+      const params = new URLSearchParams(window.location.search);
+      expect(params.get('cwe')).toBe('74');
+      expect(params.get('ref')).toBe('share');
+    });
+
+    it('replaces the history entry on a pick instead of adding one', async () => {
+      render(<App />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Weakness tree' }));
+      const entries = window.history.length;
+      await userEvent.click(screen.getByRole('button', { name: 'CWE-74: Injection' }));
+      expect(window.history.length).toBe(entries);
+    });
+
+    it('restores a pick when the page is loaded again', async () => {
+      const { unmount } = render(<App />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Weakness tree' }));
+      await userEvent.click(screen.getByRole('button', { name: 'CWE-74: Injection' }));
+      unmount();
+      render(<App />);
+      expect(await screen.findByRole('heading', { name: 'CWE-74: Injection' })).toBeInTheDocument();
     });
 
     it('still reports a numeric id that is not in the data as not found', async () => {

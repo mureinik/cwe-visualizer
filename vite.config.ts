@@ -46,9 +46,10 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./test/setup.ts'],
-    // Undo vi.stubGlobal and vi.spyOn after every test, so a test that
-    // forgets its own cleanup can't leak into the next one.
+    // Undo vi.stubGlobal, vi.stubEnv and vi.spyOn after every test, so a test
+    // that forgets its own cleanup can't leak into the next one.
     unstubGlobals: true,
+    unstubEnvs: true,
     restoreMocks: true,
     // Tests that guard against input that can't happen carry this tag, so
     // `npm run test:realworld` can skip them. See CONTRIBUTING.md.

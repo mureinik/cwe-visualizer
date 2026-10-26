@@ -31,7 +31,9 @@ export function App() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/data/cwe.json')
+    // Relative to Vite's base path, so the data is found wherever the app is
+    // served from, not only at the domain root.
+    fetch(`${import.meta.env.BASE_URL}data/cwe.json`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json() as Promise<CweData>;
