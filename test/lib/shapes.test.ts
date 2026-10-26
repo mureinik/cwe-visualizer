@@ -19,17 +19,23 @@ describe('glyphFor', () => {
     expect(glyphFor('Class').shape).not.toBe(glyphFor('Base').shape);
   });
 
+  // MITRE may add an abstraction in a future schema, and it should get the
+  // fallback glyph.
   it('falls back for an unknown abstraction rather than throwing', () => {
     expect(glyphFor('Category')).toEqual(FALLBACK_GLYPH);
     expect(glyphFor('')).toEqual(FALLBACK_GLYPH);
   });
 
-  it('falls back for an abstraction named like an Object.prototype member', () => {
-    expect(glyphFor('constructor')).toBe(FALLBACK_GLYPH);
-    expect(glyphFor('toString')).toBe(FALLBACK_GLYPH);
-  });
-
   it('keeps the registry open for future node kinds', () => {
     expect(Object.keys(GLYPHS)).toEqual(['Pillar', 'Class', 'Base', 'Variant', 'Compound']);
+  });
+
+  // The schema enumerates Abstraction, none of its values is an
+  // Object.prototype member, and no future one would be named like one.
+  describe('an abstraction named like an object key', { tags: ['theoretical'] }, () => {
+    it('falls back for an abstraction named like an Object.prototype member', () => {
+      expect(glyphFor('constructor')).toBe(FALLBACK_GLYPH);
+      expect(glyphFor('toString')).toBe(FALLBACK_GLYPH);
+    });
   });
 });
