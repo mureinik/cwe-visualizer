@@ -122,9 +122,10 @@ How to treat each kind, and how to classify one:
   When in doubt, it's real-world.
 - **Promote a theoretical test in the change that makes its case possible**,
   whether the code stops ruling it out or the schema starts allowing it.
-  If `buildGraph` stopped giving every node a child list, the `Tree with a
-  graph that has no hierarchy lists` block in
-  `test/components/Tree.test.tsx` would become real-world.
+  If `buildGraph` stopped giving every node a child list, the tree test for
+  a graph with no hierarchy lists would become real-world: the
+  `describe('Tree with a graph that has no hierarchy lists')` block in
+  `test/components/Tree.test.tsx`.
 - **Say why a real-world test is real when its case is absent from today's
   data**, in a comment: the schema allows it, or it's outside our control.
   Otherwise a reader who checks the data takes it for a theoretical test.
@@ -134,18 +135,24 @@ How to treat each kind, and how to classify one:
 Mark a theoretical test by tagging it `theoretical`, which `vite.config.ts`
 declares, since Vitest rejects a tag it doesn't know. Group such tests in
 a `describe` block nested inside the block they were in, so they keep its
-hooks and fixtures, and put the tag on that block (a single `it` can carry
-the tag when moving it would split a fixture), as in the cycle
-test in `test/components/Tree.test.tsx`:
+hooks and fixtures, and put the tag on that block, with a comment that
+names the reason in the terms above. The `systemTheme` block in
+`test/lib/theme.test.ts` is an example: it sits inside `describe('theme')`,
+whose `beforeEach` still runs for it.
 
 ```ts
-describe('Tree with a cycle in the hierarchy', { tags: ['theoretical'] }, () => {
-  // 79 and 80 are each other's child, under the root 74. MITRE's data has no
-  // such loop, but a malformed relation could make one.
+describe('theme', () => {
+  beforeEach(() => {
+    // ...
+  });
+
+  // Nothing in src/ calls systemTheme() (ThemeToggle reads the preference
+  // through useMediaQuery). Promote both tests if something starts to.
+  describe('systemTheme', { tags: ['theoretical'] }, () => {
 ```
 
-A comment names the reason, in the terms above. Real-world tests carry no
-tag.
+A single `it` can carry the tag instead, when moving it would split a
+fixture. Real-world tests carry no tag.
 
 `npm run test:realworld` skips the tagged tests, which Vitest reports as
 skipped. Use it for quick local runs only. The pre-commit hook and CI run
