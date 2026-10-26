@@ -1,4 +1,4 @@
-import { compareIds, type CweNode, type Graph } from './graph';
+import { compareIds, isDeprecated, type CweNode, type Graph } from './graph';
 
 /** Lower sorts first. */
 function rank(node: CweNode, query: string): number {
@@ -22,8 +22,8 @@ export function searchNodes(graph: Graph, query: string): CweNode[] {
     .filter((scored) => scored.rank !== Number.POSITIVE_INFINITY)
     .sort((a, b) => {
       // Deprecated entries are still findable, but never ahead of a live one.
-      const aDeprecated = a.node.status === 'Deprecated' ? 1 : 0;
-      const bDeprecated = b.node.status === 'Deprecated' ? 1 : 0;
+      const aDeprecated = isDeprecated(a.node) ? 1 : 0;
+      const bDeprecated = isDeprecated(b.node) ? 1 : 0;
       if (aDeprecated !== bDeprecated) return aDeprecated - bDeprecated;
       if (a.rank !== b.rank) return a.rank - b.rank;
       return compareIds(a.node.id, b.node.id);

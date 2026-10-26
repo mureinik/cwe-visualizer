@@ -45,6 +45,15 @@ describe('searchNodes', () => {
     expect(ids('a').at(-1)).toBe('71');
   });
 
+  // No entry in today's data is Obsolete, but the schema allows it.
+  it('ranks obsolete entries last as well', () => {
+    const withObsolete = buildGraph({
+      ...data,
+      nodes: { '72': node('72', 'Injection, obsolete', 'Obsolete'), '74': node('74', 'Injection') },
+    });
+    expect(searchNodes(withObsolete, '7').map((n) => n.id)).toEqual(['74', '72']);
+  });
+
   it('returns an empty array for a blank query', () => {
     expect(ids('   ')).toEqual([]);
   });

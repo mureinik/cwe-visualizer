@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Graph } from '../lib/graph';
+import { isDeprecated, type Graph } from '../lib/graph';
 import { RELATION_GROUPS, relationGroup, type RelationGroup } from '../lib/relations';
 import { Glyph } from './Glyph';
 
@@ -69,7 +69,7 @@ function RelationChip({
         onClick={() => onSelect(id)}
         aria-label={type ? `${type} ${name}` : name}
       >
-        <Glyph abstraction={node?.abstraction ?? ''} size={12} deprecated={node?.status === 'Deprecated'} />
+        <Glyph abstraction={node?.abstraction ?? ''} size={12} deprecated={isDeprecated(node)} />
         {type && <span className="relation-chip__type">{type}</span>}
         <span className="relation-chip__id">CWE-{id}</span>
         {node && <span className="relation-chip__name">{node.name}</span>}
@@ -93,7 +93,7 @@ export function DetailPanel({ graph, selectedId, onSelect }: DetailPanelProps) {
     return <div className="detail-panel detail-panel--empty">CWE-{selectedId} was not found.</div>;
   }
 
-  const deprecated = node.status === 'Deprecated';
+  const deprecated = isDeprecated(node);
   const sections = relationSections(graph, selectedId);
 
   return (
@@ -118,7 +118,7 @@ export function DetailPanel({ graph, selectedId, onSelect }: DetailPanelProps) {
 
       {deprecated && (
         <p className="detail-panel__warning" role="status">
-          MITRE has deprecated this entry.
+          {node.status === 'Obsolete' ? 'MITRE has marked this entry obsolete.' : 'MITRE has deprecated this entry.'}
         </p>
       )}
 

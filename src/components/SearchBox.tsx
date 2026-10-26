@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react';
-import type { Graph } from '../lib/graph';
+import { isDeprecated, type Graph } from '../lib/graph';
 import { searchNodes } from '../lib/search';
 import { Glyph } from './Glyph';
 
@@ -93,7 +93,7 @@ export function SearchBox({ graph, onSelect }: SearchBoxProps) {
                   choose(index);
                 }}
               >
-                <Glyph abstraction={node.abstraction} size={12} deprecated={node.status === 'Deprecated'} />
+                <Glyph abstraction={node.abstraction} size={12} deprecated={isDeprecated(node)} />
                 <span className="search-result__id">CWE-{node.id}</span>
                 <span className="search-result__name">{node.name}</span>
               </li>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildGraph, ancestorsOf, compareIds, countDescendants, type CweData } from '../../src/lib/graph';
+import { buildGraph, ancestorsOf, compareIds, countDescendants, isDeprecated, type CweData } from '../../src/lib/graph';
 
 const sampleData: CweData = {
   meta: { cweVersion: '4.15', catalogDate: '2025-12-01', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
@@ -220,6 +220,34 @@ describe('buildGraph roots', () => {
     expect(buildGraph(withDeprecated).deprecatedRoots).toEqual(['71']);
   });
 
+  // No entry in today's data is Obsolete or Usable, but the schema's
+  // StatusEnumeration allows both, so a catalog refresh could bring either.
+  it('moves parentless obsolete nodes into deprecatedRoots', () => {
+    const data: CweData = {
+      ...withDeprecated,
+      nodes: {
+        ...withDeprecated.nodes,
+        '72': { id: '72', name: 'Obsolete entry', abstraction: 'Variant', status: 'Obsolete', description: '', url: '' },
+      },
+    };
+    const graph = buildGraph(data);
+    expect(graph.roots).toEqual(['284']);
+    expect(graph.deprecatedRoots).toEqual(['71', '72']);
+  });
+
+  it('keeps parentless usable nodes in roots', () => {
+    const data: CweData = {
+      ...withDeprecated,
+      nodes: {
+        ...withDeprecated.nodes,
+        '73': { id: '73', name: 'Usable entry', abstraction: 'Class', status: 'Usable', description: '', url: '' },
+      },
+    };
+    const graph = buildGraph(data);
+    expect(graph.roots).toEqual(['73', '284']);
+    expect(graph.deprecatedRoots).toEqual(['71']);
+  });
+
   it('sorts both root lists numerically', () => {
     const data: CweData = {
       meta: sampleData.meta,
@@ -248,6 +276,20 @@ describe('buildGraph roots', () => {
     it('ignores object keys among the declared roots', () => {
       expect(buildGraph(sampleData, { rootIds: ['constructor', '74'] }).roots).toEqual(['74']);
     });
+  });
+});
+
+describe('isDeprecated', () => {
+  const withStatus = (status: string) => ({ id: '1', name: 'A', abstraction: 'Base', status, description: '', url: '' });
+
+  // Obsolete and Usable are absent from today's data, but the schema's
+  // StatusEnumeration allows them.
+  it.each(['Deprecated', 'Obsolete'])('is true for %s', (status) => {
+    expect(isDeprecated(withStatus(status))).toBe(true);
+  });
+
+  it.each(['Draft', 'Incomplete', 'Stable', 'Usable'])('is false for %s', (status) => {
+    expect(isDeprecated(withStatus(status))).toBe(false);
   });
 });
 

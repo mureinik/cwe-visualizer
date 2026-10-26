@@ -1,4 +1,4 @@
-import type { CweNode } from '../lib/graph';
+import { isDeprecated, type CweNode } from '../lib/graph';
 import type { PositionedNode } from '../lib/layout';
 import { GlyphShape } from './Glyph';
 
@@ -30,7 +30,7 @@ export function GraphNode({
   onKeyDown,
   onHover,
 }: GraphNodeProps) {
-  const deprecated = cweNode.status === 'Deprecated';
+  const deprecated = isDeprecated(cweNode);
   const r = selected ? 13 : 9;
   // Clear the selection halo as well as the glyph, so the label's knockout
   // stroke doesn't cut a gap through the ring.

@@ -12,6 +12,9 @@ const data: CweData = {
     '80': { id: '80', name: 'HTML Tag Neutralization', abstraction: 'Base', status: 'Stable', description: '', url: '' },
     '20': { id: '20', name: 'Improper Input Validation', abstraction: 'Class', status: 'Stable', description: '', url: '' },
     '71': { id: '71', name: 'DEPRECATED: DS_Store', abstraction: 'Variant', status: 'Deprecated', description: '', url: '' },
+    // No entry in today's data is Obsolete or Usable, but the schema allows both.
+    '72': { id: '72', name: 'Superseded entry', abstraction: 'Variant', status: 'Obsolete', description: '', url: '' },
+    '73': { id: '73', name: 'Usable entry', abstraction: 'Base', status: 'Usable', description: '', url: '' },
   },
   edges: [
     { from: '79', to: '74', type: 'ChildOf' },
@@ -73,6 +76,17 @@ describe('DetailPanel', () => {
   it('warns when the selected entry is deprecated', () => {
     render(<DetailPanel graph={graph} selectedId="71" onSelect={() => {}} />);
     expect(screen.getByRole('status')).toHaveTextContent('MITRE has deprecated this entry.');
+  });
+
+  it('warns when the selected entry is obsolete', () => {
+    render(<DetailPanel graph={graph} selectedId="72" onSelect={() => {}} />);
+    expect(screen.getByRole('status')).toHaveTextContent('MITRE has marked this entry obsolete.');
+  });
+
+  it('shows a usable entry like a stable one, with its status and no warning', () => {
+    render(<DetailPanel graph={graph} selectedId="73" onSelect={() => {}} />);
+    expect(screen.getByText('Usable')).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 });
 
