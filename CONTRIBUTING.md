@@ -33,6 +33,8 @@ talks to MITRE at runtime.
 - `npm test` — Vitest
 - `npm run test:coverage` — Vitest with coverage; fails below the thresholds
   in `vite.config.ts` (CI runs this one)
+- `npm run test:realworld` — Vitest without the tests tagged `theoretical`,
+  for quick local runs; neither the pre-commit hook nor CI runs this one
 
 Formatting is enforced by linters, not by a separate formatter. ESLint
 checks it for JavaScript and TypeScript ([ESLint

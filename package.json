@@ -22,6 +22,7 @@
     "lint:css": "stylelint \"**/*.css\"",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:realworld": "vitest run --tags-filter='!theoretical'",
     "prepare": "husky",
     "prepare-data": "node scripts/prepare-data.ts",
     "predev": "npm run prepare-data",
