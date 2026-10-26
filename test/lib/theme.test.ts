@@ -49,16 +49,20 @@ describe('theme', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
   });
 
-  it('reads the system preference from matchMedia', () => {
-    vi.stubGlobal(
-      'matchMedia',
-      vi.fn((query: string) => ({ matches: query.includes('dark'), media: query })),
-    );
-    expect(systemTheme()).toBe('dark');
-  });
+  // Nothing in src/ calls systemTheme() (ThemeToggle reads the preference
+  // through useMediaQuery). Promote both tests if something starts to.
+  describe('systemTheme', { tags: ['theoretical'] }, () => {
+    it('reads the system preference from matchMedia', () => {
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn((query: string) => ({ matches: query.includes('dark'), media: query })),
+      );
+      expect(systemTheme()).toBe('dark');
+    });
 
-  it('falls back to light when matchMedia is unavailable', () => {
-    vi.stubGlobal('matchMedia', undefined);
-    expect(systemTheme()).toBe('light');
+    it('falls back to light when matchMedia is unavailable', () => {
+      vi.stubGlobal('matchMedia', undefined);
+      expect(systemTheme()).toBe('light');
+    });
   });
 });
