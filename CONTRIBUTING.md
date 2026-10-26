@@ -33,7 +33,8 @@ talks to MITRE at runtime.
 - `npm test` — Vitest
 - `npm run test:coverage` — Vitest with coverage; fails below the thresholds
   in `vite.config.ts` (CI runs this one)
-- `npm run test:realworld` — Vitest without the tests tagged `theoretical`,
+- `npm run test:realworld` — Vitest without the tests tagged `theoretical`
+  (see [Real-world and theoretical tests](#real-world-and-theoretical-tests)),
   for quick local runs; neither the pre-commit hook nor CI runs this one
 
 Formatting is enforced by linters, not by a separate formatter. ESLint
@@ -80,6 +81,72 @@ point. It also reports coverage of the lines the PR changed
 `codecov.yml`. The upload needs a `CODECOV_TOKEN` secret, the repository's
 upload token from Codecov, stored both as an Actions secret and as a
 Dependabot secret, since Dependabot's runs can't see Actions secrets.
+
+## Real-world and theoretical tests
+
+Some tests guard against input that can't happen, such as a loop in the CWE
+hierarchy. They are worth keeping, but they describe nothing a user of the
+site sees, so they don't carry the same weight as the tests that do. A test
+is theoretical when its input can't happen, for one of these reasons:
+
+1. **MITRE's schema forbids it.** The schema is the rules
+   [`cwe_schema_latest.xsd`](https://cwe.mitre.org/data/xsd/cwe_schema_latest.xsd)
+   states: required attributes and enumerated values, such as a
+   `Related_Weakness` with no `View_ID`.
+2. **It would be a mistake in MITRE's data that the schema can't express.**
+   The schema checks the form of a relation, not whether it makes sense, so
+   `ChildOf` links that form a loop, or a relation to an entry that doesn't
+   exist, are mistakes.
+3. **Our own code never produces it.** That covers a state `buildGraph`
+   never builds, a function or option nothing in `src/` calls, and a
+   fallback only the test environment reaches, like jsdom's missing
+   `matchMedia`.
+
+Every other test is real-world. That includes what the schema allows but
+today's data doesn't use (a `ParentOf` relation), changes outside our
+control that aren't mistakes (MITRE changing its download format, or a
+future schema adding a relation type), user input such as anything typed
+into `?cwe=`, and browser conditions such as blocked storage.
+
+The two kinds are changed differently:
+
+- **A real-world test changes only when the change sets out to alter the
+  behaviour it covers.** If one fails otherwise, the change is wrong.
+- **A theoretical test may be proposed for removal or rewriting** when it
+  stands in the way of something worthwhile, like a performance gain or
+  simpler code. Say what the site would lose, which is some resilience to
+  bad data or a future refactor, not anything visible. Then ask the
+  maintainer and wait for agreement. That goes for agents too.
+- **Classify a new test when you write it**, using the definitions above.
+  When in doubt, it's real-world.
+- **Promote a theoretical test in the change that makes its case possible**,
+  whether the code stops ruling it out or the schema starts allowing it.
+  If `buildGraph` stopped giving every node a child list, the empty-maps
+  tree test would become real-world.
+- **Say why a real-world test is real when its case is absent from today's
+  data**, in a comment: the schema allows it, or it's outside our control.
+  Otherwise a reader who checks the data takes it for a theoretical test.
+  This is for tests whose point is that case, not for fixtures that use an
+  unusual value incidentally.
+
+Mark a theoretical test by tagging it `theoretical`, which `vite.config.ts`
+declares, since Vitest rejects a tag it doesn't know. Group such tests in
+their own `describe` block and put the tag on the block, as in the cycle
+test in `test/components/Tree.test.tsx`:
+
+```ts
+describe('Tree with a cycle in the hierarchy', { tags: ['theoretical'] }, () => {
+  // 79 and 80 are each other's child, under the root 74. MITRE's data has no
+  // such loop, but a malformed relation could make one.
+```
+
+A comment names the reason, in the terms above. Real-world tests carry no
+tag.
+
+`npm run test:realworld` skips the tagged tests, which Vitest reports as
+skipped. Use it for quick local runs only. The pre-commit hook and CI run
+everything, and the coverage thresholds assume it: theoretical tests count
+towards each file's coverage, so don't run `test:realworld` with coverage.
 
 ## Workflow
 
