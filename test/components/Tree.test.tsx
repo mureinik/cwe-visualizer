@@ -83,9 +83,10 @@ describe('Tree presentation', () => {
   });
 });
 
-describe('Tree with a hierarchy edge to an id outside the corpus', () => {
+describe('Tree with a hierarchy edge to an id outside the corpus', { tags: ['theoretical'] }, () => {
   // buildGraph keeps such edges (see graph.test.ts), so childrenOf and
-  // parentsOf can name an id with no entry in graph.nodes.
+  // parentsOf can name an id with no entry in graph.nodes. Today's data has no
+  // such edge, and one would be a MITRE mistake.
   const dangling: CweData = {
     meta: data.meta,
     nodes: {
@@ -123,9 +124,9 @@ describe('Tree with a hierarchy edge to an id outside the corpus', () => {
   });
 });
 
-describe('Tree with a graph that has no hierarchy lists', () => {
+describe('Tree with a graph that has no hierarchy lists', { tags: ['theoretical'] }, () => {
+  // buildGraph gives every node both lists, but Tree accepts any Graph.
   it('renders a node with no childrenOf or parentsOf entry as a lone leaf', () => {
-    // buildGraph gives every node both lists, but Tree accepts any Graph.
     const graph = { ...buildGraph(data), childrenOf: new Map<string, string[]>(), parentsOf: new Map<string, string[]>() };
     render(<Tree graph={graph} selectedId={null} onSelect={() => {}} />);
     expect(screen.getByRole('button', { name: 'CWE-74: Injection' })).toBeInTheDocument();
@@ -134,7 +135,7 @@ describe('Tree with a graph that has no hierarchy lists', () => {
   });
 });
 
-describe('Tree with a cycle in the hierarchy', () => {
+describe('Tree with a cycle in the hierarchy', { tags: ['theoretical'] }, () => {
   // 79 and 80 are each other's child, under the root 74. MITRE's data has no
   // such loop, but a malformed relation could make one.
   const cyclic: CweData = {

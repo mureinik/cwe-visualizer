@@ -48,11 +48,6 @@ describe('useMediaQuery', () => {
     expect(renderHook(() => useMediaQuery(NARROW_QUERY)).result.current).toBe(false);
   });
 
-  it('returns false rather than throwing where matchMedia is unavailable', () => {
-    vi.stubGlobal('matchMedia', undefined);
-    expect(renderHook(() => useMediaQuery(NARROW_QUERY)).result.current).toBe(false);
-  });
-
   it('updates when the query starts or stops matching', () => {
     const media = stubChangingMatchMedia(false);
     const { result } = renderHook(() => useMediaQuery(NARROW_QUERY));
@@ -70,11 +65,21 @@ describe('useMediaQuery', () => {
     expect(media.listeners.size).toBe(0);
   });
 
-  it('assumes the wide layout when rendered on the server', () => {
-    stubMatchMedia(true);
-    function Probe() {
-      return useMediaQuery(NARROW_QUERY) ? 'narrow' : 'wide';
-    }
-    expect(renderToString(<Probe />)).toBe('wide');
+  // Every supported browser has matchMedia (only jsdom lacks it), and the app
+  // only renders in the browser. The guard stays: most component tests run
+  // without a matchMedia stub and rely on it.
+  describe('outside a browser', { tags: ['theoretical'] }, () => {
+    it('returns false rather than throwing where matchMedia is unavailable', () => {
+      vi.stubGlobal('matchMedia', undefined);
+      expect(renderHook(() => useMediaQuery(NARROW_QUERY)).result.current).toBe(false);
+    });
+
+    it('assumes the wide layout when rendered on the server', () => {
+      stubMatchMedia(true);
+      function Probe() {
+        return useMediaQuery(NARROW_QUERY) ? 'narrow' : 'wide';
+      }
+      expect(renderToString(<Probe />)).toBe('wide');
+    });
   });
 });

@@ -50,6 +50,15 @@ export default defineConfig({
     // forgets its own cleanup can't leak into the next one.
     unstubGlobals: true,
     restoreMocks: true,
+    // Tests that guard against input that can't happen carry this tag, so
+    // `npm run test:realworld` can skip them. See CONTRIBUTING.md.
+    tags: [
+      {
+        name: 'theoretical',
+        description:
+          "Guards against input that can't happen: data MITRE's schema forbids, a MITRE mistake the schema can't express, or a state our own code never produces.",
+      },
+    ],
     coverage: {
       provider: 'v8',
       // text for the log (it shows which file missed a threshold), html for

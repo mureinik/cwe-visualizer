@@ -30,6 +30,14 @@ enforces on its own, so breaking them fails silently.
   into a commit. If it blocks you, fix the cause.
 - **Don't merge your own PR unless asked.** Opening it is where the job
   normally ends.
+- **Real-world and theoretical tests are not equal.** Don't change a
+  real-world test unless the behaviour change is intended; a failure
+  otherwise means your change is wrong. Don't remove or rewrite a test
+  tagged `theoretical`: propose the change, with what the site would lose,
+  and wait for the maintainer. Classify every new test when you write it, as
+  real-world when in doubt.
+  [`CONTRIBUTING.md`](CONTRIBUTING.md#real-world-and-theoretical-tests) has
+  the definitions.
 
 ## Verifying
 

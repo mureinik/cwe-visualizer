@@ -69,23 +69,13 @@ describe('parseCatalog', () => {
     ]);
   });
 
-  it('leaves viewId undefined when a relation declares no View_ID', () => {
-    const xml = `<Weakness_Catalog Version="4.15" Date="2024-11-19"><Weaknesses>
-      <Weakness ID="1" Name="A" Abstraction="Base" Status="Draft"><Description>d</Description>
-        <Related_Weaknesses><Related_Weakness Nature="ChildOf" CWE_ID="2"/></Related_Weaknesses>
-      </Weakness></Weaknesses></Weakness_Catalog>`;
-    expect(parseCatalog(xml, '"x"').edges[0].viewId).toBeUndefined();
-  });
-
   it('has no edges for a weakness with no Related_Weaknesses element', () => {
     expect(data.edges.filter((e) => e.from === '74')).toEqual([]);
   });
 
-  it('defaults missing optional Weakness attributes to empty strings', () => {
-    const xml = '<Weakness_Catalog Version="4.15" Date="2024-11-19"><Weaknesses><Weakness ID="5"/></Weaknesses></Weakness_Catalog>';
-    expect(parseCatalog(xml, '"x"').nodes['5']).toMatchObject({ id: '5', name: '', abstraction: '', status: '', description: '' });
-  });
-
+  // MITRE can change its download format. That isn't a mistake and is outside
+  // our control, and these checks fail the build rather than ship data the app
+  // can't read.
   it('throws on a catalog missing the expected root element', () => {
     expect(() => parseCatalog('<NotACatalog/>', '"x"')).toThrow(/Unexpected CWE catalog format/);
   });
@@ -95,6 +85,23 @@ describe('parseCatalog', () => {
       const xml = `<Weakness_Catalog Version="4.15"${date}><Weaknesses/></Weakness_Catalog>`;
       expect(() => parseCatalog(xml, '"x"'), date).toThrow(/Weakness_Catalog\/Date/);
     }
+  });
+
+  // The schema requires View_ID on every Related_Weakness, and Name,
+  // Abstraction and Status on every Weakness.
+  describe('attributes the schema requires', { tags: ['theoretical'] }, () => {
+    it('leaves viewId undefined when a relation declares no View_ID', () => {
+      const xml = `<Weakness_Catalog Version="4.15" Date="2024-11-19"><Weaknesses>
+        <Weakness ID="1" Name="A" Abstraction="Base" Status="Draft"><Description>d</Description>
+          <Related_Weaknesses><Related_Weakness Nature="ChildOf" CWE_ID="2"/></Related_Weaknesses>
+        </Weakness></Weaknesses></Weakness_Catalog>`;
+      expect(parseCatalog(xml, '"x"').edges[0].viewId).toBeUndefined();
+    });
+
+    it('defaults missing Weakness attributes to empty strings', () => {
+      const xml = '<Weakness_Catalog Version="4.15" Date="2024-11-19"><Weaknesses><Weakness ID="5"/></Weaknesses></Weakness_Catalog>';
+      expect(parseCatalog(xml, '"x"').nodes['5']).toMatchObject({ id: '5', name: '', abstraction: '', status: '', description: '' });
+    });
   });
 });
 
