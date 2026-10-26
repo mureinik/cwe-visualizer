@@ -15,7 +15,26 @@ import tseslint from 'typescript-eslint';
 // at build time. See CLAUDE.md.
 const NO_RUNTIME_NETWORK =
   'The app must never contact MITRE at runtime; it may only fetch the prebuilt ' +
-  "'/data/...' JSON, as a string literal. Fetch data at build time in scripts/prepare-data.ts.";
+  "'/data/...' JSON, as a string literal or as `${import.meta.env.BASE_URL}data/...`. " +
+  'Fetch data at build time in scripts/prepare-data.ts.';
+
+// The two shapes of fetch argument src/ may use. \u002F is '/': esquery ends
+// a regex at the first bare slash.
+const DATA_LITERAL = "[arguments.0.type='Literal'][arguments.0.value=/^\\u002Fdata\\u002F/]";
+// `${import.meta.env.BASE_URL}data/...`, with nothing else interpolated.
+// BASE_URL is Vite's base path, fixed at build time, so this is the same
+// prebuilt data for an app served from somewhere other than the domain root.
+const BASE_URL_TEMPLATE =
+  "[arguments.0.type='TemplateLiteral']" +
+  '[arguments.0.expressions.length=1]' +
+  "[arguments.0.quasis.0.value.raw='']" +
+  '[arguments.0.quasis.1.value.raw=/^data\\u002F/]' +
+  "[arguments.0.expressions.0.type='MemberExpression']" +
+  '[arguments.0.expressions.0.computed=false]' +
+  "[arguments.0.expressions.0.property.name='BASE_URL']" +
+  '[arguments.0.expressions.0.object.computed=false]' +
+  "[arguments.0.expressions.0.object.property.name='env']" +
+  "[arguments.0.expressions.0.object.object.meta.name='import']";
 
 // eslint-plugin-jsonc's presets check JSON's syntax but leave its layout alone.
 const JSON_LAYOUT = {
@@ -56,10 +75,9 @@ export default tseslint.config(
       'no-restricted-syntax': [
         'error',
         {
-          // \u002F is '/': esquery ends a regex at the first bare slash.
           selector:
             "CallExpression:matches([callee.name='fetch'], [callee.property.name='fetch'])" +
-            ":not([arguments.0.type='Literal'][arguments.0.value=/^\\u002Fdata\\u002F/])",
+            `:not(${DATA_LITERAL}, ${BASE_URL_TEMPLATE})`,
           message: NO_RUNTIME_NETWORK,
         },
         {

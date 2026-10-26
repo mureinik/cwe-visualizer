@@ -25,6 +25,9 @@ describe('no runtime network access from src/', () => {
   it.each([
     ["fetch('/data/cwe.json');"],
     ["fetch('/data/meta.json').then((r) => r.json());"],
+    // BASE_URL is Vite's build-time base path, so this is still the app's own
+    // prebuilt data, wherever the app is served from.
+    ['fetch(`${import.meta.env.BASE_URL}data/cwe.json`);'],
   ])('allows %s', async (code) => {
     expect(await restrictedMessages(code)).toEqual([]);
   });
@@ -34,6 +37,17 @@ describe('no runtime network access from src/', () => {
     ["fetch('/api/cwe');"],
     ['const url = "/data/cwe.json"; fetch(url);'],
     ['fetch(`/data/${"cwe"}.json`);'],
+    ['const base = import.meta.env.BASE_URL; fetch(`${base}data/cwe.json`);'],
+    ['fetch(`${import.meta.env.BASE_URL}${"data/cwe.json"}`);'],
+    ['fetch(`${import.meta.env.BASE_URL}data/${"cwe"}.json`);'],
+    ['fetch(`${import.meta.env.BASE_URL}api/cwe`);'],
+    ['fetch(`https://example.com/${import.meta.env.BASE_URL}data/cwe.json`);'],
+    ['fetch(`${import.meta.env.MODE}data/cwe.json`);'],
+    ['const BASE_URL = "MODE"; fetch(`${import.meta.env[BASE_URL]}data/cwe.json`);'],
+    ['const env = "env"; fetch(`${import.meta[env].BASE_URL}data/cwe.json`);'],
+    ['fetch(`${import.meta.other.BASE_URL}data/cwe.json`);'],
+    ['function f() { fetch(`${new.target.env.BASE_URL}data/cwe.json`); }'],
+    ["fetch(import.meta.env.BASE_URL + 'data/cwe.json');"],
     ["window.fetch('https://example.com');"],
     ["globalThis.fetch('https://example.com');"],
     ['new XMLHttpRequest();'],
