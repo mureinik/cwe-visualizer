@@ -75,6 +75,21 @@ describe('Tree presentation', () => {
     expect(screen.getByRole('button', { name: 'CWE-71: DEPRECATED: DS_Store' })).toBeInTheDocument();
   });
 
+  // No entry in today's data is Obsolete, but the schema allows it.
+  it('groups obsolete orphans with the deprecated ones', async () => {
+    const graph = buildGraph({
+      ...withDeprecated,
+      nodes: {
+        ...withDeprecated.nodes,
+        '72': { id: '72', name: 'Superseded entry', abstraction: 'Variant', status: 'Obsolete', description: '', url: '' },
+      },
+    });
+    render(<Tree graph={graph} selectedId={null} onSelect={() => {}} />);
+    expect(screen.queryByRole('button', { name: 'CWE-72: Superseded entry' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Deprecated (2)' }));
+    expect(screen.getByRole('button', { name: 'CWE-72: Superseded entry' })).toHaveClass('tree-label--deprecated');
+  });
+
   it('marks a node that appears under more than one parent', async () => {
     const graph = buildGraph(withDeprecated);
     render(<Tree graph={graph} selectedId={null} onSelect={() => {}} />);

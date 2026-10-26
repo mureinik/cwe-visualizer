@@ -13,10 +13,11 @@ export interface Graph {
   childrenOf: Map<string, string[]>;
   parentsOf: Map<string, string[]>;
   relatedTo: Map<string, CweEdge[]>;
-  /** Top-level entries to display. Deprecated orphans are not here. */
+  /** Top-level entries to display. Deprecated and obsolete orphans are not here. */
   roots: string[];
   /**
-   * Parentless entries MITRE has deprecated. Kept separate so they can be
+   * Parentless entries MITRE has deprecated or marked obsolete (see
+   * isDeprecated). Kept separate so they can be
    * shown in one collapsed group instead of interleaved by ID at the top of
    * the tree, which is what they do today.
    */
@@ -51,6 +52,15 @@ const INVERSE_NATURES = new Map([
 
 function inverseNature(type: string): string {
   return INVERSE_NATURES.get(type) ?? `${type}${INVERSE_SUFFIX}`;
+}
+
+/**
+ * Whether MITRE has retired the entry. Obsolete entries are "still valid but
+ * no longer relevant", usually superseded, so they get the same treatment as
+ * Deprecated ones.
+ */
+export function isDeprecated(node: CweNode | undefined): boolean {
+  return node?.status === 'Deprecated' || node?.status === 'Obsolete';
 }
 
 /**
@@ -114,7 +124,7 @@ export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
     }
   }
 
-  const isDeprecated = (id: string) => nodes[id]?.status === 'Deprecated';
+  const isDeprecatedId = (id: string) => isDeprecated(nodes[id]);
 
   let roots: string[];
   let deprecatedRoots: string[];
@@ -124,8 +134,8 @@ export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
     deprecatedRoots = [];
   } else {
     const parentless = Object.keys(nodes).filter((id) => (parentsOf.get(id) ?? []).length === 0);
-    roots = parentless.filter((id) => !isDeprecated(id)).sort(compareIds);
-    deprecatedRoots = parentless.filter(isDeprecated).sort(compareIds);
+    roots = parentless.filter((id) => !isDeprecatedId(id)).sort(compareIds);
+    deprecatedRoots = parentless.filter(isDeprecatedId).sort(compareIds);
   }
 
   const all = Object.values(nodes).sort((a, b) => compareIds(a.id, b.id));

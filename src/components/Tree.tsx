@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Graph } from '../lib/graph';
-import { ancestorsOf } from '../lib/graph';
+import { ancestorsOf, isDeprecated } from '../lib/graph';
 import { Glyph } from './Glyph';
 
 interface TreeProps {
@@ -142,7 +142,7 @@ function TreeNode({ id, graph, expanded, selectedId, onToggle, onSelect, ancestr
   childAncestry.add(id);
 
   const parentCount = known(graph.parentsOf.get(id)).length;
-  const deprecated = node.status === 'Deprecated';
+  const deprecated = isDeprecated(node);
 
   return (
     <li
