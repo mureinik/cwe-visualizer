@@ -2,12 +2,17 @@
 # gets one PR covering its major, minor and patch bumps alike, so packages
 # that move together are reviewed together. Any npm package outside the
 # groups gets a PR of its own.
+#
+# Both ecosystems run daily, not weekly. PRs must be up to date with main,
+# so a weekly batch merges one at a time, and each merge has every other PR
+# rebase and rerun CI. Daily runs spread updates out; the cooldowns below
+# keep them from arriving any sooner after release.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
+      interval: daily
     # Let a release age a week before proposing it, so a compromised or
     # yanked version has time to be caught upstream first.
     cooldown:
@@ -51,7 +56,7 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: daily
     # Let a release age a week before proposing it, so a compromised or
     # yanked version has time to be caught upstream first.
     cooldown:
