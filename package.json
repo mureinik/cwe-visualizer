@@ -26,7 +26,9 @@
     "prepare": "husky",
     "prepare-data": "node scripts/prepare-data.ts",
     "predev": "npm run prepare-data",
-    "prebuild": "npm run prepare-data"
+    "prebuild": "npm run prepare-data",
+    "build:site": "tsc --noEmit && node scripts/build-site.ts",
+    "prebuild:site": "npm run prepare-data"
   },
   "dependencies": {
     "react": "^19.3.1",
