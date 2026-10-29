@@ -65,6 +65,7 @@ describe('redirectPage', () => {
   it('falls back without JavaScript', () => {
     const page = redirectPage('/v1.1/');
     expect(page).toContain('<meta http-equiv="refresh" content="0; url=/v1.1/">');
+    expect(page).toMatch(/<noscript>\s*<meta http-equiv="refresh"[^>]*>\s*<\/noscript>/);
     expect(page).toContain('href="/v1.1/"');
   });
 });
@@ -106,11 +107,8 @@ describe('extractReleases and run', () => {
       const entry = zip.getEntries().find((e) => e.entryName.endsWith('escape.txt'));
       // Some adm-zip versions normalize names on add; force the raw name.
       if (entry) entry.entryName = `${ROOT}v1/../../escape.txt`;
-      try {
-        extractReleases(zip.toBuffer(), outDir);
-      } catch {
-        // refusing the archive is fine; writing outside is not
-      }
+      expect(entry?.entryName).toContain('..');
+      expect(() => extractReleases(zip.toBuffer(), outDir)).toThrow(/outside/);
       expect(existsSync(path.join(dir, 'escape.txt'))).toBe(false);
       expect(existsSync(path.join(dir, '..', 'escape.txt'))).toBe(false);
       expect(existsSync(path.join(outDir, '..', 'escape.txt'))).toBe(false);

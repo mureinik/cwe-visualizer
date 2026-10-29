@@ -37,7 +37,9 @@ export function redirectPage(target: string): string {
   <head>
     <meta charset="utf-8">
     <title>CWE Visualizer</title>
-    <meta http-equiv="refresh" content="0; url=${attr}">
+    <noscript>
+      <meta http-equiv="refresh" content="0; url=${attr}">
+    </noscript>
     <script>
       location.replace(${script} + location.search + location.hash);
     </script>
