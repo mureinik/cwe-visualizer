@@ -1,0 +1,24 @@
+name: Dispatch release publish
+
+# Starts release-publish.yml on `main` for the release branch just pushed.
+# Every release branch carries a copy of this file from its cut, and that
+# copy is never updated, so it must stay this small: all the publishing
+# logic lives in release-publish.yml on `main`.
+
+on:
+  push:
+    branches: ["v[0-9]*"]
+
+permissions: {}
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write # start the publish workflow
+    steps:
+      - name: Start the publish workflow
+        env:
+          BRANCH: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run release-publish.yml --repo "$GITHUB_REPOSITORY" --ref main -f branch="$BRANCH"

@@ -1,0 +1,144 @@
+name: Publish release
+
+# Builds a release branch (vN or vN.M) and publishes the output to the
+# `deploy` branch, then asks Vercel to rebuild production from `main`.
+#
+# This lives on `main` and is started by workflow_dispatch only, usually by
+# release-dispatch.yml, or by hand:
+#   gh workflow run release-publish.yml -f branch=v1
+#
+# Why it runs from `main` and not from the release branch: the app is
+# frozen with a release, but its publish pipeline is not. A workflow run
+# from a release branch would use the copy made at the cut, which ages
+# (Dependabot's action updates only reach `main`) until an old release can't
+# publish its security fix. Here the release branch contributes only its
+# source, checked out into release/.
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Release branch to publish, e.g. v1 or v1.1
+        type: string
+        required: true
+
+permissions: {}
+
+# Publishes run one at a time and are never cancelled, so two releases
+# publishing together can't lose either's commit.
+concurrency:
+  group: release-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # push to the deploy branch
+    steps:
+      - name: Validate the branch name
+        env:
+          BRANCH: ${{ inputs.branch }}
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "$BRANCH" | grep -qE '^v[0-9]+(\.[0-9]+)?$'; then
+            echo "::error::'$BRANCH' is not a release branch name (vN or vN.M)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/heads/${{ inputs.branch }}
+          path: release
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: release/package-lock.json
+
+      # Only a release whose package.json version matches its branch name
+      # goes live: vN needs N.0.0, vN.M needs N.M.0. This makes "cut the
+      # branch, then bump the version" safe.
+      - name: Check the version matches the branch
+        id: gate
+        env:
+          BRANCH: ${{ inputs.branch }}
+        run: |
+          set -euo pipefail
+          number="${BRANCH#v}"
+          case "$number" in
+            *.*) expected="$number.0" ;;
+            *) expected="$number.0.0" ;;
+          esac
+          actual="$(jq -r .version release/package.json)"
+          if [ "$actual" != "$expected" ]; then
+            echo "::notice::Not publishing $BRANCH: package.json version is $actual, expected $expected."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        if: steps.gate.outputs.publish == 'true'
+        working-directory: release
+        run: npm ci
+
+      - name: Build
+        if: steps.gate.outputs.publish == 'true'
+        working-directory: release
+        env:
+          BRANCH: ${{ inputs.branch }}
+        run: npm run build -- "--base=/$BRANCH/"
+
+      # Like every other checkout, this one doesn't persist the token; the
+      # push below authenticates explicitly instead.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.gate.outputs.publish == 'true'
+        with:
+          ref: deploy
+          path: deploy
+          persist-credentials: false
+
+      - name: Commit and push to deploy
+        if: steps.gate.outputs.publish == 'true'
+        env:
+          BRANCH: ${{ inputs.branch }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Authenticate git for this step only, through environment config
+          # (nothing is written to .git/config or to the command line).
+          auth="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0="http.https://github.com/.extraheader"
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth"
+          sha="$(git -C release rev-parse --short HEAD)"
+          mkdir -p "deploy/$BRANCH"
+          rsync -a --delete release/dist/ "deploy/$BRANCH/"
+          cd deploy
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "::notice::$BRANCH is already published as built; nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "$BRANCH: built from $BRANCH@$sha"
+          for attempt in 1 2 3; do
+            if git push origin HEAD:deploy; then
+              exit 0
+            fi
+            echo "::warning::Push rejected (attempt $attempt of 3); rebasing."
+            git pull --rebase origin deploy
+          done
+          echo "::error::Could not push to deploy after 3 attempts."
+          exit 1
+
+      - name: Rebuild production
+        if: steps.gate.outputs.publish == 'true'
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: curl -sf -X POST "$VERCEL_DEPLOY_HOOK_URL"
