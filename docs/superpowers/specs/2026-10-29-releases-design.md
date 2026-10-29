@@ -5,7 +5,7 @@
 The site has no releases today. `main` is production, and every build
 downloads whatever MITRE's `cwec_latest.xml.zip` points at. That was fine
 while MITRE published one line of CWE releases, but CWE 5.0 (schema 8.0)
-came out on 2026-10-28 alongside 4.21 (schema 7.4), a parallel release for
+came out on [2026-10-28][cwe-5-news] alongside 4.21 (schema 7.4), a parallel release for
 consumers still on schema 7.x. Production quietly switched to 5.0 the same
 day, the next time `main` was built. Nothing broke, but nothing decided it
 either.
@@ -43,8 +43,9 @@ what 5.0 adds.
   `main` gets Dependabot's regular version updates. Backporting other
   fixes is allowed but expected to be rare and manual.
 - A daily `npm audit` of release branches. `npm audit` has proven noisy
-  and often unactionable here (see the dev-only `katex`/`re2js` advisories
-  noted in #236), so release branches get the security fixes `main`
+  and often unactionable here (see the dev-only `katex` ([GHSA-238p-pmpm-9mq7][ghsa-katex]) and
+  `re2js` ([GHSA-gg6h-894w-4m9c][ghsa-re2js]) advisories noted in
+  [#236][pr236]), so release branches get the security fixes `main`
   actually makes instead.
 - Retiring old releases. Nothing here removes one; that can come later.
 - Showing what CWE 5.0 adds (Groupings, Dimensions, and so on). That gets
@@ -74,7 +75,7 @@ what 5.0 adds.
   depending on its content, decided when it is cut.
 - `package.json`'s `version` on a release branch is `X.Y.0`; it doesn't
   change after the cut (in-place updates don't renumber the release).
-  This closes #162. **My call:** `main` keeps `0.0.0`, meaning
+  This closes [#162][i162]. **My call:** `main` keeps `0.0.0`, meaning
   "unreleased", rather than tracking the last release cut from it, which
   would be misleading once `main` moves on.
 - "Newest release" (for the `/` redirect) means the highest version by
@@ -82,10 +83,10 @@ what 5.0 adds.
 
 ## The pinned CWE version
 
-`scripts/prepare-data.ts` downloads
+[`scripts/prepare-data.ts`][prepare-data] downloads
 `https://cwe.mitre.org/data/xml/cwec_v{version}.xml.zip` from MITRE's
 archive instead of `cwec_latest.xml.zip`. The pattern holds for every
-version on <https://cwe.mitre.org/data/archive.html>, including patch
+version on [MITRE's archive page][cwe-archive], including patch
 releases (`cwec_v4.19.1.xml.zip`).
 
 - The version lives in one plain-text file at the repo root, e.g.
@@ -93,20 +94,20 @@ releases (`cwec_v4.19.1.xml.zip`).
   and `git show <branch>:cwe-version` without running Node. **My call** on
   the format and name; the builder may pick another, as long as it's one
   file that both the script and workflows read.
-- `prepare-data.ts` checks that the downloaded catalog's
+- [`prepare-data.ts`][prepare-data] checks that the downloaded catalog's
   `Weakness_Catalog/@Version` equals the pin and fails the build if not.
   That catches a typo'd pin and an archive file that isn't what it says.
 - Archive files don't change, so the existing fast path (skip the
   download when the data is intact) can key on the pinned version instead
   of a `HEAD` request's `Last-Modified`. Builder's call.
 - Add the version file to the path list in
-  `.github/scripts/vercel-ignore-build.sh`; it is a build input.
+  [`.github/scripts/vercel-ignore-build.sh`][ignore-build]; it is a build input.
 - `main` is pinned like every release branch. Moving the pin is a normal
   PR with an issue.
 
 ## Watching MITRE
 
-`.github/workflows/update-data.yml` stops redeploying anything. It becomes
+[`.github/workflows/update-data.yml`][update-data] stops redeploying anything. It becomes
 a daily check with two independent jobs, and neither changes code or
 deploys. Each opens **one issue per CWE version**: before opening one, it
 looks for an existing issue (open or closed) with the same title, so a
@@ -143,7 +144,7 @@ https://cwe-visualizer.vercel.app/
 ```
 
 Each build is a normal Vite build with `base` set to its path. The app
-already fetches `${import.meta.env.BASE_URL}data/cwe.json` (#226), so
+already fetches `${import.meta.env.BASE_URL}data/cwe.json` ([#226][pr226]), so
 each copy finds its own data. The app has no client-side routes (state is
 in `?cwe=` and similar query parameters), so no rewrites are needed.
 
@@ -194,14 +195,14 @@ So the publish logic runs only from `main`:
   `main`, so every cut copies the dispatcher, and it is small enough not
   to age.
 
-Everything else on a release branch, notably `ci.yml` for PRs into it,
+Everything else on a release branch, notably [`ci.yml`][ci] for PRs into it,
 stays as it was at the cut. If it ever breaks, the fix is a PR straight
 to that branch, like any other backport.
 
 1. Check out the branch, `npm ci`, run the data step (pinned, so it
    downloads that release's CWE version), and build with
    `--base=/<branch>/`.
-2. **Only publish a release whose `package.json` version matches its
+2. **Only publish a release whose [`package.json`][package-json] version matches its
    branch name** (`v1.1` ↔ `1.1.0`). **My call:** this makes "cut the
    branch, then bump the version" safe, since nothing goes live until the
    version PR merges, and it stops a mistyped branch name from publishing.
@@ -213,7 +214,7 @@ to that branch, like any other backport.
    secret), which rebuilds production from `main`.
 
 The workflow needs `contents: write` to push `deploy`. The all-branch
-`review` ruleset (id 23597659) forbids deleting branches and force-pushes
+`review` ruleset ([id 23597659][ruleset-review]) forbids deleting branches and force-pushes
 but not ordinary commits, so it allows this as long as the workflow only
 adds commits.
 
@@ -260,7 +261,7 @@ always built from `main`'s source; releases are always copied.
 
 ## Branch protection for release branches
 
-The owner-only `main-merge-owner-only` ruleset covers `main` alone, so
+The owner-only [`main-merge-owner-only`][ruleset-main] ruleset covers `main` alone, so
 release branches need the same rules: changes only through a PR, CI
 checks required, PR up to date, only the owner merges. Rulesets are
 repository settings, not files, so this is a one-time manual step for the
@@ -268,7 +269,7 @@ owner, listed in the release-process docs (extending the existing ruleset
 to `refs/heads/v*` is the simplest way). `deploy` is excluded: only the
 workflow writes to it, and requiring PRs there would block it.
 
-`ci.yml` already runs on `pull_request` for every base branch, so PRs into
+[`ci.yml`][ci] already runs on `pull_request` for every base branch, so PRs into
 release branches get the full CI. `validate-issue-link` applies to them
 too.
 
@@ -276,7 +277,7 @@ too.
 
 Dependabot only opens security-update PRs against the default branch, and
 `target-branch` applies only to version updates (confirmed in GitHub's
-Dependabot options reference). So release branches get their fixes by
+[Dependabot options reference][dependabot-target-branch]). So release branches get their fixes by
 backport from `main`.
 
 **Every security fix is backported, dev dependencies included.** Most
@@ -288,18 +289,18 @@ old branch's CI and build. The volume this produces is accepted.
 **Triggers:**
 
 - A Dependabot _security_ update PR merged into `main`. The
-  `dependabot/fetch-metadata` action tells security updates apart from
+  [`dependabot/fetch-metadata`][fetch-metadata] action tells security updates apart from
   version updates and gives the advisory (GHSA ID), the package and the
   fixed version. It needs `alert-lookup`, which needs a token that can
   read Dependabot alerts.
 - A manual run (`workflow_dispatch`) given a GHSA ID, for security fixes
-  made by hand on `main`, as #234 (zod) was when Dependabot opened no PR.
+  made by hand on `main`, as [#234][pr234] (zod, [GHSA-mrhx-c7xc-m3w5][ghsa-zod]) was when Dependabot opened no PR.
   The package and fixed version come from GitHub's advisory API. The
   release-process docs say to run it after any manual security fix.
 
 For each release branch:
 
-1. Check whether its `package-lock.json` has the package at a version the
+1. Check whether its [`package-lock.json`][package-lock] has the package at a version the
    advisory affects. If not, skip the branch silently.
 2. If it does, branch off it, update the package to the patched version
    (regenerating the lockfile on that branch; `main`'s lockfile diff will
@@ -331,7 +332,7 @@ now.
 
 ## The release process
 
-Documented in `CONTRIBUTING.md` (a new "Releases" section) so it is
+Documented in [`CONTRIBUTING.md`][contributing] (a new "Releases" section) so it is
 repeatable by hand or by an agent:
 
 1. Decide what goes in: usually "`main` as it is, on the CWE version it
@@ -350,7 +351,7 @@ The docs also cover the release-branch ruleset, the `deploy` branch
 ("never edit by hand"), the two watchers, and the backport workflow, and
 update the existing passages that describe the daily refresh as
 redeploying production and the production site as being `main`.
-`README.md` gets a short note that `/` is the newest release and
+[`README.md`][readme] gets a short note that `/` is the newest release and
 `/latest/` follows development.
 
 ## Plan of work
@@ -373,10 +374,10 @@ Each item is one PR (or a few) with its own issue, in this order.
    Can go before or after item 4; it must exist before a release branch
    needs a fix.
 4. **Release 1.0 on CWE 4.20.** Cut `v1` and bump its version, per the
-   process. `/` now redirects to `/v1/`. Closes #162.
+   process. `/` now redirects to `/v1/`. Closes [#162][i162].
 5. **Support CWE 4.21.** At minimum, the `Overlaps` relation (below).
    Before implementing, read MITRE's 4.20 → 4.21 content diff
-   (`/data/reports/diff_reports/v4.20_v4.21.html`) and the schema
+   ([`v4.20_v4.21.html`][diff-420-421]) and the schema
    7.3 → 7.4 changes for anything else the app reads. Then move `main`'s
    pin to 4.21. If the diff turns up nothing beyond `Overlaps`, this needs
    no design of its own.
@@ -386,7 +387,7 @@ Each item is one PR (or a few) with its own issue, in this order.
    v1.1 serves 4.21 (see below). Closes the "CWE 5.0 is available" issue.
    No v2 release is cut in this work.
 8. **Design what 5.0 adds**, as its own design document, and open a
-   sub-issue of #210 for each feature chosen.
+   sub-issue of [#210][i210] for each feature chosen.
 
 ### What changes between 4.20, 4.21 and 5.0, for this app
 
@@ -404,8 +405,8 @@ Measured on 2026-10-29 by parsing each archive with today's
   49 descriptions differ in wording. No field parses empty in any of the
   three.
 - `Overlaps` is new in 4.21, not 5.0. MITRE describes it as symmetric,
-  like `PeerOf`. Today `graph.ts` doesn't know it, so it synthesises a
-  reverse edge labelled "Overlaps (inverse)", and `relations.ts` doesn't
+  like `PeerOf`. Today [`graph.ts`][graph] doesn't know it, so it synthesises a
+  reverse edge labelled "Overlaps (inverse)", and [`relations.ts`][relations] doesn't
   group it, so it isn't shown with the peer relations. Supporting 4.21
   means treating `Overlaps` as its own inverse and grouping it with
   `PeerOf`, with tests; per CONTRIBUTING these are real-world tests (the
@@ -421,12 +422,12 @@ Measured on 2026-10-29 by parsing each archive with today's
 
 Not decided here, listed so that design starts from them:
 
-- Groupings, which replace Categories (and #3, which #210 says should be
+- Groupings, which replace Categories (and [#3][i3], which [#210][i210] says should be
   rethought).
 - Dimensions on relations.
 - AI and hardware phases (Custom_Phases).
 - Technical_Nuance and the new notes.
-- JSON downloads, which #210 hopes will let the project drop its XML
+- JSON downloads, which [#210][i210] hopes will let the project drop its XML
   dependencies (`adm-zip`, `fast-xml-parser`), if MITRE publishes them.
 
 ## Calls left to the builder
@@ -439,3 +440,37 @@ Not decided here, listed so that design starts from them:
 - The exact names of new workflows, scripts and the issue titles, matching
   the repo's conventions.
 - Whether item 1 is one PR or two.
+
+<!-- Issues and PRs -->
+[i3]: https://github.com/mureinik/cwe-visualizer/issues/3
+[i162]: https://github.com/mureinik/cwe-visualizer/issues/162
+[i210]: https://github.com/mureinik/cwe-visualizer/issues/210
+[pr226]: https://github.com/mureinik/cwe-visualizer/pull/226
+[pr234]: https://github.com/mureinik/cwe-visualizer/pull/234
+[pr236]: https://github.com/mureinik/cwe-visualizer/pull/236
+
+<!-- Advisories -->
+[ghsa-katex]: https://github.com/advisories/GHSA-238p-pmpm-9mq7
+[ghsa-re2js]: https://github.com/advisories/GHSA-gg6h-894w-4m9c
+[ghsa-zod]: https://github.com/advisories/GHSA-mrhx-c7xc-m3w5
+
+<!-- External -->
+[cwe-archive]: https://cwe.mitre.org/data/archive.html
+[cwe-5-news]: https://cwe.mitre.org/news/archives/news2026.html#October28_CWE_Version_5_0_Schema_8_0_Now_Available
+[diff-420-421]: https://cwe.mitre.org/data/reports/diff_reports/v4.20_v4.21.html
+[dependabot-target-branch]: https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference#target-branch-
+[fetch-metadata]: https://github.com/dependabot/fetch-metadata
+[ruleset-review]: https://github.com/mureinik/cwe-visualizer/rules/23597659
+[ruleset-main]: https://github.com/mureinik/cwe-visualizer/rules/24799723
+
+<!-- Files in the repo, as they are now -->
+[contributing]: ../../../CONTRIBUTING.md
+[readme]: ../../../README.md
+[package-json]: ../../../package.json
+[package-lock]: ../../../package-lock.json
+[prepare-data]: ../../../scripts/prepare-data.ts
+[graph]: ../../../src/lib/graph.ts
+[relations]: ../../../src/lib/relations.ts
+[ci]: ../../../.github/workflows/ci.yml
+[update-data]: ../../../.github/workflows/update-data.yml
+[ignore-build]: ../../../.github/scripts/vercel-ignore-build.sh
