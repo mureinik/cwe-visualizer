@@ -12,46 +12,80 @@ concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: false
 
+# The site builds the CWE version pinned in `cwe-version`, so a new MITRE
+# release changes nothing by itself. These jobs only report new releases by
+# opening an issue; they never commit, push or deploy.
 jobs:
-  check-and-deploy:
+  latest:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
     steps:
-      - name: Check that the deployment is configured
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Compare MITRE's latest version with the pin
         env:
-          DEPLOYED_SITE_URL: ${{ vars.DEPLOYED_SITE_URL }}
-          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
-        run: |
-          missing=0
-          if [ -z "$DEPLOYED_SITE_URL" ]; then
-            echo "::error::Repository variable DEPLOYED_SITE_URL is not set (the deployed site's origin, e.g. https://cwe-visualizer.vercel.app)."
-            missing=1
-          fi
-          if [ -z "$VERCEL_DEPLOY_HOOK_URL" ]; then
-            echo "::error::Repository secret VERCEL_DEPLOY_HOOK_URL is not set (the Vercel deploy hook URL for main)."
-            missing=1
-          fi
-          exit "$missing"
-      - name: Compare upstream and deployed CWE data versions
-        id: check
-        env:
-          DEPLOYED_SITE_URL: ${{ vars.DEPLOYED_SITE_URL }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          SOURCE_LAST_MODIFIED=$(curl -sfIL -o /dev/null -w '%header{last-modified}' 'https://cwe.mitre.org/data/xml/cwec_latest.xml.zip')
-          if [ -z "$SOURCE_LAST_MODIFIED" ]; then
-            echo "::error::Upstream CWE zip response has no Last-Modified header; cannot tell whether the data changed."
+          curl -sfL -o latest.zip 'https://cwe.mitre.org/data/xml/cwec_latest.xml.zip'
+          root=$(unzip -p latest.zip '*.xml' | head -c 4096 | grep -oE '<Weakness_Catalog[^>]*' || true)
+          latest=$(echo "$root" | grep -oE 'Version="[^"]*"' | cut -d'"' -f2 || true)
+          if [ -z "$latest" ]; then
+            echo "::error::Could not read the version from MITRE's cwec_latest.xml.zip."
             exit 1
           fi
-          DEPLOYED_LAST_MODIFIED=$(curl -sf "$DEPLOYED_SITE_URL/data/meta.json" | jq -r '.meta.lastModified')
-          echo "Upstream Last-Modified: $SOURCE_LAST_MODIFIED"
-          echo "Deployed Last-Modified: $DEPLOYED_LAST_MODIFIED"
-          if [ "$SOURCE_LAST_MODIFIED" = "$DEPLOYED_LAST_MODIFIED" ]; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
+          pinned=$(cat cwe-version)
+          echo "MITRE latest: $latest"
+          echo "Pinned: $pinned"
+          if [ "$latest" != "$pinned" ]; then
+            .github/scripts/open-cwe-issue.sh "$latest" "MITRE's latest CWE release is $latest, but \`main\` pins $pinned.
+
+          Should \`main\` move to $latest, and should we cut a release for $pinned first?"
           fi
-      - name: Trigger Vercel redeploy
-        if: steps.check.outputs.changed == 'true'
+
+  # This job exists because 4.x releases no longer become cwec_latest. Delete
+  # it once MITRE stops publishing 4.x.
+  four-x:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Compare MITRE's newest 4.x version with the pins
         env:
-          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
-        run: curl -sf -X POST "$VERCEL_DEPLOY_HOOK_URL"
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mitre=$(curl -sfL https://cwe.mitre.org/data/archive.html |
+            grep -oE 'cwec_v4\.[0-9]+(\.[0-9]+)?\.xml\.zip' |
+            sed -E 's/^cwec_v//; s/\.xml\.zip$//' |
+            sort -V | tail -1 || true)
+          if [ -z "$mitre" ]; then
+            echo "::error::Found no 4.x release on MITRE's archive page."
+            exit 1
+          fi
+
+          pins=$(cat cwe-version)
+          branches=$(gh api 'repos/{owner}/{repo}/branches' --paginate --jq '.[].name' | grep -E '^v[0-9]' || true)
+          for branch in $branches; do
+            pin=$(gh api "repos/{owner}/{repo}/contents/cwe-version?ref=$branch" --jq .content 2>/dev/null | base64 -d || true)
+            pins=$(printf '%s\n%s' "$pins" "$pin")
+          done
+          ours=$(echo "$pins" | grep -E '^4\.' | sort -V | tail -1 || true)
+
+          echo "MITRE newest 4.x: $mitre"
+          echo "Our newest 4.x pin: ${ours:-none}"
+          newest=$(printf '%s\n%s\n' "$mitre" "$ours" | sort -V | tail -1)
+          if [ "$newest" = "$mitre" ] && [ "$mitre" != "$ours" ]; then
+            .github/scripts/open-cwe-issue.sh "$mitre" "MITRE published CWE $mitre, a new 4.x release that no branch pins.
+
+          This job can be deleted once MITRE stops publishing 4.x."
+          fi
