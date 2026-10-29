@@ -39,6 +39,10 @@ jobs:
             exit 1
           fi
           pinned=$(tr -d '[:space:]' < cwe-version)
+          if ! echo "$pinned" | grep -qE '^[0-9]+\.[0-9]+(\.[0-9]+)?$'; then
+            echo "::error::cwe-version on main is not a version like 4.20: '$pinned'."
+            exit 1
+          fi
           echo "MITRE latest: $latest"
           echo "Pinned: $pinned"
           if [ "$latest" != "$pinned" ]; then
@@ -73,7 +77,16 @@ jobs:
             exit 1
           fi
 
-          pins=$(tr -d '[:space:]' < cwe-version)
+          # A pin that isn't a version can't be compared, so it is left out
+          # with a warning instead of failing the whole watcher.
+          valid='^[0-9]+\.[0-9]+(\.[0-9]+)?$'
+          pins=""
+          pin=$(tr -d '[:space:]' < cwe-version)
+          if echo "$pin" | grep -qE "$valid"; then
+            pins=$pin
+          else
+            echo "::warning::Ignoring cwe-version on main: '$pin' is not a version."
+          fi
           # A failed listing must fail the job, not look like "no branches".
           if ! all_branches=$(gh api 'repos/{owner}/{repo}/branches' --paginate --jq '.[].name'); then
             echo "::error::Could not list the repository's branches."
@@ -85,7 +98,11 @@ jobs:
             # failure could hide the newest pin, so it fails the job.
             if content=$(gh api "repos/{owner}/{repo}/contents/cwe-version?ref=$branch" --jq .content 2>&1); then
               pin=$(echo "$content" | base64 -d | tr -d '[:space:]')
-              pins=$(printf '%s\n%s' "$pins" "$pin")
+              if echo "$pin" | grep -qE "$valid"; then
+                pins=$(printf '%s\n%s' "$pins" "$pin")
+              else
+                echo "::warning::Ignoring cwe-version on branch $branch: '$pin' is not a version."
+              fi
             elif ! echo "$content" | grep -q 'HTTP 404'; then
               echo "::error::Could not read cwe-version on branch $branch: $content"
               exit 1

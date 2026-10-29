@@ -210,6 +210,14 @@ describe('run', () => {
     expect(result.meta.cweVersion).toBe('4.15');
   });
 
+  it('downloads the version pinned in cwe-version when none is passed', async () => {
+    const pinned = readFileSync(path.join(process.cwd(), 'cwe-version'), 'utf-8').trim();
+    const fetchSpy = fakeFetch();
+    await expect(run({ outDir: dir, fetchImpl: fetchSpy as unknown as typeof fetch })).rejects.toThrow(/4\.15/);
+    expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([archiveUrl(pinned)]);
+    await expect(readFile(path.join(dir, 'cwe.json'), 'utf-8')).rejects.toThrow();
+  });
+
   it('throws when the archive holds a different version than the pin', async () => {
     await expect(
       run({ version: '4.16', outDir: dir, fetchImpl: fakeFetch() as unknown as typeof fetch }),

@@ -136,8 +136,8 @@ export async function readLocalMeta(outDir: string): Promise<CweMeta | null> {
     JSON.parse(await fs.readFile(path.join(outDir, 'cwe.json'), 'utf-8'));
     const raw = await fs.readFile(path.join(outDir, 'meta.json'), 'utf-8');
     const { meta } = JSON.parse(raw) as { meta: Partial<CweMeta> };
-    // Data written before catalogDate existed is stale even when MITRE's
-    // Last-Modified hasn't moved; regenerate it rather than keep it.
+    // Data written before catalogDate existed is stale even when its
+    // version matches the pin; regenerate it rather than keep it.
     return typeof meta.catalogDate === 'string' ? (meta as CweMeta) : null;
   } catch {
     return null;

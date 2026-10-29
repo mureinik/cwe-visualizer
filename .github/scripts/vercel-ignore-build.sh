@@ -3,9 +3,9 @@
 # the build, exit 1 runs it. Any other exit code fails the deployment, so
 # every path below ends in one of those two.
 #
-# Only previews are ever skipped. Production always builds: the daily data
-# refresh redeploys the same main commit through a deploy hook, and a diff
-# there would find nothing and skip it.
+# Only previews are ever skipped. Production always builds: it is also
+# rebuilt through a deploy hook on the same main commit (the release workflow
+# publishes releases that way), and a diff there would find nothing and skip it.
 #
 # A preview is skipped only when none of the paths below changed. They are
 # everything that feeds the deployed site; add any new build input here.
