@@ -120,6 +120,7 @@ jobs:
           # single quotes keep the token out of the config value itself.
           export GIT_CONFIG_COUNT=1
           export GIT_CONFIG_KEY_0="credential.https://github.com.helper"
+          # shellcheck disable=SC2016 # the helper's shell expands the token, not this one
           export GIT_CONFIG_VALUE_0='!f() { test "$1" = get || return 0; echo username=x-access-token; echo "password=${GITHUB_TOKEN}"; }; f'
           sha="$(git -C release rev-parse --short HEAD)"
           mkdir -p "deploy/$BRANCH"
