@@ -39,7 +39,7 @@ fi
 
 if git diff --quiet "$base" HEAD -- \
   index.html src public scripts \
-  package.json package-lock.json vite.config.ts tsconfig.json vercel.json; then
+  package.json package-lock.json vite.config.ts tsconfig.json vercel.json cwe-version; then
   echo "No changes that affect the site; skipping"
   exit 0
 fi

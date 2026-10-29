@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import AdmZip from 'adm-zip';
-import { extractXmlFromZip, parseCatalog, writeOutput, run } from '../../scripts/prepare-data.ts';
+import { archiveUrl, extractXmlFromZip, parseCatalog, readPinnedVersion, writeOutput, run } from '../../scripts/prepare-data.ts';
 import type { CweData } from '../../src/lib/cwe-data';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -132,16 +132,57 @@ function zipBuffer() {
 }
 
 function fakeFetch({ lastModified = '"v1"', getStatus = 200 }: { lastModified?: string | null; getStatus?: number } = {}) {
-  return vi.fn((_url: string, options?: { method?: string }) => {
-    if (options?.method === 'HEAD') {
-      return Promise.resolve({ ok: true, status: 200, headers: { get: (name: string) => (name === 'last-modified' ? lastModified : null) } });
-    }
+  return vi.fn<(url: string) => Promise<unknown>>(() => {
     if (getStatus !== 200) {
       return Promise.resolve({ ok: false, status: getStatus });
     }
-    return Promise.resolve({ ok: true, status: 200, arrayBuffer: () => Promise.resolve(zipBuffer().buffer) });
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      headers: { get: (name: string) => (name === 'last-modified' ? lastModified : null) },
+      arrayBuffer: () => Promise.resolve(zipBuffer().buffer),
+    });
   });
 }
+
+describe('archiveUrl', () => {
+  it('names the archive file for a version', () => {
+    expect(archiveUrl('4.20')).toBe('https://cwe.mitre.org/data/xml/cwec_v4.20.xml.zip');
+    expect(archiveUrl('4.19.1')).toBe('https://cwe.mitre.org/data/xml/cwec_v4.19.1.xml.zip');
+  });
+});
+
+describe('readPinnedVersion', () => {
+  let dir: string;
+  let file: string;
+
+  beforeEach(async () => {
+    dir = await mkdtemp(path.join(tmpdir(), 'cwe-visualizer-test-'));
+    file = path.join(dir, 'cwe-version');
+  });
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('reads the version, ignoring surrounding whitespace', async () => {
+    await writeFile(file, ' 4.20\r\n');
+    await expect(readPinnedVersion(file)).resolves.toBe('4.20');
+    await writeFile(file, '4.19.1\n');
+    await expect(readPinnedVersion(file)).resolves.toBe('4.19.1');
+  });
+
+  it('rejects an empty or malformed pin, naming the file', async () => {
+    for (const contents of ['', 'latest', '4', 'v4.20', '4.20 4.21']) {
+      await writeFile(file, contents);
+      await expect(readPinnedVersion(file), contents).rejects.toThrow(file);
+    }
+  });
+
+  it('rejects a missing pin file, naming it', async () => {
+    await expect(readPinnedVersion(file)).rejects.toThrow(file);
+  });
+});
 
 describe('run', () => {
   let dir: string;
@@ -155,89 +196,108 @@ describe('run', () => {
   });
 
   it('downloads and writes data on a fresh run with no cache', async () => {
-    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    const result = await run({ version: '4.15', outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
     expect(result.updated).toBe(true);
     expect(result.meta.lastModified).toBe('"v1"');
     const cweJson = JSON.parse(await readFile(path.join(dir, 'cwe.json'), 'utf-8')) as CweData;
     expect(Object.keys(cweJson.nodes)).toContain('79');
   });
 
+  it('downloads the pinned version from the archive', async () => {
+    const fetchSpy = fakeFetch();
+    const result = await run({ version: '4.15', outDir: dir, fetchImpl: fetchSpy as unknown as typeof fetch });
+    expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([archiveUrl('4.15')]);
+    expect(result.meta.cweVersion).toBe('4.15');
+  });
+
+  it('throws when the archive holds a different version than the pin', async () => {
+    await expect(
+      run({ version: '4.16', outDir: dir, fetchImpl: fakeFetch() as unknown as typeof fetch }),
+    ).rejects.toThrow(/4\.15.*4\.16|4\.16.*4\.15/);
+    await expect(readFile(path.join(dir, 'cwe.json'), 'utf-8')).rejects.toThrow();
+  });
+
   it('re-downloads data cached before catalogDate existed, even when last-modified matches', async () => {
-    await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    await run({ version: '4.15', outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
     const metaPath = path.join(dir, 'meta.json');
     const { meta } = JSON.parse(await readFile(metaPath, 'utf-8')) as { meta: Record<string, unknown> };
     delete meta.catalogDate;
     await writeFile(metaPath, JSON.stringify({ meta }));
 
-    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    const result = await run({ version: '4.15', outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
     expect(result.updated).toBe(true);
     expect(result.meta.catalogDate).toBe('2024-11-19');
   });
 
-  it('skips the download when the cached last-modified matches', async () => {
-    await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
-    const fetchSpy = fakeFetch({ lastModified: '"v1"' });
-    const result = await run({ outDir: dir, fetchImpl: fetchSpy as unknown as typeof fetch });
+  it('skips the download, without any request, when the cached version matches the pin', async () => {
+    await run({ version: '4.15', outDir: dir, fetchImpl: fakeFetch() as unknown as typeof fetch });
+    const fetchSpy = fakeFetch();
+    const result = await run({ version: '4.15', outDir: dir, fetchImpl: fetchSpy as unknown as typeof fetch });
     expect(result.updated).toBe(false);
-    const getCalls = fetchSpy.mock.calls.filter(([, options]) => options?.method !== 'HEAD');
-    expect(getCalls).toHaveLength(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('re-downloads when the last-modified has changed', async () => {
-    await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
-    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v2"' }) as unknown as typeof fetch });
+  async function cacheAnotherVersion() {
+    await run({ version: '4.15', outDir: dir, fetchImpl: fakeFetch() as unknown as typeof fetch });
+    const metaPath = path.join(dir, 'meta.json');
+    const { meta } = JSON.parse(await readFile(metaPath, 'utf-8')) as { meta: Record<string, unknown> };
+    meta.cweVersion = '5.0';
+    await writeFile(metaPath, JSON.stringify({ meta }));
+  }
+
+  it('re-downloads when the cached data is another version', async () => {
+    await cacheAnotherVersion();
+    const result = await run({ version: '4.15', outDir: dir, fetchImpl: fakeFetch() as unknown as typeof fetch });
     expect(result.updated).toBe(true);
-    expect(result.meta.lastModified).toBe('"v2"');
+    expect(result.meta.cweVersion).toBe('4.15');
   });
 
-  it('reuses cached data when the source is unreachable and a cache exists', async () => {
-    await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+  it('throws, rather than reuse it, when the cache is another version and the source is unreachable', async () => {
+    await cacheAnotherVersion();
     const failingFetch = vi.fn(() => Promise.reject(new Error('network down')));
-    const result = await run({ outDir: dir, fetchImpl: failingFetch as unknown as typeof fetch });
-    expect(result.updated).toBe(false);
-    expect(result.meta.lastModified).toBe('"v1"');
+    await expect(
+      run({ version: '4.15', outDir: dir, fetchImpl: failingFetch as unknown as typeof fetch }),
+    ).rejects.toThrow(/network down/);
   });
 
   it('throws when the source is unreachable and there is no cache', async () => {
     const failingFetch = vi.fn(() => Promise.reject(new Error('network down')));
     await expect(
-      run({ outDir: dir, fetchImpl: failingFetch as unknown as typeof fetch }),
-    ).rejects.toThrow(/no cached data/);
+      run({ version: '4.15', outDir: dir, fetchImpl: failingFetch as unknown as typeof fetch }),
+    ).rejects.toThrow(/Could not download CWE 4\.15/);
   });
 
   it('regenerates when cwe.json is missing even though meta.json matches', async () => {
-    await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    await run({ version: '4.15', outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
     await rm(path.join(dir, 'cwe.json'));
-    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    const result = await run({ version: '4.15', outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
     expect(result.updated).toBe(true);
     await expect(readFile(path.join(dir, 'cwe.json'), 'utf-8')).resolves.toContain('"79"');
   });
 
   it('regenerates when cwe.json is truncated even though meta.json matches', async () => {
-    await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    await run({ version: '4.15', outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
     await writeFile(path.join(dir, 'cwe.json'), '{"meta":');
-    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    const result = await run({ version: '4.15', outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
     expect(result.updated).toBe(true);
   });
 
-  it('downloads when the HEAD response has no Last-Modified header', async () => {
-    await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
-    const result = await run({ outDir: dir, fetchImpl: fakeFetch({ lastModified: null }) as unknown as typeof fetch });
-    expect(result.updated).toBe(true);
-    expect(result.meta.lastModified).toBe('');
+  it("records the download's Last-Modified, or empty when absent", async () => {
+    const withHeader = await run({ version: '4.15', outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    expect(withHeader.meta.lastModified).toBe('"v1"');
+    await rm(dir, { recursive: true, force: true });
+    const without = await run({ version: '4.15', outDir: dir, fetchImpl: fakeFetch({ lastModified: null }) as unknown as typeof fetch });
+    expect(without.meta.lastModified).toBe('');
   });
 
-  it('throws when the GET returns a non-OK response after a successful HEAD', async () => {
+  it('throws, naming the URL, when the archive returns a non-OK response', async () => {
     await expect(
-      run({ outDir: dir, fetchImpl: fakeFetch({ getStatus: 503 }) as unknown as typeof fetch }),
-    ).rejects.toThrow(/Failed to download CWE data \(HTTP 503\)/);
+      run({ version: '4.15', outDir: dir, fetchImpl: fakeFetch({ getStatus: 404 }) as unknown as typeof fetch }),
+    ).rejects.toThrow(/HTTP 404.*cwec_v4\.15\.xml\.zip/);
   });
 
-  it('throws when the GET itself throws after a successful HEAD', async () => {
-    const base = fakeFetch();
-    const fetchImpl = vi.fn((url: string, options?: { method?: string }) =>
-      options?.method === 'HEAD' ? base(url, options) : Promise.reject(new Error('connection reset')),
-    );
-    await expect(run({ outDir: dir, fetchImpl: fetchImpl as unknown as typeof fetch })).rejects.toThrow(/connection reset/);
+  it('throws when the download itself throws', async () => {
+    const fetchImpl = vi.fn(() => Promise.reject(new Error('connection reset')));
+    await expect(run({ version: '4.15', outDir: dir, fetchImpl: fetchImpl as unknown as typeof fetch })).rejects.toThrow(/connection reset/);
   });
 });

@@ -107,7 +107,27 @@ export async function writeOutput(outDir: string, data: CweData): Promise<void> 
   await fs.writeFile(path.join(outDir, 'meta.json'), JSON.stringify({ meta: data.meta }, null, 2));
 }
 
-const SOURCE_URL = 'https://cwe.mitre.org/data/xml/cwec_latest.xml.zip';
+export const PIN_FILE = 'cwe-version';
+
+export function archiveUrl(version: string): string {
+  return `https://cwe.mitre.org/data/xml/cwec_v${version}.xml.zip`;
+}
+
+export async function readPinnedVersion(file = path.join(process.cwd(), PIN_FILE)): Promise<string> {
+  let raw: string;
+  try {
+    raw = await fs.readFile(file, 'utf-8');
+  } catch (err) {
+    throw new Error(`Could not read the pinned CWE version from ${file}`, { cause: err });
+  }
+  const version = raw.trim();
+  // MITRE names archives cwec_v<major>.<minor>[.<patch>].xml.zip, so anything
+  // else (an empty file, "latest") would only fail later as a confusing 404.
+  if (!/^\d+\.\d+(\.\d+)?$/.test(version)) {
+    throw new Error(`${file} must hold a CWE version such as 4.20, found "${version}"`);
+  }
+  return version;
+}
 
 export async function readLocalMeta(outDir: string): Promise<CweMeta | null> {
   try {
@@ -125,49 +145,43 @@ export async function readLocalMeta(outDir: string): Promise<CweMeta | null> {
 }
 
 interface RunOptions {
-  sourceUrl?: string;
+  version?: string;
   outDir?: string;
   fetchImpl?: typeof fetch;
 }
 
 export async function run({
-  sourceUrl = SOURCE_URL,
+  version,
   outDir = path.join(process.cwd(), 'public', 'data'),
   fetchImpl = fetch,
 }: RunOptions = {}): Promise<{ updated: boolean; meta: CweMeta }> {
+  version ??= await readPinnedVersion();
   const localMeta = await readLocalMeta(outDir);
-
-  let currentLastModified: string | null;
-  try {
-    const headResponse = await fetchImpl(sourceUrl, { method: 'HEAD' });
-    if (!headResponse.ok) {
-      throw new Error(`HTTP ${headResponse.status}`);
-    }
-    currentLastModified = headResponse.headers.get('last-modified');
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (localMeta) {
-      console.warn(`Could not reach CWE source (${message}); reusing cached data from ${localMeta.generatedAt}.`);
-      return { updated: false, meta: localMeta };
-    }
-    throw new Error(`Could not reach CWE source and no cached data exists: ${message}`, { cause: err });
-  }
-
-  if (localMeta && currentLastModified && localMeta.lastModified === currentLastModified) {
-    console.log(`CWE data already up to date (last-modified ${currentLastModified}). Skipping download.`);
+  if (localMeta?.cweVersion === version) {
+    console.log(`CWE data already up to date (version ${version}). Skipping download.`);
     return { updated: false, meta: localMeta };
   }
 
-  const getResponse = await fetchImpl(sourceUrl);
-  if (!getResponse.ok) {
-    throw new Error(`Failed to download CWE data (HTTP ${getResponse.status}): ${sourceUrl}`);
+  const url = archiveUrl(version);
+  let response: Response;
+  try {
+    response = await fetchImpl(url);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Could not download CWE ${version}: ${message}`, { cause: err });
   }
-  const zipBuffer = Buffer.from(await getResponse.arrayBuffer());
+  if (!response.ok) {
+    throw new Error(`Failed to download CWE data (HTTP ${response.status}): ${url}`);
+  }
+  const zipBuffer = Buffer.from(await response.arrayBuffer());
   const xmlText = extractXmlFromZip(zipBuffer);
-  const data = parseCatalog(xmlText, currentLastModified);
+  const data = parseCatalog(xmlText, response.headers.get('last-modified'));
+  if (data.meta.cweVersion !== version) {
+    throw new Error(`${url} contains CWE ${data.meta.cweVersion}, but ${PIN_FILE} pins ${version}`);
+  }
 
   await writeOutput(outDir, data);
-  console.log(`CWE data updated to version ${data.meta.cweVersion} (last-modified ${currentLastModified}).`);
+  console.log(`CWE data updated to version ${data.meta.cweVersion}.`);
   return { updated: true, meta: data.meta };
 }
 

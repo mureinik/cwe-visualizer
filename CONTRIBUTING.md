@@ -17,10 +17,12 @@ npm install
 npm run dev
 ```
 
-`predev` downloads and parses the current CWE data into `public/data/`
-before Vite starts (fast-pathing on repeat runs if the data hasn't changed
-upstream). The app itself only ever reads that prebuilt JSON — it never
-talks to MITRE at runtime.
+`predev` downloads and parses the CWE version pinned in `cwe-version` from
+MITRE's archive into `public/data/` before Vite starts, and skips the
+download when `public/data/` already holds that version. The app itself only
+ever reads that prebuilt JSON — it never talks to MITRE at runtime. Moving
+the pin is a normal PR, and the build fails if the archive's version doesn't
+match it.
 
 ## Scripts
 
