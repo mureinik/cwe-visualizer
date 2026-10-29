@@ -114,12 +114,13 @@ jobs:
         run: |
           set -euo pipefail
           # Authenticate git for this step only, through environment config
-          # (nothing is written to .git/config or to the command line).
-          auth="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"
-          echo "::add-mask::$auth"
+          # (nothing is written to .git/config or to the command line). A
+          # credential helper reads the job token from the environment at the
+          # moment git asks for it, so no secret is derived or stored; the
+          # single quotes keep the token out of the config value itself.
           export GIT_CONFIG_COUNT=1
-          export GIT_CONFIG_KEY_0="http.https://github.com/.extraheader"
-          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth"
+          export GIT_CONFIG_KEY_0="credential.https://github.com.helper"
+          export GIT_CONFIG_VALUE_0='!f() { test "$1" = get || return 0; echo username=x-access-token; echo "password=${GITHUB_TOKEN}"; }; f'
           sha="$(git -C release rev-parse --short HEAD)"
           mkdir -p "deploy/$BRANCH"
           rsync -a --delete release/dist/ "deploy/$BRANCH/"
