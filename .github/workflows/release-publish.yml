@@ -146,4 +146,4 @@ jobs:
         if: steps.gate.outputs.publish == 'true'
         env:
           VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
-        run: curl -sf -X POST "$VERCEL_DEPLOY_HOOK_URL"
+        run: curl -sSf -X POST "$VERCEL_DEPLOY_HOOK_URL"

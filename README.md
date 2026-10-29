@@ -29,7 +29,8 @@ License; see [`LICENSE.md`](LICENSE.md).
 
 ## Releases
 
-The site at `/` is the newest release. `/latest/` follows development on
+The site at `/` is the newest release (`/latest/` until the first one is
+cut). `/latest/` follows development on
 `main`, and older releases stay at `/vX.Y/`. See the Releases section of
 [`CONTRIBUTING.md`](CONTRIBUTING.md#releases) for how they are cut.
 
