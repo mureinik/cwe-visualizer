@@ -24,10 +24,13 @@ on:
 
 permissions: {}
 
-# Publishes run one at a time and are never cancelled, so two releases
-# publishing together can't lose either's commit.
+# One queue per release branch, never cancelled. A newer dispatch for the
+# same branch may replace a pending one, which is harmless: a run checks out
+# the branch's head when it starts. Different branches don't wait for each
+# other; simultaneous pushes to deploy are handled by the rebase-and-retry
+# loop in the push step.
 concurrency:
-  group: release-publish
+  group: release-publish-${{ inputs.branch }}
   cancel-in-progress: false
 
 jobs:
@@ -41,8 +44,10 @@ jobs:
           BRANCH: ${{ inputs.branch }}
         run: |
           set -euo pipefail
-          if ! printf '%s' "$BRANCH" | grep -qE '^v[0-9]+(\.[0-9]+)?$'; then
-            echo "::error::'$BRANCH' is not a release branch name (vN or vN.M)."
+          # Whole-string match (grep would match line by line). The error
+          # doesn't echo the value, which may span lines.
+          if ! [[ "$BRANCH" =~ ^v[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "::error::The branch input is not a release branch name (vN or vN.M)."
             exit 1
           fi
 
