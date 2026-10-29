@@ -17,10 +17,12 @@ npm install
 npm run dev
 ```
 
-`predev` downloads and parses the current CWE data into `public/data/`
-before Vite starts (fast-pathing on repeat runs if the data hasn't changed
-upstream). The app itself only ever reads that prebuilt JSON — it never
-talks to MITRE at runtime.
+`predev` downloads and parses the CWE version pinned in `cwe-version` from
+MITRE's archive into `public/data/` before Vite starts, and skips the
+download when `public/data/` already holds that version. The app itself only
+ever reads that prebuilt JSON — it never talks to MITRE at runtime. Moving
+the pin is a normal PR, and the build fails if the archive's version doesn't
+match it.
 
 ## Scripts
 
@@ -183,9 +185,10 @@ The Dependabot reviewer described below may also approve Dependabot's
 PRs, but approval is only a signal: no review is required, and merging is
 still the owner's.
 See the design doc for the full rationale, including why the daily
-data-freshness check (`.github/workflows/update-data.yml`) is exempt from
-this flow: it never commits or pushes anything, so there's nothing for it
-to bypass.
+watchers in `.github/workflows/update-data.yml` are exempt from this flow.
+They compare MITRE's latest and newest 4.x versions with the ones we pin
+and open one `CWE X is available` issue per version, and they never commit
+or push anything, so there's nothing for them to bypass.
 
 A Husky hook has no shebang, since Husky runs it with `sh`, so give a new
 one a `# shellcheck shell=sh` directive, or shellcheck can't tell its shell.
@@ -212,8 +215,7 @@ that feeds the deployed site. The paths are listed in
 `.github/scripts/vercel-ignore-build.sh`, which `vercel.json` runs as its
 `ignoreCommand`. If you add a new build input outside them (a new top-level
 config file Vite reads, say), add it to that list, or its PRs will get no
-preview. Production deployments, including the daily data refresh, always
-build.
+preview. Production deployments always build.
 
 ## Working with the Claude agent
 
