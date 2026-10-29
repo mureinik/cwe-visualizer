@@ -292,10 +292,11 @@ Commit message: `ci: watch MITRE for new CWE versions instead of redeploying`.
 
 ### Task 3: Open the PR and verify after merge
 
-- [ ] **Step 1:** Open an issue for this item, linking the design and
-  [#238][i238]. Push the branch and open a PR that closes it, saying in
-  the description that production moves from CWE 5.0 to 4.20 on merge,
-  intentionally.
+- [ ] **Step 1:** Push the implementation commits onto this plan's draft
+  PR (it closes [#241][i241], a sub-issue of [#238][i238]). Update the
+  description to cover the implementation, including that production moves
+  from CWE 5.0 to 4.20 on merge, intentionally. Retarget it to `main` once
+  the design PR has merged, then mark it ready.
 - [ ] **Step 2:** Wait for CI to pass: `build`, `lint-workflows`,
   `semgrep`, `dependency-review`, `validate-issue-link` and
   `codecov/project`.
@@ -308,6 +309,7 @@ Commit message: `ci: watch MITRE for new CWE versions instead of redeploying`.
 
 <!-- Issues and PRs -->
 [i238]: https://github.com/mureinik/cwe-visualizer/issues/238
+[i241]: https://github.com/mureinik/cwe-visualizer/issues/241
 
 <!-- Files in the repo -->
 [spec]: ../specs/2026-10-29-releases-design.md
