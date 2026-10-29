@@ -226,13 +226,15 @@ release from the `deploy` branch next to it, and writes a root
 
 ## Releases
 
-The production site serves several releases side by side:
+The production site serves several releases side by side. Until the
+first release is cut, `/` redirects to `/latest/`. Afterwards the layout
+is, with placeholders for the releases:
 
 ```text
 /          redirects to the newest release, or to /latest/ if there is none
 /latest/   main, built from source on every production build
-/v1/       release 1.0, copied from the deploy branch
-/v1.1/     release 1.1, copied from the deploy branch
+/vX/       release X.0, copied from the deploy branch
+/vX.Y/     release X.Y, copied from the deploy branch
 ```
 
 A release `X.Y` lives on a branch named `vX` for `X.0` or `vX.Y`
