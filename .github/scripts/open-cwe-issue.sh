@@ -24,10 +24,7 @@ fi
 
 title="CWE $version is available"
 
-# Search is fuzzy, so keep only the issues whose title matches exactly.
-existing=$(gh issue list --state all --search "\"$title\" in:title" \
-  --limit 100 --json title,url |
-  jq -r --arg title "$title" '[.[] | select(.title == $title)][0].url // empty')
+existing=$("$(dirname "$0")/issue-by-title.sh" "$title")
 
 if [ -n "$existing" ]; then
   echo "$existing"
