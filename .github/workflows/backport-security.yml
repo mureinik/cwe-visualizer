@@ -1,0 +1,297 @@
+name: Backport security fix
+
+# Backports a security fix merged into `main` to every release branch (vN or
+# vN.M) that npm audit says the advisory affects: one issue and one PR per
+# branch, or only the issue, saying why, when the update can't be made.
+#
+# Why release branches need this: Dependabot opens security updates only
+# against the default branch, so nothing else would ever fix them.
+#
+# Why it triggers on the merge and not on Dependabot's own events: runs
+# Dependabot triggers see only Dependabot secrets. The merge's actor is the
+# owner, so BACKPORT_TOKEN is available. Security fixes made by hand on
+# `main` have no Dependabot PR; run this for them with the advisory's ID:
+#   gh workflow run backport-security.yml -f ghsa=GHSA-xxxx-xxxx-xxxx
+#
+# Why it uses its own token: PRs and pushes made with the job token don't
+# trigger other workflows, so CI would never run on the backport PR, and
+# reading Dependabot alerts needs a permission the job token can't have. The
+# job token here only reads. BACKPORT_TOKEN is given only to steps that run
+# `main`'s code, never to one that runs the release branch's (npm update,
+# npm ci, lint, tests, build).
+#
+# See "Releases" in CONTRIBUTING.md.
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ghsa:
+        description: GitHub advisory ID of a fix on main, e.g. GHSA-xxxx-xxxx-xxxx
+        type: string
+        required: true
+
+permissions: {}
+
+jobs:
+  # Finds the advisory and the release branches to try it on.
+  resolve:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged &&
+      github.event.pull_request.user.login == 'dependabot[bot]')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      ghsa: ${{ steps.ghsa.outputs.ghsa }}
+      # No advisory means no branches.
+      branches: ${{ steps.branches.outputs.branches || '[]' }}
+    steps:
+      # Looks up the Dependabot alert the PR fixed, which gives the advisory.
+      - name: Fetch Dependabot metadata
+        id: metadata
+        if: github.event_name == 'pull_request'
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          alert-lookup: true
+          github-token: ${{ secrets.BACKPORT_TOKEN }}
+
+      - name: Find the advisory
+        id: ghsa
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_GHSA: ${{ inputs.ghsa }}
+          ALERT_GHSA: ${{ steps.metadata.outputs.ghsa-id }}
+          ALERT_STATE: ${{ steps.metadata.outputs.alert-state }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = pull_request ]; then
+            if [ -z "$ALERT_GHSA" ] && [ -z "$ALERT_STATE" ]; then
+              echo "::notice::Not a security update; nothing to backport."
+              exit 0
+            fi
+            if [ -z "$ALERT_GHSA" ]; then
+              echo "::warning::This security update's alert lookup returned no advisory, so nothing was backported. Find its GHSA ID and run: gh workflow run backport-security.yml -f ghsa=<GHSA ID>"
+              exit 0
+            fi
+            ghsa=$ALERT_GHSA
+          else
+            ghsa=$INPUT_GHSA
+          fi
+          # Whole-string match (grep would match line by line). The error
+          # doesn't echo the value, which may span lines.
+          if ! [[ "$ghsa" =~ ^GHSA(-[23456789cfghjmpqrvwx]{4}){3}$ ]]; then
+            echo "::error::The advisory ID is not a GHSA ID (GHSA-xxxx-xxxx-xxxx)."
+            exit 1
+          fi
+          # Dependabot's alerts are npm ones; an ID typed by hand may not be.
+          if [ "$EVENT" != pull_request ]; then
+            npm=$(gh api "advisories/$ghsa" --jq 'any(.vulnerabilities[]?; .package.ecosystem == "npm")')
+            if [ "$npm" != true ]; then
+              echo "::error::$ghsa is not an advisory against an npm package."
+              exit 1
+            fi
+          fi
+          echo "ghsa=$ghsa" >> "$GITHUB_OUTPUT"
+
+      - name: List the release branches
+        id: branches
+        if: steps.ghsa.outputs.ghsa != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          names=$(gh api --paginate "repos/$GH_REPO/branches" --jq '.[].name')
+          releases=()
+          while IFS= read -r name; do
+            if [[ "$name" =~ ^v[0-9]+(\.[0-9]+)?$ ]]; then
+              releases+=("$name")
+            fi
+          done <<< "$names"
+          if [ ${#releases[@]} -eq 0 ]; then
+            echo "::notice::There are no release branches to backport to."
+          fi
+          echo "branches=$(jq -cn '$ARGS.positional' --args "${releases[@]}")" >> "$GITHUB_OUTPUT"
+
+  # One job per release branch. Its outcome is an issue, with a PR when the
+  # backport worked, or nothing when the branch isn't affected or already has
+  # its issue. A red job means no issue could be opened: the audit failed
+  # (which never counts as "not affected") or reporting did.
+  backport:
+    needs: resolve
+    if: needs.resolve.outputs.branches != '[]'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: ${{ fromJSON(needs.resolve.outputs.branches) }}
+    # A rerun, or a manual run after the automatic one, waits for the first,
+    # whose issue then makes it skip the branch.
+    concurrency:
+      group: backport-${{ needs.resolve.outputs.ghsa }}-${{ matrix.branch }}
+      cancel-in-progress: false
+    env:
+      GHSA: ${{ needs.resolve.outputs.ghsa }}
+      BRANCH: ${{ matrix.branch }}
+    steps:
+      # `main`'s scripts, as release-publish.yml does: a release branch's
+      # copies, if it has any, are as old as the branch.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          path: tools
+          persist-credentials: false
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/heads/${{ matrix.branch }}
+          path: release
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: release/package-lock.json
+
+      - name: Audit the branch
+        id: audit
+        working-directory: release
+        run: |
+          set -euo pipefail
+          # npm audit exits non-zero when it finds anything, so its status
+          # can't tell a finding from a failure. The script can: it exits
+          # non-zero on a report that is an error or isn't a report.
+          npm audit --json --package-lock-only > "$RUNNER_TEMP/audit.json" || true
+          found=$(node ../tools/scripts/advisory-packages.ts "$GHSA" < "$RUNNER_TEMP/audit.json")
+          packages=()
+          while IFS= read -r name; do
+            [ -n "$name" ] || continue
+            # npm update gets these unquoted, so allow only plain names.
+            if ! [[ "$name" =~ ^(@[a-z0-9._~-]+/)?[a-z0-9._~-]+$ ]]; then
+              echo "::error::npm audit named a package that isn't a plain npm package name."
+              exit 1
+            fi
+            packages+=("$name")
+          done <<< "$found"
+          if [ ${#packages[@]} -eq 0 ]; then
+            echo "::notice::$GHSA doesn't affect $BRANCH."
+          fi
+          echo "packages=${packages[*]}" >> "$GITHUB_OUTPUT"
+
+      - name: Check for an earlier backport
+        id: dedupe
+        if: steps.audit.outputs.packages != ''
+        env:
+          GH_TOKEN: ${{ secrets.BACKPORT_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          existing=$(tools/.github/scripts/issue-by-title.sh "Backport $GHSA to $BRANCH")
+          if [ -n "$existing" ]; then
+            echo "::notice::$GHSA is already handled on $BRANCH: $existing"
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "proceed=true" >> "$GITHUB_OUTPUT"
+
+      # The steps from here to the push may fail; the report step turns a
+      # failure into an issue that says which one.
+      - name: Update the packages
+        id: update
+        if: steps.dedupe.outputs.proceed == 'true'
+        continue-on-error: true
+        working-directory: release
+        env:
+          PACKAGES: ${{ steps.audit.outputs.packages }}
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC2086 # one argument per package; the audit step allowed only plain names
+          npm update $PACKAGES
+          # The update stays within package.json's ranges, so the advisory
+          # may survive it. A failed re-audit counts as a failed update.
+          npm audit --json --package-lock-only > "$RUNNER_TEMP/reaudit.json" || true
+          remaining=$(node ../tools/scripts/advisory-packages.ts "$GHSA" < "$RUNNER_TEMP/reaudit.json")
+          if [ -n "$remaining" ]; then
+            echo "::error::npm audit still reports $GHSA after the update."
+            exit 1
+          fi
+
+      # The same commands as ci.yml's build job.
+      - name: Run CI's checks
+        id: checks
+        if: steps.update.outcome == 'success'
+        continue-on-error: true
+        working-directory: release
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run lint
+          npm run lint:md
+          npm run lint:css
+          npm test
+          npm run build
+
+      - name: Push the backport branch
+        id: push
+        if: steps.checks.outcome == 'success'
+        continue-on-error: true
+        working-directory: release
+        env:
+          BACKPORT_TOKEN: ${{ secrets.BACKPORT_TOKEN }}
+        run: |
+          set -euo pipefail
+          # The credential helper of release-publish.yml, with BACKPORT_TOKEN,
+          # so the push triggers CI on the PR.
+          export GIT_CONFIG_COUNT=2
+          export GIT_CONFIG_KEY_0="credential.https://github.com.helper"
+          # shellcheck disable=SC2016 # the helper's shell expands the token, not this one
+          export GIT_CONFIG_VALUE_0='!f() { test "$1" = get || return 0; echo username=x-access-token; echo "password=${BACKPORT_TOKEN}"; }; f'
+          # npm ci installed the branch's Husky hooks, which would run
+          # release-branch code (lint-staged, the tests) with the token in
+          # its environment. The checks step already ran them. HUSKY=0 turns
+          # them off; pointing git at no hooks at all also keeps Husky's own
+          # wrapper, and any other hook the install left, from running.
+          export GIT_CONFIG_KEY_1="core.hooksPath"
+          export GIT_CONFIG_VALUE_1=/dev/null
+          export HUSKY=0
+          head="backport/$BRANCH/$GHSA"
+          git switch -c "$head"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "fix(deps): backport $GHSA to $BRANCH"
+          git push origin "HEAD:refs/heads/$head"
+
+      # Skipped when the branch isn't affected or already has its issue, and
+      # when the run is cancelled, which says nothing about the backport.
+      # Opening the issue is the designed outcome of a failed update, so the
+      # job stays green once it's open; the issue, not the run, says so.
+      - name: Report
+        if: ${{ !cancelled() && steps.dedupe.outputs.proceed == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.BACKPORT_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          PACKAGES: ${{ steps.audit.outputs.packages }}
+          UPDATE: ${{ steps.update.outcome }}
+          CHECKS: ${{ steps.checks.outcome }}
+          PUSH: ${{ steps.push.outcome }}
+        run: |
+          set -euo pipefail
+          failure=()
+          if [ "$UPDATE" != success ]; then
+            failure=("No patched version fits $BRANCH's dependency ranges, or npm update failed.")
+          elif [ "$CHECKS" != success ]; then
+            failure=("npm update succeeded, but CI's checks failed on the result.")
+          elif [ "$PUSH" != success ]; then
+            failure=("Could not push backport/$BRANCH/$GHSA; it may exist from an earlier run.")
+          fi
+          tools/.github/scripts/open-backport.sh "$GHSA" "$BRANCH" "$PACKAGES" "${failure[@]}"
