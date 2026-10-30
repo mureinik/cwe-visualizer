@@ -29,6 +29,10 @@ match it.
 - `npm run dev` — local dev server (Vite)
 - `npm run build` — type-check, prepare data, and build for production
 - `npm run preview` — serve the production build locally
+- `npm run build:site` — what Vercel runs: builds the site, in the
+  production layout (`/latest/`, the releases and a root redirect) only
+  when `VERCEL_ENV=production` or `SITE_LAYOUT=releases`, which lets you
+  build that layout locally
 - `npm run lint` — ESLint, which also checks formatting (see below)
 - `npm run lint:md` — markdownlint
 - `npm run lint:css` — Stylelint, which checks CSS formatting
@@ -49,10 +53,10 @@ fails on anything left. The options in `eslint.config.js` follow the style
 the code already had; change them there, not file by file.
 
 `scripts/` holds only what the build runs, which today is
-`prepare-data.ts`. Helpers that only serve CI, deployment config or
-maintainers live in `.github/scripts/` instead. Coverage measures the app,
-`src/`, only: `prepare-data.ts` has tests, but neither kind of script
-ships.
+`prepare-data.ts` and `build-site.ts`. Helpers that only serve CI,
+deployment config or maintainers live in `.github/scripts/` instead.
+Coverage measures the app, `src/`, only: both scripts have tests, but
+neither kind of script ships.
 
 The coverage thresholds in `vite.config.ts` apply to the total and to every
 file on its own. An entry in `COVERAGE_EXCEPTIONS` can hold a file under
@@ -216,6 +220,105 @@ that feeds the deployed site. The paths are listed in
 `ignoreCommand`. If you add a new build input outside them (a new top-level
 config file Vite reads, say), add it to that list, or its PRs will get no
 preview. Production deployments always build.
+
+Vercel runs `npm run build:site` (`scripts/build-site.ts`), not `npm run
+build`. A production build compiles `main` under `/latest/`, copies every
+release from the `deploy` branch next to it, and writes a root
+`index.html` that redirects to the newest release (see
+[Releases](#releases)). A PR preview is still a single copy of the app at
+`/`.
+
+## Releases
+
+The production site serves several releases side by side. Until the
+first release is cut, `/` redirects to `/latest/`. Afterwards the layout
+is, with placeholders for the releases:
+
+```text
+/          redirects to the newest release, or to /latest/ if there is none
+/latest/   main, built from source on every production build
+/vX/       release X.0, copied from the deploy branch
+/vX.Y/     release X.Y, copied from the deploy branch
+```
+
+A release `X.Y` lives on a branch named `vX` for `X.0` or `vX.Y`
+otherwise, and its path matches the branch. A release that moves to a new
+CWE schema line (4.x to 5.x) is a new major, one that moves to a new CWE
+version within a line (4.20 to 4.21) is a new minor, and one with no CWE
+change is either, depending on its content. On a release branch,
+`package.json`'s `version` is `X.Y.0` and never changes after the cut. On
+`main` it stays `0.0.0`, meaning unreleased. The newest release, the one
+`/` redirects to, is the highest by comparing `X`, then `Y`, not the most
+recent by date. The redirect keeps the query string and the hash, so an
+old link such as `/?cwe=79` still opens CWE-79.
+
+To cut a release:
+
+1. Decide what goes in, usually `main` as it is, on the CWE version it
+   pins. If the release should use a different CWE version, move the pin
+   on `main` first, in a normal PR.
+2. Open an issue for the release.
+3. Create the branch from `main`, for example
+   `git push origin main:refs/heads/v1.1`. Nothing is published yet, since
+   its version is still `0.0.0`.
+4. Open a PR into the branch that sets `package.json`'s version to `X.Y.0`,
+   best done with `npm version X.Y.0 --no-git-tag-version` so
+   `package-lock.json`'s root version matches. The PR still says
+   `Closes #N` for the release issue, since `validate-issue-link` reads the
+   body, but GitHub only closes issues automatically when a PR merges into
+   the default branch, so close the issue by hand after merging. Merging
+   publishes the release, and `/` moves to it if it is the newest.
+5. Fix a release later with a PR into its branch, with an issue, as for
+   `main`. Merging it republishes that release in place. The same applies
+   to the issue: close it by hand after the merge.
+
+Pushing to a `v*` branch starts `release-dispatch.yml`, which starts
+`release-publish.yml` on `main`. The publisher checks out the release
+branch and publishes only when its `package.json` version matches the
+branch, `vX` with `X.0.0` and `vX.Y` with `X.Y.0`, which is why the cut in
+step 3 publishes nothing. It builds the branch with its base set to
+`/vX.Y/`, commits the output to the `deploy` branch as
+`<branch>: built from <branch>@<sha>`, and then calls the Vercel deploy
+hook so production rebuilds. Publishes of one branch are queued, never
+cancelled, though a newer request for the same branch may replace a
+pending one, which is harmless since a run builds the branch's head when it
+starts; different branches don't wait for each other. If a publish
+fails or needs repeating, run it again by hand:
+
+```bash
+gh workflow run release-publish.yml -f branch=vX.Y
+```
+
+Never edit the `deploy` branch by hand. It is built output, one directory
+per release, and only `release-publish.yml` writes to it. A production
+build downloads it, and fails if it can't, so a deployment never goes out
+missing its releases; Vercel keeps serving the previous one. A release
+whose own build breaks later keeps serving its last good output.
+
+Release branches need the same protection as `main`: changes only
+through a PR, CI checks required, the PR up to date, and only the owner
+merging. Rulesets are repository settings, not files, so before the first
+cut the owner sets up `refs/heads/v*` in two places, since `main`'s
+protection is split between them:
+
+- The `update` restriction, with the owner's bypass: add `refs/heads/v*`
+  to the `main-merge-owner-only` ruleset, which holds only that rule.
+- PR required (0 approvals) and strict required status checks, which on
+  `main` come from classic branch protection: a branch ruleset targeting
+  `refs/heads/v*` with a `pull_request` rule and `required_status_checks`
+  set to strict, or a classic protection rule for `v*`. Require `build`,
+  `validate-issue-link`, `dependency-review`, `lint-workflows` and
+  `semgrep`, and leave out `codecov/project`: `ci.yml` uploads coverage on
+  pushes to `main` only, so a PR into `v*` may have no base to compare
+  against.
+
+`deploy` is left out, since the workflow must be able to push to it. CI runs on PRs into any branch, and
+`validate-issue-link` applies to them too.
+
+Pushes to `v*` branches and to `deploy` create no Vercel deployments
+(`vercel.json` turns them off), since releases are published through
+`deploy`. PRs into a release branch still get a preview, like any other
+PR.
 
 ## Working with the Claude agent
 

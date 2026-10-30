@@ -27,6 +27,13 @@ not affiliated with, sponsored by, or endorsed by MITRE, and
 The visualizer's own source is Copyright © 2026 Allon Mureinik under the MIT
 License; see [`LICENSE.md`](LICENSE.md).
 
+## Releases
+
+The site at `/` is the newest release (`/latest/` until the first one is
+cut). `/latest/` follows development on
+`main`, and older releases stay at `/vX.Y/`. See the Releases section of
+[`CONTRIBUTING.md`](CONTRIBUTING.md#releases) for how they are cut.
+
 ## Contributing
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for running the project locally,
