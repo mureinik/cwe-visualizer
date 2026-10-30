@@ -9,12 +9,13 @@ redirects to it. This is item 4 of the design's plan of work, for
 **Architecture:** No code changes. This is the first run of the release
 process in CONTRIBUTING's "Releases" section:
 
-1. Cut `v1` from `main`.
+1. Tag `main` as `v1-base` and cut `v1` from that tag.
 2. Open a version-bump PR into `v1`.
 3. When the owner merges it, the publish pipeline from [#246][pr246] builds
    `v1` into the `deploy` branch, and production rebuilds.
 
-A release is its branch, as the spec decides. There is no tag.
+A release is its branch, as the spec decides. The `v1-base` tag only marks
+where `v1` diverged from `main`; nothing reads it.
 
 **Tech Stack:** git, `gh`, `npm version`, the existing workflows
 (`release-dispatch.yml`, `release-publish.yml`, `ci.yml`), Vercel.
@@ -24,8 +25,9 @@ sections "Versioning", "Flow 1", "Flow 2" and "The release process".
 
 ## Global Constraints
 
-- **Branch:** `v1` is cut from `main` at the commit this plan starts from.
-  `main` pins CWE `4.20` in `cwe-version`.
+- **Branch:** `v1` is cut from `main` at the commit this plan starts from. `main` pins CWE `4.20` in `cwe-version`.
+- **Tag:** an annotated tag `v1-base` on that same commit, message
+  `v1 branches from main here`, pushed atomically with the branch.
 - **Version:** on `v1`, `package.json` and the root of `package-lock.json`
   say `1.0.0`. Set it with `npm version 1.0.0 --no-git-tag-version`.
   `main` stays at `0.0.0`.
@@ -36,7 +38,8 @@ sections "Versioning", "Flow 1", "Flow 2" and "The release process".
     `Closes #162`.
   - The owner merges it. Close #162 by hand afterwards, since GitHub only
     closes issues automatically for merges into `main`.
-- **Never delete or force-push `v1` or `deploy`.**
+- **Never delete or force-push `v1` or `deploy`, and never move or delete
+  `v1-base`.**
 - **No subagents.** Every step is an operation the controller runs; there
   is nothing to implement.
 
@@ -70,7 +73,7 @@ sections "Versioning", "Flow 1", "Flow 2" and "The release process".
   `gh api repos/mureinik/cwe-visualizer/rules/branches/v1 --jq '.[].type'`
   prints the eight types CONTRIBUTING lists.
 - [ ] `gh secret list` shows `BACKPORT_TOKEN` and `VERCEL_DEPLOY_HOOK_URL`.
-- [ ] `git ls-remote --heads origin v1` prints nothing, and
+- [ ] `git ls-remote origin v1 v1-base` prints nothing, and
   `git ls-remote --heads origin deploy` prints one line.
 - [ ] Production is still on the old layout:
   `https://cwe-visualizer.vercel.app/` serves the redirect page to
@@ -78,8 +81,12 @@ sections "Versioning", "Flow 1", "Flow 2" and "The release process".
 
 ### Task 2: Cut `v1`
 
-- [ ] Run `git push origin main:refs/heads/v1`.
-  `git ls-remote --heads origin v1` prints the SHA from Task 1.
+- [ ] Run CONTRIBUTING's step 3 for `v1`:
+  `git tag -a v1-base -m "v1 branches from main here" main`, then
+  `git push --atomic origin v1-base 'v1-base^{commit}:refs/heads/v1'`.
+  `git ls-remote origin v1 'v1-base^{}'` prints the SHA from Task 1 for
+  both refs.
+- [ ] The tag push started no workflow run and no Vercel deployment.
 - [ ] `release-dispatch.yml` ran for `v1` and started
   `release-publish.yml` (`gh run list --workflow release-publish.yml --limit 1`).
   That run is green, with the notice `Not publishing v1: package.json

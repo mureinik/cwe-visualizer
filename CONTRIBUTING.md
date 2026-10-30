@@ -258,12 +258,22 @@ To cut a release:
    pins. If the release should use a different CWE version, move the pin
    on `main` first, in a normal PR.
 2. Open an issue for the release.
-3. Create the branch from `main`, for example
-   `git push origin main:refs/heads/v1.1`. Nothing is published yet, since
-   its version is still `0.0.0`. Check that the push succeeded and the
-   branch exists with `git ls-remote --heads origin v1.1`, which prints its
-   SHA. If GitHub rejects the push because of the `release-branches`
-   ruleset, see [If the cut is rejected](#if-the-cut-is-rejected).
+3. Tag the commit on `main` the release branches from, and create the
+   branch from that tag in the same push, for example for `v1.1`:
+
+   ```sh
+   git switch main && git pull --ff-only
+   git tag -a v1.1-base -m "v1.1 branches from main here" main
+   git push --atomic origin v1.1-base 'v1.1-base^{commit}:refs/heads/v1.1'
+   ```
+
+   Nothing is published yet, since the branch's version is still `0.0.0`.
+   Check that the push succeeded with
+   `git ls-remote origin v1.1 'v1.1-base^{}'`, which prints the same SHA
+   for `refs/heads/v1.1` and `refs/tags/v1.1-base^{}`. `--atomic` pushes
+   both refs or neither, so a rejected push leaves no stray tag on GitHub.
+   If GitHub rejects the push because of the `release-branches` ruleset,
+   see [If the cut is rejected](#if-the-cut-is-rejected).
 4. Open a PR into the branch that sets `package.json`'s version to `X.Y.0`,
    best done with `npm version X.Y.0 --no-git-tag-version` so
    `package-lock.json`'s root version matches. The PR still says
@@ -274,6 +284,15 @@ To cut a release:
 5. Fix a release later with a PR into its branch, with an issue, as for
    `main`. Merging it republishes that release in place. The same applies
    to the issue: close it by hand after the merge.
+
+The `vX.Y-base` tag only records where the release diverged from `main`,
+so `git log vX.Y-base..vX.Y` lists what the release changed since, and
+`git describe main` counts `main`'s commits since the latest cut. Nothing
+reads it: no workflow runs on a tag, Vercel doesn't build tags, and
+publishing always uses the branch, after its version bump. It is not named
+`vX.Y.0`, because the commit it marks is still version `0.0.0`, nor
+`vX.Y`, which would make the branch's name ambiguous. Never move or delete
+it.
 
 Pushing to a `v[0-9]*` branch starts `release-dispatch.yml`, which starts
 `release-publish.yml` on `main`. The publisher checks out the release
@@ -396,8 +415,8 @@ PR.
 
 ### If the cut is rejected
 
-If `git push origin main:refs/heads/vX.Y` fails with a rule violation
-despite that option, switch the ruleset off for the push, then back on:
+If the push in step 3 fails with a rule violation despite that option,
+switch the ruleset off for the push, then back on:
 
 1. Open <https://github.com/mureinik/cwe-visualizer/settings/rules>
    and click **release-branches**.
@@ -405,8 +424,8 @@ despite that option, switch the ruleset off for the push, then back on:
 3. Push the cut and check it:
 
    ```sh
-   git push origin main:refs/heads/vX.Y
-   git ls-remote --heads origin vX.Y
+   git push --atomic origin vX.Y-base 'vX.Y-base^{commit}:refs/heads/vX.Y'
+   git ls-remote origin vX.Y 'vX.Y-base^{}'
    ```
 
 4. Reopen the ruleset, set **Enforcement status** back to **Active** and
