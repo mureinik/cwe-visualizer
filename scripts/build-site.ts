@@ -1,6 +1,7 @@
-import { promises as fs, mkdirSync, writeFileSync } from 'node:fs';
+import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import AdmZip from 'adm-zip';
+import escapeHtml from 'escape-html';
 
 const RELEASE_PATTERN = /^v(\d+)(?:\.(\d+))?$/;
 const DEFAULT_OWNER = 'mureinik';
@@ -24,28 +25,24 @@ export function newestRelease(names: string[]): string | null {
   return releases.at(-1) ?? null;
 }
 
-function escapeAttribute(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
 export function redirectPage(target: string): string {
-  // "<" is escaped so the target can never close the script element.
-  const script = JSON.stringify(target).replace(/</g, '\\u003c');
-  const attr = escapeAttribute(target);
+  // The script reads the target back from the link, so it is only ever
+  // embedded as HTML-escaped text and never inside JavaScript.
+  const href = escapeHtml(target);
   return `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
     <title>CWE Visualizer</title>
     <noscript>
-      <meta http-equiv="refresh" content="0; url=${attr}">
+      <meta http-equiv="refresh" content="0; url=${href}">
     </noscript>
-    <script>
-      location.replace(${script} + location.search + location.hash);
-    </script>
   </head>
   <body>
-    <p><a href="${attr}">Continue to the CWE Visualizer</a></p>
+    <p><a id="target" href="${href}">Continue to the CWE Visualizer</a></p>
+    <script>
+      location.replace(document.getElementById('target').getAttribute('href') + location.search + location.hash);
+    </script>
   </body>
 </html>
 `;
@@ -55,7 +52,7 @@ export function deployArchiveUrl(owner: string, repo: string): string {
   return `https://codeload.github.com/${owner}/${repo}/zip/refs/heads/deploy`;
 }
 
-export function extractReleases(zip: Buffer, outDir: string): string[] {
+export async function extractReleases(zip: Buffer, outDir: string): Promise<string[]> {
   const root = path.resolve(outDir);
   const found = new Set<string>();
   const writes: { target: string; data: Buffer }[] = [];
@@ -73,8 +70,8 @@ export function extractReleases(zip: Buffer, outDir: string): string[] {
     writes.push({ target, data: entry.getData() });
   }
   for (const { target, data } of writes) {
-    mkdirSync(path.dirname(target), { recursive: true });
-    writeFileSync(target, data);
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.writeFile(target, data);
   }
   return [...found].sort(compareReleases);
 }
@@ -119,7 +116,7 @@ export async function run({
   if (!response.ok) {
     throw new Error(`Failed to download the deploy branch (HTTP ${response.status}): ${url}`);
   }
-  const releases = extractReleases(Buffer.from(await response.arrayBuffer()), outDir);
+  const releases = await extractReleases(Buffer.from(await response.arrayBuffer()), outDir);
   const redirect = `/${newestRelease(releases) ?? 'latest'}/`;
   await fs.writeFile(path.join(outDir, 'index.html'), redirectPage(redirect));
   console.log(`Releases found: ${releases.length > 0 ? releases.join(', ') : 'none'}`);

@@ -59,7 +59,11 @@ describe('newestRelease', () => {
 
 describe('redirectPage', () => {
   it('redirects with the query string and hash', () => {
-    expect(redirectPage('/v1.1/')).toContain('location.replace("/v1.1/" + location.search + location.hash)');
+    const page = redirectPage('/v1.1/');
+    expect(page).toContain('<a id="target" href="/v1.1/">');
+    expect(page).toContain(
+      "location.replace(document.getElementById('target').getAttribute('href') + location.search + location.hash)",
+    );
   });
 
   it('falls back without JavaScript', () => {
@@ -90,9 +94,9 @@ describe('extractReleases and run', () => {
   });
 
   describe('extractReleases', () => {
-    it('copies only release directories', () => {
+    it('copies only release directories', async () => {
       const zip = zipOf(['v1/index.html', 'v1.1/assets/a.js', 'README.md', 'vercel.json', 'notes/x.txt']);
-      expect(extractReleases(zip, outDir)).toEqual(['v1', 'v1.1']);
+      expect(await extractReleases(zip, outDir)).toEqual(['v1', 'v1.1']);
       expect(existsSync(path.join(outDir, 'v1', 'index.html'))).toBe(true);
       expect(existsSync(path.join(outDir, 'v1.1', 'assets', 'a.js'))).toBe(true);
       expect(existsSync(path.join(outDir, 'README.md'))).toBe(false);
@@ -100,7 +104,7 @@ describe('extractReleases and run', () => {
       expect(existsSync(path.join(outDir, 'notes'))).toBe(false);
     });
 
-    it('never writes outside outDir', () => {
+    it('never writes outside outDir', async () => {
       const zip = new AdmZip();
       zip.addFile(`${ROOT}v1/index.html`, Buffer.from('ok'));
       zip.addFile(`${ROOT}v1/../../escape.txt`, Buffer.from('evil'));
@@ -108,7 +112,7 @@ describe('extractReleases and run', () => {
       // Some adm-zip versions normalize names on add; force the raw name.
       if (entry) entry.entryName = `${ROOT}v1/../../escape.txt`;
       expect(entry?.entryName).toContain('..');
-      expect(() => extractReleases(zip.toBuffer(), outDir)).toThrow(/outside/);
+      await expect(extractReleases(zip.toBuffer(), outDir)).rejects.toThrow(/outside/);
       expect(existsSync(path.join(dir, 'escape.txt'))).toBe(false);
       expect(existsSync(path.join(dir, '..', 'escape.txt'))).toBe(false);
       expect(existsSync(path.join(outDir, '..', 'escape.txt'))).toBe(false);
