@@ -444,38 +444,44 @@ automatically only for the default branch, so close it by hand. A failed
 `npm audit`, on `main` or on a branch, turns the run red and opens nothing;
 read the log and rerun.
 
-Run the workflow by hand with an advisory's ID to backport it on its own:
+There are no manual runs: the workflow runs only on merges into `main`. A
+manual run would execute the release branch's code with write access to
+`main`'s Actions cache, which a merge's run doesn't have.
+
+**A retry after a failure that opened an issue,** such as a transient
+failure of the checks or the push. The issue means the advisory is
+handled, so a rerun skips the branch until it's gone. Delete the issue,
+and the backport branch if the failed run pushed one, then rerun the
+original run. You can delete the branch despite the `review` ruleset's
+deletion rule, since you can bypass it:
 
 ```sh
-gh workflow run backport-security.yml -f ghsa=GHSA-xxxx-xxxx-xxxx
-gh run list --workflow backport-security.yml --limit 3
+gh issue delete <number> --yes
+git push origin --delete backport/<branch>/<GHSA>
+gh run rerun <run-id>
 ```
 
-That is needed in three cases:
+Or click **Re-run all jobs** on the run's page. The issue's body links to
+the run, and the run ID ends that link; `gh run list --workflow
+backport-security.yml --limit 10` lists the recent runs too. GitHub allows
+a rerun only within 30 days of the original run.
+
+If only the PR failed to open, the run's error gives the `gh pr create`
+command that opens it; run that instead.
+
+Fix the release branch by hand, like any other fix to it, in two cases the
+workflow can't handle:
 
 - **An advisory against a package `main` no longer uses.** It is the one
   known blind spot: the audit on `main` never reports it, so no merge
   fixes it, and only a release branch still has it. Watch for such
-  advisories (`npm audit` on the branch shows them) and run the workflow
-  for each.
+  advisories (`npm audit` on the branch shows them).
 - **A merge from a fork.** Its run gets no secrets, so `open` fails without
-  `BACKPORT_TOKEN`, though `resolve` names the advisories it fixed. Run the
-  workflow for each of them.
-- **A retry after a failure that opened an issue,** such as a transient
-  failure of the checks or the push. The issue means the advisory is
-  handled, so a rerun skips the branch until it's gone. Delete the issue,
-  and the backport branch if the failed run pushed one, then run the
-  workflow. You can delete the branch despite the `review` ruleset's
-  deletion rule, since you can bypass it:
+  `BACKPORT_TOKEN`, though `resolve` names the advisories it fixed.
 
-  ```sh
-  gh issue delete <number> --yes
-  git push origin --delete backport/<branch>/<GHSA>
-  gh workflow run backport-security.yml -f ghsa=<GHSA>
-  ```
-
-  If only the PR failed to open, the run's error gives the
-  `gh pr create` command that opens it; run that instead.
+Open an issue for the advisory, then, on a branch off `vX.Y`, run
+`npm update <package>`, check that `npm audit` no longer lists the
+advisory, and open a PR into `vX.Y` that closes the issue.
 
 #### One-time setup: the `BACKPORT_TOKEN` secret
 

@@ -12,9 +12,12 @@ name: Backport security fix
 # audit on `main` no longer reports an advisory it reported before. The
 # audit diff catches fixes that arrive through a parent package's bump or a
 # hand-made change too, which a lookup of the PR's Dependabot alert would
-# miss. An advisory against a package `main` no longer uses at all, and a
-# retry, need a manual run with the advisory's ID:
-#   gh workflow run backport-security.yml -f ghsa=GHSA-xxxx-xxxx-xxxx
+# miss. An advisory against a package `main` no longer uses at all is
+# fixed on the release branch by hand.
+#
+# Why there are no manual runs: one would run the release branch's code
+# with write access to `main`'s Actions cache. A merge's run is scoped to
+# its PR's cache instead. To retry, rerun the original run.
 #
 # Why it uses its own token: PRs and pushes made with the job token don't
 # trigger other workflows, so CI would never run on the backport PR. Only
@@ -36,12 +39,6 @@ on:
   pull_request:
     types: [closed]
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      ghsa:
-        description: GitHub advisory ID to backport, e.g. GHSA-xxxx-xxxx-xxxx
-        type: string
-        required: true
 
 permissions: {}
 
@@ -49,7 +46,7 @@ jobs:
   # Finds the advisories to backport and the release branches to try them
   # on, and pairs them up.
   resolve:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -60,14 +57,12 @@ jobs:
       # The merge commit, with the full history so that the PR's base is
       # there too.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: github.event_name == 'pull_request'
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
           persist-credentials: false
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        if: github.event_name == 'pull_request'
         with:
           node-version: 24
           package-manager-cache: false
@@ -86,7 +81,6 @@ jobs:
       # older, the diff could only grow, and the extra advisories are
       # harmless: each branch's audit and the issue dedupe filter them out.
       - name: Find the advisories the merge fixed
-        if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
@@ -123,27 +117,6 @@ jobs:
             echo "::notice::This merge fixed no advisory that npm audit reports; nothing to backport."
           fi
 
-      - name: Check the advisory
-        if: github.event_name == 'workflow_dispatch'
-        env:
-          INPUT_GHSA: ${{ inputs.ghsa }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          # Whole-string match (grep would match line by line). The error
-          # doesn't echo the value, which may span lines.
-          if ! [[ "$INPUT_GHSA" =~ ^GHSA(-[23456789cfghjmpqrvwx]{4}){3}$ ]]; then
-            echo "::error::The advisory ID is not a GHSA ID (GHSA-xxxx-xxxx-xxxx)."
-            exit 1
-          fi
-          # npm audit only knows npm advisories; an ID typed by hand may not be one.
-          npm=$(gh api "advisories/$INPUT_GHSA" --jq 'any(.vulnerabilities[]?; .package.ecosystem == "npm")')
-          if [ "$npm" != true ]; then
-            echo "::error::$INPUT_GHSA is not an advisory against an npm package."
-            exit 1
-          fi
-          echo "$INPUT_GHSA" > "$RUNNER_TEMP/ghsas"
-
       - name: Pair the advisories with the release branches
         id: pairs
         env:
@@ -153,7 +126,8 @@ jobs:
           set -euo pipefail
           ghsas=()
           while IFS= read -r ghsa; do
-            # Again, whole-string: these name jobs, artifacts, issues and branches.
+            # Whole-string match (grep would match line by line): these name
+            # jobs, artifacts, issues and branches.
             if ! [[ "$ghsa" =~ ^GHSA(-[23456789cfghjmpqrvwx]{4}){3}$ ]]; then
               echo "::error::An advisory ID is not a GHSA ID (GHSA-xxxx-xxxx-xxxx)."
               exit 1
@@ -197,7 +171,8 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.resolve.outputs.pairs) }}
-    # A rerun, or a manual run after the automatic one, waits for the first.
+    # Two runs that backport the same advisory, such as after two merges in
+    # a row, take turns.
     concurrency:
       group: backport-${{ matrix.ghsa }}-${{ matrix.branch }}
       cancel-in-progress: false

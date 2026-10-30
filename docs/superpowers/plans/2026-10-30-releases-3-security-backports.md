@@ -361,10 +361,9 @@ backports, and "The release process" (the docs it asks for).
 - [ ] **Step 2 (owner, before merge):** create `BACKPORT_TOKEN` as
   Task 3 describes.
 - [ ] **Step 3 (after the owner merges):**
-  - Run `gh workflow run backport-security.yml -f ghsa=GHSA-mrhx-c7xc-m3w5`.
-    Expected: `resolve` passes and notes there are no release branches,
-    and `backport` is skipped.
-  - Run it with `-f ghsa=nope`. Expected: `resolve` fails on validation.
+  - Check the workflow's run for that merge. Expected: `resolve` passes
+    and notes the advisories the merge fixed, or that it fixed none, and
+    that there are no release branches; `backport` is skipped.
 - **Verification gap, accepted:** the per-branch job can't run until a
   release branch exists. Release 1.0's plan runs it against `v1` with
   `GHSA-gg6h-894w-4m9c` (`re2js`), if that advisory is still open then.
@@ -385,13 +384,21 @@ backports, and "The release process" (the docs it asks for).
   earlier one. It needs no `BACKPORT_TOKEN` and no Dependabot alerts
   permission.
 - **The trigger widened** from merged Dependabot PRs to every PR merged
-  into `main`. The manual run remains, for an advisory against a package
-  `main` dropped and for retries.
+  into `main`.
 - **Each pair takes two jobs.** `backport` runs the release branch's code
   with only a read token and hands its result to `open`, which holds
   `BACKPORT_TOKEN` and never runs npm, as an artifact.
 - **The matrix is `{ghsa, branch}` pairs**, every fixed advisory crossed
   with every release branch, instead of one advisory over the branches.
+- **Manual runs were dropped,** with the `ghsa` input and its checks.
+  CodeQL flagged `backport` under `workflow_dispatch`
+  (`actions/cache-poisoning/poisonable-step`): a manual run executes the
+  release branch's code with write access to `main`'s Actions cache, and
+  no condition makes that safe. A retry reruns the original run
+  (`gh run rerun <run-id>`); an advisory against a package `main` dropped,
+  and a merge from a fork, are fixed on the release branch by hand. The
+  manual run in Tasks 2 and 3 no longer applies, and Task 4's check now
+  reads the merge's own run.
 
 <!-- Issues and PRs -->
 [i238]: https://github.com/mureinik/cwe-visualizer/issues/238
