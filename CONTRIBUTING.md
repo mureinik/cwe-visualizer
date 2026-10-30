@@ -335,8 +335,9 @@ third place to look:
    pattern**, enter `v[0-9]*` and click **Add Inclusion pattern**. Leave
    `deploy` out, since the publish workflow must be able to push to it.
 6. Under **Branch rules** (called **Branch protections** on some pages),
-   tick **Require a pull request before merging** and set **Required
-   approvals** to `0`. GitHub doesn't let authors approve their own PRs,
+   leave **Restrict deletions** and **Block force pushes** ticked, as a new
+   ruleset has them, then tick **Require a pull request before merging**
+   and set **Required approvals** to `0`. GitHub doesn't let authors approve their own PRs,
    so a required approval would lock out a sole maintainer.
 7. Tick **Require status checks to pass** (also worded **Require status
    checks to pass before merging**) and, under it, **Require branches to
@@ -377,10 +378,14 @@ gh api repos/mureinik/cwe-visualizer/rulesets \
 gh api repos/mureinik/cwe-visualizer/rules/branches/v1 --jq '.[].type'
 ```
 
-The last command prints these six types, in some order: `pull_request`,
-`required_status_checks` and `update` from the two rulesets above, and
-`deletion`, `non_fast_forward` and `copilot_code_review` from `review`.
-Before the setup it prints only the last three. `deploy` is left out of both rulesets, since the
+The last command prints eight lines, in some order: `update` from
+`main-merge-owner-only`; `deletion`, `non_fast_forward`, `pull_request`
+and `required_status_checks` from `release-branches`; and `deletion`,
+`non_fast_forward` and `copilot_code_review` from `review`. `deletion`
+and `non_fast_forward` appear twice, which is harmless. Add
+`ruleset_id` to see where each comes from:
+`--jq '.[] | "\(.type) \(.ruleset_id)"'`. Before the setup it prints
+only `review`'s three. `deploy` is left out of both rulesets, since the
 workflow must be able to push to it. CI runs on PRs into any branch, and
 `validate-issue-link` applies to them too.
 
