@@ -437,6 +437,11 @@ branch (every branch named `vN` or `vN.M`):
    reason, and you fix the branch by hand with a PR, as in step 5 of the
    steps to cut a release.
 
+`backport` runs only when the repository owner started the run, by
+merging or by hand, since it runs the release branch's code with access to
+`main`'s Actions cache. Anyone else's run says so in a notice, and the
+owner can rerun it by hand as below.
+
 There is one issue and one PR per advisory per branch, and a rerun never
 opens a second one. Merging the PR republishes the release, like any fix to
 it. The issue isn't closed by the merge, since GitHub closes issues

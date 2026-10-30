@@ -179,6 +179,15 @@ jobs:
             '[$ghsas[] as $ghsa | $branches[] as $branch | {ghsa: $ghsa, branch: $branch}]')
           echo "pairs=$pairs" >> "$GITHUB_OUTPUT"
 
+      # `backport` runs only for the owner's runs; see its condition.
+      - name: Say why nothing is backported
+        if: >-
+          steps.pairs.outputs.pairs != '' && steps.pairs.outputs.pairs != '[]' &&
+          github.triggering_actor != github.repository_owner
+        run: |
+          set -euo pipefail
+          echo "::notice::Backports run only for runs the repository owner starts. The owner can rerun each advisory with: gh workflow run backport-security.yml -f ghsa=<GHSA> ($(paste -sd ' ' "$RUNNER_TEMP/ghsas"))."
+
   # One job per advisory and release branch: audits the branch and, when the
   # advisory affects it and it has no backport issue yet, tries the update
   # and CI's checks. The result goes to `open` as the artifact
@@ -188,7 +197,15 @@ jobs:
   # uploads nothing, so no issue is opened.
   backport:
     needs: resolve
-    if: needs.resolve.outputs.pairs != '[]'
+    # Runs started by the repository owner only. That is the trust boundary:
+    # only the owner can merge into `main` (the main-merge-owner-only
+    # ruleset) and dispatch workflows, and this keeps a future collaborator
+    # with write access from running release-branch code in `main`'s cache
+    # scope. A dependency's own install scripts remain a risk, the one
+    # ci.yml already accepts on every push to `main`.
+    if: >-
+      needs.resolve.outputs.pairs != '[]' &&
+      github.triggering_actor == github.repository_owner
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -395,7 +412,7 @@ jobs:
           set -euo pipefail
           in="$RUNNER_TEMP/result"
           if [ ! -e "$in/outcome" ]; then
-            echo "::notice::Nothing to report for $GHSA on $BRANCH: it isn't affected, already has its issue, or its backport job failed."
+            echo "::notice::Nothing to report for $GHSA on $BRANCH: it isn't affected, already has its issue, or its backport job failed or was skipped."
             echo "report=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
