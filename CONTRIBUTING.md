@@ -260,7 +260,10 @@ To cut a release:
 2. Open an issue for the release.
 3. Create the branch from `main`, for example
    `git push origin main:refs/heads/v1.1`. Nothing is published yet, since
-   its version is still `0.0.0`.
+   its version is still `0.0.0`. Check that the push succeeded and the
+   branch exists with `git ls-remote --heads origin v1.1`, which prints its
+   SHA. If GitHub rejects the push because of the `release-branches`
+   ruleset, see [If the cut is rejected](#if-the-cut-is-rejected).
 4. Open a PR into the branch that sets `package.json`'s version to `X.Y.0`,
    best done with `npm version X.Y.0 --no-git-tag-version` so
    `package-lock.json`'s root version matches. The PR still says
@@ -346,7 +349,14 @@ third place to look:
    pushes to `main` only, so a PR into `v*` may have no base to compare
    against. Strict checks do nothing without at least one check, so don't
    skip this step.
-9. Click **Create** at the bottom of the page.
+9. Still under the status checks rule, tick **Do not require status
+   checks on creation**. Creating the branch is a push of a commit that
+   `validate-issue-link` and `dependency-review` never run on, since they
+   run only on PRs, so without this the cut in the release steps could be
+   rejected. (This is the API's `do_not_enforce_on_create`. GitHub's rules
+   page doesn't list it, so if your page words it differently, pick the
+   option about creation.)
+10. Click **Create** at the bottom of the page.
 
 Check the result from your shell:
 
@@ -412,6 +422,32 @@ an advisory against a package that only a release branch still uses, and
 `main` no longer does, never gets a Dependabot PR there and nothing starts
 a backport. Watch for such advisories (`npm audit` on the branch shows
 them) and run the workflow by hand with the advisory's ID.
+
+#### If the cut is rejected
+
+If `git push origin main:refs/heads/vX.Y` fails with a rule violation
+despite that option, switch the ruleset off for the push, then back on:
+
+1. Open <https://github.com/mureinik/cwe-visualizer/settings/rules>
+   and click **release-branches**.
+2. Set **Enforcement status** to **Disabled** and click **Save changes**.
+3. Push the cut and check it:
+
+   ```sh
+   git push origin main:refs/heads/vX.Y
+   git ls-remote --heads origin vX.Y
+   ```
+
+4. Reopen the ruleset, set **Enforcement status** back to **Active** and
+   click **Save changes**.
+5. Check that it is active again; this prints `active`:
+
+   ```sh
+   gh api repos/mureinik/cwe-visualizer/rulesets \
+     --jq '.[] | select(.name == "release-branches") | .enforcement'
+   ```
+
+Until step 4 the release branches are unprotected, so do it right away.
 
 #### One-time setup: the `BACKPORT_TOKEN` secret
 
