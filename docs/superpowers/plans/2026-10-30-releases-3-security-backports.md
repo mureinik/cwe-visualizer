@@ -378,9 +378,12 @@ backports, and "The release process" (the docs it asks for).
   lookup returns at most one GHSA per PR, searches only the repository's
   first 100 alerts, and misses fixes that arrive through a parent's bump
   (the jsdom bump fixed undici alerts). `resolve` now runs
-  `npm audit --json --package-lock-only` on the merge commit and its first
-  parent, and backports every advisory only the first reports. It needs no
-  `BACKPORT_TOKEN` and no Dependabot alerts permission.
+  `npm audit --json --package-lock-only` on the PR's base and on the merge
+  commit, and backports every advisory only the first reports. The base,
+  not the merge commit's first parent, since after a rebase merge that
+  parent is the PR's own previous commit and would hide a fix made in an
+  earlier one. It needs no `BACKPORT_TOKEN` and no Dependabot alerts
+  permission.
 - **The trigger widened** from merged Dependabot PRs to every PR merged
   into `main`. The manual run remains, for an advisory against a package
   `main` dropped and for retries.
