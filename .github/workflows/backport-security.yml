@@ -1,31 +1,34 @@
 name: Backport security fix
 
-# Backports a security fix merged into `main` to every release branch (vN or
-# vN.M) that npm audit says the advisory affects: one issue and one PR per
-# branch, or only the issue, saying why, when the update can't be made.
+# Backports the security fixes merged into `main` to every release branch
+# (vN or vN.M) that npm audit says each advisory affects: one issue and one
+# PR per advisory and branch, or only the issue, saying why, when the update
+# can't be made.
 #
 # Why release branches need this: Dependabot opens security updates only
 # against the default branch, so nothing else would ever fix them.
 #
-# Why it triggers on the merge and not on Dependabot's own events: runs
-# Dependabot triggers see only Dependabot secrets. The merge's actor is the
-# owner, so BACKPORT_TOKEN is available. Security fixes made by hand on
-# `main` have no Dependabot PR; run this for them with the advisory's ID:
+# What counts as a security fix: any merged PR, by anyone, after which npm
+# audit on `main` no longer reports an advisory it reported before. The
+# audit diff catches fixes that arrive through a parent package's bump or a
+# hand-made change too, which a lookup of the PR's Dependabot alert would
+# miss. An advisory against a package `main` no longer uses at all, and a
+# retry, need a manual run with the advisory's ID:
 #   gh workflow run backport-security.yml -f ghsa=GHSA-xxxx-xxxx-xxxx
 #
 # Why it uses its own token: PRs and pushes made with the job token don't
-# trigger other workflows, so CI would never run on the backport PR, and
-# reading Dependabot alerts needs a permission the job token can't have. The
-# job token here only reads.
+# trigger other workflows, so CI would never run on the backport PR. Only
+# `open` gets it; the job token elsewhere only reads.
 #
-# Why each branch takes two jobs: `backport` runs the release branch's code
-# and whatever `npm update` installs (lint, tests, build, install scripts),
-# so it never gets BACKPORT_TOKEN. Code that runs there could rewrite any
-# file, git config or environment file a later step in the same job uses, so
-# keeping the token out of its steps isn't enough. It hands `open` only the
-# updated package.json and package-lock.json and a result, as an artifact.
-# `open` starts on a fresh runner, treats the artifact as untrusted data, runs
-# only `main`'s scripts and git, and does everything that writes.
+# Why each advisory and branch takes two jobs: `backport` runs the release
+# branch's code and whatever `npm update` installs (lint, tests, build,
+# install scripts), so it never gets BACKPORT_TOKEN. Code that runs there
+# could rewrite any file, git config or environment file a later step in
+# the same job uses, so keeping the token out of its steps isn't enough. It
+# hands `open` only the updated package.json and package-lock.json and a
+# result, as an artifact. `open` starts on a fresh runner, treats the
+# artifact as untrusted data, runs only `main`'s scripts and git, and does
+# everything that writes.
 #
 # See "Releases" in CONTRIBUTING.md.
 
@@ -36,83 +39,112 @@ on:
   workflow_dispatch:
     inputs:
       ghsa:
-        description: GitHub advisory ID of a fix on main, e.g. GHSA-xxxx-xxxx-xxxx
+        description: GitHub advisory ID to backport, e.g. GHSA-xxxx-xxxx-xxxx
         type: string
         required: true
 
 permissions: {}
 
 jobs:
-  # Finds the advisory and the release branches to try it on.
+  # Finds the advisories to backport and the release branches to try them
+  # on, and pairs them up.
   resolve:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.pull_request.merged &&
-      github.event.pull_request.user.login == 'dependabot[bot]')
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-24.04
     permissions:
       contents: read
     outputs:
-      ghsa: ${{ steps.ghsa.outputs.ghsa }}
-      # No advisory means no branches.
-      branches: ${{ steps.branches.outputs.branches || '[]' }}
+      # One {ghsa, branch} object per job of `backport` and `open`.
+      pairs: ${{ steps.pairs.outputs.pairs || '[]' }}
     steps:
-      # Looks up the Dependabot alert the PR fixed, which gives the advisory.
-      - name: Fetch Dependabot metadata
-        id: metadata
+      # The merge commit and its first parent, the `main` before it.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: github.event_name == 'pull_request'
-        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
         with:
-          alert-lookup: true
-          github-token: ${{ secrets.BACKPORT_TOKEN }}
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 2
+          persist-credentials: false
 
-      - name: Find the advisory
-        id: ghsa
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: github.event_name == 'pull_request'
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      # Audits the lockfile before and after the merge, each in a directory
+      # of its own; --package-lock-only runs no package code. An advisory
+      # that only the first report lists is one the merge fixed. A failed
+      # audit on either side fails the job, rather than reading as
+      # "nothing fixed".
+      - name: Find the advisories the merge fixed
+        if: github.event_name == 'pull_request'
         env:
-          EVENT: ${{ github.event_name }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$MERGE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::The merge commit is not a commit SHA."
+            exit 1
+          fi
+          for side in before after; do
+            if [ "$side" = before ]; then rev="$MERGE_SHA^1"; else rev=$MERGE_SHA; fi
+            dir="$RUNNER_TEMP/$side"
+            mkdir "$dir"
+            git show "$rev:package.json" > "$dir/package.json"
+            git show "$rev:package-lock.json" > "$dir/package-lock.json"
+            # npm audit exits non-zero when it finds anything, so its status
+            # can't tell a finding from a failure. The script can.
+            (cd "$dir" && npm audit --json --package-lock-only > "$RUNNER_TEMP/$side.json") || true
+            node scripts/advisory-packages.ts --ids < "$RUNNER_TEMP/$side.json" > "$RUNNER_TEMP/$side.ids"
+          done
+          # Both lists are sorted in code-point order, which LC_ALL=C matches.
+          LC_ALL=C comm -23 "$RUNNER_TEMP/before.ids" "$RUNNER_TEMP/after.ids" > "$RUNNER_TEMP/ghsas"
+          if [ -s "$RUNNER_TEMP/ghsas" ]; then
+            echo "::notice::This merge fixed $(paste -sd ' ' "$RUNNER_TEMP/ghsas")."
+          else
+            echo "::notice::This merge fixed no advisory that npm audit reports; nothing to backport."
+          fi
+
+      - name: Check the advisory
+        if: github.event_name == 'workflow_dispatch'
+        env:
           INPUT_GHSA: ${{ inputs.ghsa }}
-          ALERT_GHSA: ${{ steps.metadata.outputs.ghsa-id }}
-          ALERT_STATE: ${{ steps.metadata.outputs.alert-state }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [ "$EVENT" = pull_request ]; then
-            if [ -z "$ALERT_GHSA" ] && [ -z "$ALERT_STATE" ]; then
-              echo "::notice::Not a security update; nothing to backport."
-              exit 0
-            fi
-            if [ -z "$ALERT_GHSA" ]; then
-              echo "::warning::This security update's alert lookup returned no advisory, so nothing was backported. Find its GHSA ID and run: gh workflow run backport-security.yml -f ghsa=<GHSA ID>"
-              exit 0
-            fi
-            ghsa=$ALERT_GHSA
-          else
-            ghsa=$INPUT_GHSA
-          fi
           # Whole-string match (grep would match line by line). The error
           # doesn't echo the value, which may span lines.
-          if ! [[ "$ghsa" =~ ^GHSA(-[23456789cfghjmpqrvwx]{4}){3}$ ]]; then
+          if ! [[ "$INPUT_GHSA" =~ ^GHSA(-[23456789cfghjmpqrvwx]{4}){3}$ ]]; then
             echo "::error::The advisory ID is not a GHSA ID (GHSA-xxxx-xxxx-xxxx)."
             exit 1
           fi
-          # Dependabot's alerts are npm ones; an ID typed by hand may not be.
-          if [ "$EVENT" != pull_request ]; then
-            npm=$(gh api "advisories/$ghsa" --jq 'any(.vulnerabilities[]?; .package.ecosystem == "npm")')
-            if [ "$npm" != true ]; then
-              echo "::error::$ghsa is not an advisory against an npm package."
-              exit 1
-            fi
+          # npm audit only knows npm advisories; an ID typed by hand may not be one.
+          npm=$(gh api "advisories/$INPUT_GHSA" --jq 'any(.vulnerabilities[]?; .package.ecosystem == "npm")')
+          if [ "$npm" != true ]; then
+            echo "::error::$INPUT_GHSA is not an advisory against an npm package."
+            exit 1
           fi
-          echo "ghsa=$ghsa" >> "$GITHUB_OUTPUT"
+          echo "$INPUT_GHSA" > "$RUNNER_TEMP/ghsas"
 
-      - name: List the release branches
-        id: branches
-        if: steps.ghsa.outputs.ghsa != ''
+      - name: Pair the advisories with the release branches
+        id: pairs
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
+          ghsas=()
+          while IFS= read -r ghsa; do
+            # Again, whole-string: these name jobs, artifacts, issues and branches.
+            if ! [[ "$ghsa" =~ ^GHSA(-[23456789cfghjmpqrvwx]{4}){3}$ ]]; then
+              echo "::error::An advisory ID is not a GHSA ID (GHSA-xxxx-xxxx-xxxx)."
+              exit 1
+            fi
+            ghsas+=("$ghsa")
+          done < "$RUNNER_TEMP/ghsas"
+          if [ ${#ghsas[@]} -eq 0 ]; then
+            exit 0
+          fi
           names=$(gh api --paginate "repos/$GH_REPO/branches" --jq '.[].name')
           releases=()
           while IFS= read -r name; do
@@ -123,19 +155,22 @@ jobs:
           if [ ${#releases[@]} -eq 0 ]; then
             echo "::notice::There are no release branches to backport to."
           fi
-          echo "branches=$(jq -cn '$ARGS.positional' --args "${releases[@]}")" >> "$GITHUB_OUTPUT"
+          pairs=$(jq -cn \
+            --argjson ghsas "$(jq -cn '$ARGS.positional' --args "${ghsas[@]}")" \
+            --argjson branches "$(jq -cn '$ARGS.positional' --args "${releases[@]}")" \
+            '[$ghsas[] as $ghsa | $branches[] as $branch | {ghsa: $ghsa, branch: $branch}]')
+          echo "pairs=$pairs" >> "$GITHUB_OUTPUT"
 
-
-  # One job per release branch: audits it and, when the advisory affects it
-  # and it has no backport issue yet, tries the update and CI's checks. The
-  # result goes to `open` as the artifact backport-<branch> (branch names
-  # were validated, so they're valid artifact names). No artifact means
-  # there is nothing to report. A red job means the audit or the re-audit
+  # One job per advisory and release branch: audits the branch and, when the
+  # advisory affects it and it has no backport issue yet, tries the update
+  # and CI's checks. The result goes to `open` as the artifact
+  # backport-<branch>-<ghsa> (both were validated, so they make a valid
+  # artifact name). No artifact means there is nothing to report. A red job means the audit or the re-audit
   # failed, which never counts as "not affected" or as a failed update: it
   # uploads nothing, so no issue is opened.
   backport:
     needs: resolve
-    if: needs.resolve.outputs.branches != '[]'
+    if: needs.resolve.outputs.pairs != '[]'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -143,13 +178,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        branch: ${{ fromJSON(needs.resolve.outputs.branches) }}
+        include: ${{ fromJSON(needs.resolve.outputs.pairs) }}
     # A rerun, or a manual run after the automatic one, waits for the first.
     concurrency:
-      group: backport-${{ needs.resolve.outputs.ghsa }}-${{ matrix.branch }}
+      group: backport-${{ matrix.ghsa }}-${{ matrix.branch }}
       cancel-in-progress: false
     env:
-      GHSA: ${{ needs.resolve.outputs.ghsa }}
+      GHSA: ${{ matrix.ghsa }}
       BRANCH: ${{ matrix.branch }}
     steps:
       # `main`'s scripts, as release-publish.yml does: a release branch's
@@ -166,11 +201,12 @@ jobs:
           path: release
           persist-credentials: false
 
+      # No npm cache: this job saves ~/.npm after untrusted code ran, and
+      # release-publish.yml restores the same cache.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: release/package-lock.json
+          package-manager-cache: false
 
       - name: Audit the branch
         id: audit
@@ -227,7 +263,7 @@ jobs:
         run: |
           set -euo pipefail
           # shellcheck disable=SC2086 # one argument per package; the audit step allowed only plain names
-          npm update $PACKAGES
+          npm update -- $PACKAGES
 
       # The update stays within package.json's ranges, so the advisory may
       # survive it, which is a failed update. A failed re-audit is not: like
@@ -247,7 +283,7 @@ jobs:
             echo "still_affected=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # The same commands as ci.yml's build job.
+      # The same commands as ci.yml's build job, coverage thresholds included.
       - name: Run CI's checks
         id: checks
         if: steps.reaudit.outputs.still_affected == 'false'
@@ -259,7 +295,7 @@ jobs:
           npm run lint
           npm run lint:md
           npm run lint:css
-          npm test
+          npm run test:coverage
           npm run build
 
       # Runs only when every step so far succeeded or was allowed to fail,
@@ -290,12 +326,12 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: steps.result.outcome == 'success'
         with:
-          name: backport-${{ matrix.branch }}
+          name: backport-${{ matrix.branch }}-${{ matrix.ghsa }}
           path: ${{ runner.temp }}/result/
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
 
-  # Reports each branch's result: pushes the backport and opens its issue and
+  # Reports each advisory and branch's result: pushes the backport and opens its issue and
   # PR, or opens only the issue, saying what failed. A fresh runner that never
   # runs npm or any of the release branch's code, so it can hold
   # BACKPORT_TOKEN. Opening the issue is the designed outcome of a failed
@@ -303,33 +339,33 @@ jobs:
   # says so.
   open:
     needs: [resolve, backport]
-    # Runs after a failed backport job too, since its other branches may
+    # Runs after a failed backport job too, since its other pairs may
     # have results; skipped on cancellation, which says nothing about them.
     if: >-
       !cancelled() && needs.resolve.result == 'success' &&
-      needs.resolve.outputs.branches != '[]'
+      needs.resolve.outputs.pairs != '[]'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        branch: ${{ fromJSON(needs.resolve.outputs.branches) }}
+        include: ${{ fromJSON(needs.resolve.outputs.pairs) }}
     # Not backport's group: a group holds one pending job, so a run's `open`
     # could cancel, or be cancelled by, another run's pending `backport`.
     # This one serializes the dedupe check below with the writes.
     concurrency:
-      group: backport-open-${{ needs.resolve.outputs.ghsa }}-${{ matrix.branch }}
+      group: backport-open-${{ matrix.ghsa }}-${{ matrix.branch }}
       cancel-in-progress: false
     env:
-      GHSA: ${{ needs.resolve.outputs.ghsa }}
+      GHSA: ${{ matrix.ghsa }}
       BRANCH: ${{ matrix.branch }}
     steps:
       # A pattern rather than a name: no match downloads nothing and
       # succeeds, while a name that matches nothing fails like an error.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          pattern: backport-${{ matrix.branch }}
+          pattern: backport-${{ matrix.branch }}-${{ matrix.ghsa }}
           merge-multiple: true
           path: ${{ runner.temp }}/result
 
@@ -341,7 +377,7 @@ jobs:
           set -euo pipefail
           in="$RUNNER_TEMP/result"
           if [ ! -e "$in/outcome" ]; then
-            echo "::notice::Nothing to report for $BRANCH: it isn't affected, already has its issue, or its backport job failed."
+            echo "::notice::Nothing to report for $GHSA on $BRANCH: it isn't affected, already has its issue, or its backport job failed."
             echo "report=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi

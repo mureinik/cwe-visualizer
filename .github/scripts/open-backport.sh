@@ -3,7 +3,8 @@
 # .github/workflows/backport-security.yml. Without <failure>, the backport
 # was pushed to backport/<branch>/<ghsa>: opens the issue and a PR from that
 # branch that closes it. With <failure>, opens only the issue, saying what
-# went wrong. Prints the URLs it created.
+# went wrong. Prints the URLs it created. If the PR fails after its issue
+# was opened, exits 1 with an error that gives the command to open it by hand.
 #
 # Usage: .github/scripts/open-backport.sh <ghsa> <branch> <packages> [<failure>]
 # <packages> is space-separated. Needs GH_TOKEN, GH_REPO and RUN_URL (the
@@ -45,14 +46,22 @@ fi
 
 issue=$(gh issue create --title "$title" --body "$advisory affects \`$branch\` through $listed. The same run opens a PR that updates them; close this issue by hand once it merges.")
 echo "$issue"
-# If this fails, the issue is already open, and a rerun skips the branch (an
-# issue means the advisory is handled), so the run fails and the PR has to be
-# opened by hand.
-gh pr create --base "$branch" --head "backport/$branch/$ghsa" --title "$title" \
-  --body "Closes #${issue##*/}
+body="Closes #${issue##*/}
 
 Backports $advisory to \`$branch\` by updating $listed with \`npm update\`.
 
 GitHub closes issues automatically only for PRs into \`main\`, so close #${issue##*/} by hand after merging this one.
 
 Opened by $RUN_URL"
+head="backport/$branch/$ghsa"
+# If this fails, the issue is already open, and a rerun skips the branch (an
+# issue means the advisory is handled), so the PR has to be opened by hand.
+if ! gh pr create --base "$branch" --head "$head" --title "$title" --body "$body"; then
+  # %q quotes every argument, the body's newlines included, so the command
+  # is one line that pastes into a shell as is.
+  printf -v command 'gh pr create --repo %q --base %q --head %q --title %q --body %q' \
+    "$GH_REPO" "$branch" "$head" "$title" "$body"
+  # A workflow command reads %XX as an escape, so % itself must be one.
+  echo "::error::Opened $issue but could not open its PR. Open it by hand with: ${command//%/%25}"
+  exit 1
+fi
