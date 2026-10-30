@@ -299,26 +299,186 @@ Release branches need the same protection as `main`: changes only
 through a PR, CI checks required, the PR up to date, and only the owner
 merging. Rulesets are repository settings, not files, so before the first
 cut the owner sets up `refs/heads/v*` in two places, since `main`'s
-protection is split between them:
+protection is split between them: the `main-merge-owner-only` ruleset
+(who may update the branch) and a ruleset of its own (PR and checks). Do
+both once, in this order.
 
-- The `update` restriction, with the owner's bypass: add `refs/heads/v*`
-  to the `main-merge-owner-only` ruleset, which holds only that rule.
-- PR required (0 approvals) and strict required status checks, which on
-  `main` come from classic branch protection: a branch ruleset targeting
-  `refs/heads/v*` with a `pull_request` rule and `required_status_checks`
-  set to strict, or a classic protection rule for `v*`. Require `build`,
-  `validate-issue-link`, `dependency-review`, `lint-workflows` and
-  `semgrep`, and leave out `codecov/project`: `ci.yml` uploads coverage on
-  pushes to `main` only, so a PR into `v*` may have no base to compare
-  against.
+Add the pattern to `main-merge-owner-only`, which holds only the `update`
+restriction and the owner's bypass:
 
-`deploy` is left out, since the workflow must be able to push to it. CI runs on PRs into any branch, and
+1. Open <https://github.com/mureinik/cwe-visualizer/settings/rules>. By
+   hand: the repository's **Settings** tab, then **Rules** → **Rulesets**
+   in the left sidebar.
+2. Click **main-merge-owner-only**.
+3. Under **Target branches**, click **Add target** and then **Include by
+   pattern**. Enter `v*` and click **Add Inclusion pattern**. The list now
+   shows the default branch and `v*`. (GitHub's documentation calls the
+   first button **Add a target**; use whichever your page shows.)
+4. Click **Save changes** at the bottom of the page.
+
+Then create a ruleset that requires a PR and the checks. On `main` those
+come from classic branch protection, but a ruleset targeting `v*` does the
+same for the release branches, and classic protection for `v*` would be a
+third place to look:
+
+1. Open <https://github.com/mureinik/cwe-visualizer/settings/rules/new?target=branch>.
+   By hand: **Settings** → **Rules** → **Rulesets** → **New ruleset** →
+   **New branch ruleset**.
+2. **Ruleset Name**: `release-branches`.
+3. **Enforcement status**: **Active**.
+4. **Bypass list**: leave it empty. `main` has no bypass either, admins
+   included, so the owner opens a PR into a release branch like anyone.
+5. Under **Target branches**, click **Add target**, then **Include by
+   pattern**, enter `v*` and click **Add Inclusion pattern**. Leave
+   `deploy` out, since the publish workflow must be able to push to it.
+6. Under **Branch rules** (called **Branch protections** on some pages),
+   tick **Require a pull request before merging** and set **Required
+   approvals** to `0`. GitHub doesn't let authors approve their own PRs,
+   so a required approval would lock out a sole maintainer.
+7. Tick **Require status checks to pass** (also worded **Require status
+   checks to pass before merging**) and, under it, **Require branches to
+   be up to date before merging**. That is the "strict" setting.
+8. Click **Add checks**. Search for each of these, select it and add it:
+   `build`, `validate-issue-link`, `dependency-review`, `lint-workflows`
+   and `semgrep`. If a name doesn't show up in the search, type it in
+   exactly and add it anyway, since the search lists only checks that have
+   run recently. Leave `codecov/project` out: `ci.yml` uploads coverage on
+   pushes to `main` only, so a PR into `v*` may have no base to compare
+   against. Strict checks do nothing without at least one check, so don't
+   skip this step.
+9. Click **Create** at the bottom of the page.
+
+Check the result from your shell:
+
+```sh
+# Both rulesets are listed, and release-branches is "active".
+gh api repos/mureinik/cwe-visualizer/rulesets \
+  --jq '.[] | {id, name, target, enforcement}'
+
+# main-merge-owner-only now includes v*.
+gh api repos/mureinik/cwe-visualizer/rulesets \
+  --jq '.[] | select(.name == "main-merge-owner-only") | .id' \
+  | xargs -I{} gh api repos/mureinik/cwe-visualizer/rulesets/{} \
+      --jq '.conditions.ref_name.include'
+
+# After the first release branch exists (v1 here), the rules that apply to
+# it. Expect pull_request, required_status_checks and update.
+gh api repos/mureinik/cwe-visualizer/rules/branches/v1 --jq '.[].type'
+```
+
+The last command lists nothing until a `v1` branch exists, so run it right
+after the first cut. `deploy` is left out of both rulesets, since the
+workflow must be able to push to it. CI runs on PRs into any branch, and
 `validate-issue-link` applies to them too.
 
 Pushes to `v*` branches and to `deploy` create no Vercel deployments
 (`vercel.json` turns them off), since releases are published through
 `deploy`. PRs into a release branch still get a preview, like any other
 PR.
+
+### Security backports
+
+Dependabot opens security updates only against `main`, so a fixed advisory
+would stay open on every release branch. `backport-security.yml` carries
+the fix over. It starts when a Dependabot PR that fixes a security alert is
+merged into `main`, and it has two parts per release branch (every branch
+named `vN` or `vN.M`):
+
+1. `backport` runs `npm audit` on the branch. If the advisory doesn't
+   affect it, the run says so and stops. Otherwise it runs `npm update` on
+   the affected packages, audits again and runs CI's checks.
+2. `open` pushes `backport/<branch>/<GHSA>` and opens an issue,
+   `Backport <GHSA> to <branch>`, and a PR into the release branch whose
+   body starts `Closes #<issue>`. If no update fits the branch's ranges, or
+   CI's checks fail on the result, it opens only the issue, with the
+   reason, and you fix the branch by hand with a PR as in step 5 above.
+
+There is one issue and one PR per advisory per branch, and a rerun never
+opens a second one. Merging the PR republishes the release, like any fix to
+it. The issue isn't closed by the merge, since GitHub closes issues
+automatically only for the default branch, so close it by hand. A failed
+`npm audit` turns the run red and opens nothing; read the log and rerun.
+
+A security fix made by hand on `main` has no Dependabot PR to start from.
+After it merges, run the workflow with the advisory's ID:
+
+```sh
+gh workflow run backport-security.yml -f ghsa=GHSA-xxxx-xxxx-xxxx
+gh run list --workflow backport-security.yml --limit 3
+```
+
+There is one known blind spot. The trigger is a fix merged on `main`, so
+an advisory against a package that only a release branch still uses, and
+`main` no longer does, never gets a Dependabot PR there and nothing starts
+a backport. Watch for such advisories (`npm audit` on the branch shows
+them) and run the workflow by hand with the advisory's ID.
+
+#### One-time setup: the `BACKPORT_TOKEN` secret
+
+The workflow opens its pushes, issues and PRs with a personal access token
+of yours, stored as the repository secret `BACKPORT_TOKEN`. The job token
+can't do it: pushes and PRs made with it don't trigger other workflows, so
+CI would never run on the backport PR, and reading Dependabot alerts, which
+tells the workflow which advisory a PR fixed, needs a permission the job
+token can't have. The token never reaches a step that runs code from a
+release branch.
+
+1. Open <https://github.com/settings/personal-access-tokens/new>. By hand:
+   click your profile picture in the upper-right corner of any GitHub
+   page, then **Settings** → **Developer settings** (left sidebar) →
+   **Personal access tokens** → **Fine-grained tokens** → **Generate new
+   token**.
+2. **Token name**: `cwe-visualizer backport`.
+3. **Description**: `Opens backport branches, issues and PRs for security
+   fixes (backport-security.yml)`.
+4. **Resource owner**: `mureinik`.
+5. **Expiration**: choose **Custom** and pick the date one year from today,
+   the longest the page accepts. Don't choose **No expiration**: a token
+   that never expires stays valid if it leaks.
+6. **Repository access**: select **Only select repositories**, open the
+   **Select repositories** dropdown and pick `mureinik/cwe-visualizer`.
+7. Under **Permissions**, click **Add permissions** if the repository
+   permissions aren't listed, and set each of these in **Repository
+   permissions**, leaving the rest at **No access**:
+   - **Contents**: **Read and write**
+   - **Issues**: **Read and write**
+   - **Pull requests**: **Read and write**
+   - **Dependabot alerts**: **Read-only**
+
+   **Metadata** is set to **Read-only** for you, and can't be turned off.
+8. Click **Generate token**, then copy the token that starts with
+   `github_pat_`. GitHub shows it once.
+9. Store it as the repository secret. This command prompts for the value,
+   so paste the token and press Enter; it is never typed on the command
+   line, so it stays out of your shell history:
+
+   ```sh
+   gh secret set BACKPORT_TOKEN --repo mureinik/cwe-visualizer
+   ```
+
+10. Check that the secret exists. The list shows names and update times,
+    never values:
+
+    ```sh
+    gh secret list --repo mureinik/cwe-visualizer
+    ```
+
+    `BACKPORT_TOKEN` should be listed under today's date. To test the token
+    itself, run the workflow against a real advisory (see the command
+    above) and read the run's `resolve` and `open` jobs.
+
+The token expires, and until it is renewed the workflow fails at its
+alert lookup or its push, so the backports stop. Its expiry date is on the
+token's page: <https://github.com/settings/personal-access-tokens>, under
+**Fine-grained tokens**, next to its name. GitHub also emails you before it
+expires. To rotate it, shortly before that date:
+
+1. Open that page and click `cwe-visualizer backport`.
+2. Click **Regenerate token**, pick a new expiration, as in step 5, and
+   confirm. Copy the new token. (If your page has no such button, generate
+   a new token with the steps above and delete the old one.)
+3. Run `gh secret set BACKPORT_TOKEN --repo mureinik/cwe-visualizer` again,
+   paste the new token, and check with `gh secret list` as before.
 
 ## Working with the Claude agent
 
