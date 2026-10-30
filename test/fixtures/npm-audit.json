@@ -1,0 +1,80 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "re2js": {
+      "name": "re2js",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1243620,
+          "name": "re2js",
+          "dependency": "re2js",
+          "title": "RE2JS: Quadratic-time denial of service in re2js lookbehind matching",
+          "url": "https://github.com/advisories/GHSA-gg6h-894w-4m9c",
+          "severity": "high",
+          "cwe": [
+            "CWE-407",
+            "CWE-1333"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": ">=2.2.0 <2.8.7"
+        }
+      ],
+      "effects": [
+        "markdownlint"
+      ],
+      "range": "2.2.0 - 2.8.6",
+      "nodes": [
+        "node_modules/re2js"
+      ],
+      "fixAvailable": {
+        "name": "markdownlint-cli2",
+        "version": "0.23.3",
+        "isSemVerMajor": true
+      }
+    },
+    "markdownlint": {
+      "name": "markdownlint",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "micromark-extension-math",
+        "re2js"
+      ],
+      "effects": [
+        "markdownlint-cli2"
+      ],
+      "range": ">=0.37.0",
+      "nodes": [
+        "node_modules/markdownlint"
+      ],
+      "fixAvailable": {
+        "name": "markdownlint-cli2",
+        "version": "0.23.3",
+        "isSemVerMajor": true
+      }
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 2,
+      "moderate": 0,
+      "high": 3,
+      "critical": 0,
+      "total": 5
+    },
+    "dependencies": {
+      "prod": 4,
+      "dev": 480,
+      "optional": 27,
+      "peer": 7,
+      "peerOptional": 0,
+      "total": 483
+    }
+  }
+}
