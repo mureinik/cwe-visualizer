@@ -382,7 +382,8 @@ Check the result from your shell:
 
 ```sh
 # Three rulesets are listed, all "active": main-merge-owner-only,
-# release-branches, and review, which applies to every branch.
+# release-branches, and review, which applies to every branch. After the
+# tag ruleset below there is a fourth, release-base-tags.
 gh api repos/mureinik/cwe-visualizer/rulesets \
   --jq '.[] | {id, name, target, enforcement}'
 
@@ -412,6 +413,46 @@ Pushes to `v[0-9]*` branches and to `deploy` create no Vercel deployments
 (`vercel.json` turns them off), since releases are published through
 `deploy`. PRs into a release branch still get a preview, like any other
 PR.
+
+The `vX.Y-base` tags get a ruleset of their own, so nobody can move or
+delete one. It leaves creating them open, so the cut needs no bypass,
+and its bypass list is empty, as for `release-branches`: to fix a wrong
+tag, switch the ruleset off, fix the tag and switch it back on, as in
+[If the cut is rejected](#if-the-cut-is-rejected). Set it up once:
+
+1. Open <https://github.com/mureinik/cwe-visualizer/settings/rules>. By
+   hand: the repository's **Settings** tab, then **Rules** → **Rulesets**
+   in the left sidebar.
+2. Click **New ruleset**, then **New tag ruleset**.
+3. Under **Ruleset name**, enter `release-base-tags`.
+4. Set **Enforcement status**, which starts as **Disabled**, to
+   **Active**.
+5. Leave the **Bypass list** empty.
+6. Under **Target tags**, click **Add a target** and then **Include by
+   pattern**. Enter `v[0-9]*-base` and add it, with the button the dialog
+   shows (**Add Inclusion pattern** for branches; GitHub's documentation
+   doesn't name it for tags).
+7. Under **Tag protections**, tick **Restrict updates**, and keep
+   **Restrict deletions** and **Block force pushes** ticked, as they are by
+   default. Leave **Restrict creations** unticked, or the cut would be
+   rejected.
+8. Click **Create**.
+
+Check it from your shell:
+
+```sh
+gh api repos/mureinik/cwe-visualizer/rulesets \
+  --jq '.[] | select(.name == "release-base-tags") | .id' \
+  | xargs -I{} gh api repos/mureinik/cwe-visualizer/rulesets/{} \
+      --jq '{target, enforcement, bypass: .bypass_actors,
+             include: .conditions.ref_name.include,
+             rules: [.rules[].type]}'
+```
+
+It prints one line of JSON, with `"target":"tag"`,
+`"enforcement":"active"`, `"bypass":[]`,
+`"include":["refs/tags/v[0-9]*-base"]`, and `rules` holding `update`,
+`deletion` and `non_fast_forward` in some order, without `creation`.
 
 ### If the cut is rejected
 
