@@ -386,6 +386,32 @@ Pushes to `v*` branches and to `deploy` create no Vercel deployments
 `deploy`. PRs into a release branch still get a preview, like any other
 PR.
 
+### If the cut is rejected
+
+If `git push origin main:refs/heads/vX.Y` fails with a rule violation
+despite that option, switch the ruleset off for the push, then back on:
+
+1. Open <https://github.com/mureinik/cwe-visualizer/settings/rules>
+   and click **release-branches**.
+2. Set **Enforcement status** to **Disabled** and click **Save changes**.
+3. Push the cut and check it:
+
+   ```sh
+   git push origin main:refs/heads/vX.Y
+   git ls-remote --heads origin vX.Y
+   ```
+
+4. Reopen the ruleset, set **Enforcement status** back to **Active** and
+   click **Save changes**.
+5. Check that it is active again; this prints `active`:
+
+   ```sh
+   gh api repos/mureinik/cwe-visualizer/rulesets \
+     --jq '.[] | select(.name == "release-branches") | .enforcement'
+   ```
+
+Until step 4 the release branches are unprotected, so do it right away.
+
 ### Security backports
 
 Dependabot opens security updates only against `main`, so a fixed advisory
@@ -422,32 +448,6 @@ an advisory against a package that only a release branch still uses, and
 `main` no longer does, never gets a Dependabot PR there and nothing starts
 a backport. Watch for such advisories (`npm audit` on the branch shows
 them) and run the workflow by hand with the advisory's ID.
-
-#### If the cut is rejected
-
-If `git push origin main:refs/heads/vX.Y` fails with a rule violation
-despite that option, switch the ruleset off for the push, then back on:
-
-1. Open <https://github.com/mureinik/cwe-visualizer/settings/rules>
-   and click **release-branches**.
-2. Set **Enforcement status** to **Disabled** and click **Save changes**.
-3. Push the cut and check it:
-
-   ```sh
-   git push origin main:refs/heads/vX.Y
-   git ls-remote --heads origin vX.Y
-   ```
-
-4. Reopen the ruleset, set **Enforcement status** back to **Active** and
-   click **Save changes**.
-5. Check that it is active again; this prints `active`:
-
-   ```sh
-   gh api repos/mureinik/cwe-visualizer/rulesets \
-     --jq '.[] | select(.name == "release-branches") | .enforcement'
-   ```
-
-Until step 4 the release branches are unprotected, so do it right away.
 
 #### One-time setup: the `BACKPORT_TOKEN` secret
 
