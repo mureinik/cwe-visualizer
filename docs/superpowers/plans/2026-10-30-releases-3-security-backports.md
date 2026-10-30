@@ -372,6 +372,24 @@ backports, and "The release process" (the docs it asks for).
   rest of the job. It also deletes that test issue afterwards, if the
   owner agrees.
 
+## Changes during implementation
+
+- **The audit diff replaced [fetch-metadata][fetch-metadata].** Its alert
+  lookup returns at most one GHSA per PR, searches only the repository's
+  first 100 alerts, and misses fixes that arrive through a parent's bump
+  (the jsdom bump fixed undici alerts). `resolve` now runs
+  `npm audit --json --package-lock-only` on the merge commit and its first
+  parent, and backports every advisory only the first reports. It needs no
+  `BACKPORT_TOKEN` and no Dependabot alerts permission.
+- **The trigger widened** from merged Dependabot PRs to every PR merged
+  into `main`. The manual run remains, for an advisory against a package
+  `main` dropped and for retries.
+- **Each pair takes two jobs.** `backport` runs the release branch's code
+  with only a read token and hands its result to `open`, which holds
+  `BACKPORT_TOKEN` and never runs npm, as an artifact.
+- **The matrix is `{ghsa, branch}` pairs**, every fixed advisory crossed
+  with every release branch, instead of one advisory over the branches.
+
 <!-- Issues and PRs -->
 [i238]: https://github.com/mureinik/cwe-visualizer/issues/238
 [i248]: https://github.com/mureinik/cwe-visualizer/issues/248
