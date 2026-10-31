@@ -169,6 +169,27 @@ describe('buildEgoGraph lateral cap', () => {
     expect(ego.lateralOverflow).toEqual({ left: 5, right: 0 });
   });
 
+  it('places directional relations before balancing the rest, so none overflows while the other side has room', () => {
+    // CWE-787 on CWE 4.21: 788 Overlaps it, and 822-825 each CanPrecede it.
+    // Placed in id order, 788 took a left slot while both sides were empty,
+    // and 825 then overflowed the left with the right still empty.
+    const mixed: CweData = {
+      meta: data.meta,
+      nodes: Object.fromEntries(['787', '788', '822', '823', '824', '825'].map((id) => [id, node(id)])),
+      edges: [
+        { from: '788', to: '787', type: 'Overlaps' },
+        ...['822', '823', '824', '825'].map((from) => ({ from, to: '787', type: 'CanPrecede' })),
+      ],
+    };
+    const ego = buildEgoGraph(buildGraph(mixed), '787');
+
+    expect(ego.lateralOverflow).toEqual({ left: 0, right: 0 });
+    const onSide = (side: string) =>
+      ego.nodes.filter((n) => n.band === 0 && n.side === side).map((n) => n.id);
+    expect(onSide('left')).toEqual(['822', '823', '824', '825']);
+    expect(onSide('right')).toEqual(['788']);
+  });
+
   it('reports none when every lateral fits', () => {
     expect(buildEgoGraph(graph, '3').lateralOverflow).toEqual({ left: 0, right: 0 });
   });

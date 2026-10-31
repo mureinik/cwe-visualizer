@@ -67,7 +67,10 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
   const childCap = options?.childCap ?? 10;
   const lateralCap = options?.lateralCap ?? 4;
 
-  if (!(centerId in graph.nodes)) {
+  // buildGraph gives every node a relatedTo list, so a missing one is an
+  // unknown centre.
+  const related = graph.relatedTo.get(centerId);
+  if (!related) {
     return { centerId, nodes: [], edges: [], overflow: null, lateralOverflow: { left: 0, right: 0 } };
   }
 
@@ -115,12 +118,21 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
   const overflow = hiddenCount > 0 ? { parentId: centerId, hiddenCount } : null;
 
   // Lateral relations stay on band 0. Direction carries meaning where the
-  // relation has one; everything else is placed to balance the row.
+  // relation has one; everything else is placed to balance the row. The
+  // directional ones go first: they have no choice of side, so a relation
+  // that does mustn't take a slot one of them needs.
+  const hasDirection = (type: string) => {
+    const base = baseRelationType(type);
+    return LEADS_TO.has(base) || LEADS_FROM.has(base);
+  };
+  const laterals = [...related].sort(
+    (a, b) => Number(hasDirection(b.type)) - Number(hasDirection(a.type)) || compareIds(a.to, b.to),
+  );
   let left = 0;
   let right = 0;
   let leftHidden = 0;
   let rightHidden = 0;
-  for (const edge of [...(graph.relatedTo.get(centerId) ?? [])].sort((a, b) => compareIds(a.to, b.to))) {
+  for (const edge of laterals) {
     if (!(edge.to in graph.nodes) || edge.to === centerId) continue;
     // "<Type> (inverse)" is the direction buildGraph synthesized for a
     // relation with no named opposite, so it points the other way: treating
