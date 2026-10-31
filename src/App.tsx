@@ -4,7 +4,7 @@ import { TreeDrawer } from './components/TreeDrawer';
 import { GraphStage } from './components/GraphStage';
 import { LandingPanel } from './components/LandingPanel';
 import { NARROW_QUERY, useMediaQuery } from './lib/media';
-import { DetailPanel, RELATIONS_ANCHOR_ID, type RelationFlash } from './components/DetailPanel';
+import { DetailPanel, type RelationFlash } from './components/DetailPanel';
 import { AppHeader } from './components/AppHeader';
 import { Attribution } from './components/Attribution';
 
@@ -101,15 +101,10 @@ export function App() {
               }}
               onShowRelations={(hidden) => {
                 // The capped relations are already in the detail card, so
-                // take them there rather than crowding them back onto the
-                // canvas, and flash them: when the list is already on
-                // screen the scroll alone does nothing visible.
-                // scrollIntoView is unimplemented in jsdom.
+                // point them out there rather than crowding them back onto
+                // the canvas. The card scrolls to them itself.
                 flashCount.current += 1;
                 setFlash({ relations: hidden, token: flashCount.current });
-                document
-                  .getElementById(RELATIONS_ANCHOR_ID)
-                  ?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
               }}
               hops={narrow ? 1 : 2}
             />

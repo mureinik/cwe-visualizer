@@ -205,12 +205,13 @@
 
 /*
  * Points out the relations a lateral "+N more" chip on the graph stands for:
- * a ring pulses out twice while a tint fades, then the chip is as it was.
+ * a ring pulses out three times while a tint fades, then the chip is as it
+ * was. Long enough to outlast the smooth scroll that brings it into view.
  */
 .relation-chip--flash {
   animation:
-    relation-chip-pulse 600ms var(--ease) 2,
-    relation-chip-tint 1200ms var(--ease);
+    relation-chip-pulse 700ms var(--ease) 3,
+    relation-chip-tint 2100ms var(--ease);
 }
 
 @keyframes relation-chip-pulse {
@@ -236,6 +237,6 @@
  */
 @media (prefers-reduced-motion: reduce) {
   .relation-chip--flash {
-    animation: relation-chip-tint 1200ms var(--ease) !important;
+    animation: relation-chip-tint 2100ms var(--ease) !important;
   }
 }

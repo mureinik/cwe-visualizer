@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../src/App';
-import { RELATIONS_ANCHOR_ID } from '../src/components/DetailPanel';
 
 const sampleData = {
   meta: { cweVersion: '4.15', catalogDate: '2025-12-01', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
@@ -182,14 +181,16 @@ describe('App', () => {
       expect(within(tree).getByRole('button', { name: 'CWE-313: Child 13' })).toBeInTheDocument();
     });
 
-    it('scrolls the detail card to its relations when the hidden relations are asked for', async () => {
+    it('scrolls the detail card to the first hidden relation when the hidden relations are asked for', async () => {
+      // Not to the top of the list: on CWE-119 that stops among 37 parents
+      // and children, and on a phone the flash played out of sight (#260).
       const scrollIntoView = vi.fn();
       Object.defineProperty(Element.prototype, 'scrollIntoView', { value: scrollIntoView, configurable: true });
       try {
         render(<App />);
         await userEvent.click(await screen.findByRole('button', { name: /Show \d+ more related weaknesses/ }));
-        expect(scrollIntoView).toHaveBeenCalledExactlyOnceWith({ block: 'start', behavior: 'smooth' });
-        expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById(RELATIONS_ANCHOR_ID));
+        expect(scrollIntoView).toHaveBeenCalledExactlyOnceWith({ block: 'center', behavior: 'smooth' });
+        expect(scrollIntoView.mock.contexts[0]).toBe(screen.getByRole('button', { name: 'CanFollow CWE-504: Lateral 4' }));
       } finally {
         delete (Element.prototype as Partial<Element>).scrollIntoView;
       }

@@ -4,8 +4,6 @@ import { isDeprecated, type Graph } from '../lib/graph';
 import { RELATION_GROUPS, relationGroup, type RelationGroup } from '../lib/relations';
 import { Glyph } from './Glyph';
 
-export const RELATIONS_ANCHOR_ID = 'detail-relations';
-
 /** Relations to point out, for the graph's lateral "+N more" chip. */
 export interface RelationFlash {
   relations: readonly LateralRelation[];
@@ -106,14 +104,17 @@ export function DetailPanel({ graph, selectedId, onSelect, flash = null }: Detai
     setExpanded(true);
   }
 
-  // Take focus to the first flashed relation, so a keyboard or screen-reader
-  // user lands on what the chip stood for. The graph's chip already scrolls
-  // the card, so don't scroll it again.
+  // Bring the first flashed relation into view and focus it, so a keyboard
+  // or screen-reader user lands on what the chip stood for. Scroll to it,
+  // not to the top of the list: on CWE-119, 37 parents and children come
+  // first, and on a phone the flash played out of sight below them. Focus
+  // without scrolling, or the jump would cut the smooth scroll short.
+  // scrollIntoView is unimplemented in jsdom.
   useEffect(() => {
     if (!flash) return;
-    relationsRef.current
-      ?.querySelector<HTMLButtonElement>('.relation-chip--flash')
-      ?.focus({ preventScroll: true });
+    const first = relationsRef.current?.querySelector<HTMLButtonElement>('.relation-chip--flash');
+    first?.focus({ preventScroll: true });
+    first?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
   }, [flash]);
 
   if (!selectedId) {
@@ -161,11 +162,7 @@ export function DetailPanel({ graph, selectedId, onSelect, flash = null }: Detai
         View on cwe.mitre.org
       </a>
 
-      {/*
-        Scroll target for the graph's lateral "+N more" marker: the relations
-        it stands for are all listed here, and flashed.
-      */}
-      <div id={RELATIONS_ANCHOR_ID} className="detail-panel__relations" ref={relationsRef}>
+      <div className="detail-panel__relations" ref={relationsRef}>
         {sections.map((section) => (
           <section key={section.label} className="relation-section">
             <h3 className="relation-section__heading">
