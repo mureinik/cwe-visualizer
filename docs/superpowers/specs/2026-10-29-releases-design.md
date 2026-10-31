@@ -350,7 +350,7 @@ repeatable by hand or by an agent:
 5. Fixes later: PR into the release branch, with an issue, as for `main`.
    Merging redeploys that release in place.
 
-The docs also cover the release-branch ruleset, the `deploy` branch
+The docs also cover the release-branch and release-base-tag rulesets, the `deploy` branch
 ("never edit by hand"), the two watchers, and the backport workflow, and
 update the existing passages that describe the daily refresh as
 redeploying production and the production site as being `main`.

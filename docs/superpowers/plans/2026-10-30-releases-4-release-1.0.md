@@ -72,6 +72,10 @@ sections "Versioning", "Flow 1", "Flow 2" and "The release process".
 - [x] Release-branch protection is in place:
   `gh api repos/mureinik/cwe-visualizer/rules/branches/v1 --jq '.[].type'`
   prints the eight types CONTRIBUTING lists.
+- [x] The `release-base-tags` ruleset is active, as CONTRIBUTING's check
+  for it shows. (Added after the run: the owner set it up during Task 2,
+  just after the cut. It blocks only moving and deleting a tag, so the
+  cut didn't need it.)
 - [x] `gh secret list` shows `BACKPORT_TOKEN` and `VERCEL_DEPLOY_HOOK_URL`.
 - [x] `git ls-remote origin v1 v1-base` prints nothing, and
   `git ls-remote --heads origin deploy` prints one line.

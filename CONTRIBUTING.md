@@ -416,9 +416,9 @@ PR.
 
 The `vX.Y-base` tags get a ruleset of their own, so nobody can move or
 delete one. It leaves creating them open, so the cut needs no bypass,
-and its bypass list is empty, as for `release-branches`: to fix a wrong
-tag, switch the ruleset off, fix the tag and switch it back on, as in
-[If the cut is rejected](#if-the-cut-is-rejected). Set it up once:
+and its bypass list is empty, as for `release-branches`, so even the
+owner fixes a wrong tag only by switching the ruleset off (see
+[If a base tag is wrong](#if-a-base-tag-is-wrong)). Set it up once:
 
 1. Open <https://github.com/mureinik/cwe-visualizer/settings/rules>. By
    hand: the repository's **Settings** tab, then **Rules** → **Rulesets**
@@ -456,8 +456,19 @@ It prints one line of JSON, with `"target":"tag"`,
 
 ### If the cut is rejected
 
-If the push in step 3 fails with a rule violation despite that option,
-switch the ruleset off for the push, then back on:
+A rejected push changes nothing on GitHub, since `--atomic` pushes both
+refs or neither, so retry with the local `vX.Y-base` tag as it is. If
+`main` has moved since and the release should start from its new head,
+first check that the tag never reached GitHub:
+`git ls-remote origin vX.Y-base` must print nothing. Only then delete the
+local tag with `git tag -d vX.Y-base` and create it again as in step 3.
+If the tag is on GitHub, don't recreate it with `git tag -f`: the
+`release-base-tags` ruleset rejects moving it, and with it the whole
+push. See [If a base tag is wrong](#if-a-base-tag-is-wrong) instead.
+
+If the push in step 3 fails with a rule violation on the branch despite
+that option, switch the `release-branches` ruleset off for the push, then
+back on:
 
 1. Open <https://github.com/mureinik/cwe-visualizer/settings/rules>
    and click **release-branches**.
@@ -479,6 +490,38 @@ switch the ruleset off for the push, then back on:
    ```
 
 Until step 4 the release branches are unprotected, so do it right away.
+
+### If a base tag is wrong
+
+A `vX.Y-base` tag should never change, but if one was pushed on the wrong
+commit, move it to the commit `vX.Y` branched from. The
+`release-base-tags` ruleset blocks this for everyone, so switch it off
+for the push, then back on:
+
+1. Open <https://github.com/mureinik/cwe-visualizer/settings/rules>
+   and click **release-base-tags**.
+2. Set **Enforcement status** to **Disabled** and click **Save changes**.
+3. Find the commit the branch started from, recreate the tag on it, push
+   it, and check it. The last command prints that commit's SHA:
+
+   ```sh
+   git fetch origin
+   base=$(git merge-base origin/main origin/vX.Y)
+   git tag -f -a vX.Y-base -m "vX.Y branches from main here" "$base"
+   git push --force origin vX.Y-base
+   git ls-remote origin 'vX.Y-base^{}'
+   ```
+
+4. Reopen the ruleset, set **Enforcement status** back to **Active** and
+   click **Save changes**.
+5. Check that it is active again; this prints `active`:
+
+   ```sh
+   gh api repos/mureinik/cwe-visualizer/rulesets \
+     --jq '.[] | select(.name == "release-base-tags") | .enforcement'
+   ```
+
+Until step 4 every base tag is unprotected, so do it right away.
 
 ### Security backports
 
