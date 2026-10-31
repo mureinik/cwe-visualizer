@@ -44,6 +44,7 @@ export interface BuildGraphOptions {
 const INVERSE_NATURES = new Map([
   ['PeerOf', 'PeerOf'],
   ['CanAlsoBe', 'CanAlsoBe'],
+  ['Overlaps', 'Overlaps'],
   ['CanPrecede', 'CanFollow'],
   ['CanFollow', 'CanPrecede'],
   ['Requires', 'RequiredBy'],

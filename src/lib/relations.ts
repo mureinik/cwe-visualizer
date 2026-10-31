@@ -69,6 +69,7 @@ const BY_TYPE = new Map<string, RelationGroup>([
   ['StartsWith', 'sequence'],
   ['PeerOf', 'peer'],
   ['CanAlsoBe', 'peer'],
+  ['Overlaps', 'peer'],
   ['Requires', 'requires'],
   ['RequiredBy', 'requires'],
 ]);

@@ -64,6 +64,37 @@ describe('buildGraph', () => {
     expect(graph.relatedTo.get('2')).toEqual([{ from: '2', to: '1', type: 'CanFollow' }]);
   });
 
+  // CWE 4.21 added Overlaps, which MITRE describes as symmetric, like PeerOf.
+  it('labels a synthesized Overlaps inverse as Overlaps, since it is symmetric', () => {
+    const data: CweData = {
+      meta: sampleData.meta,
+      nodes: {
+        '1': { id: '1', name: 'A', abstraction: '', status: '', description: '', url: '' },
+        '2': { id: '2', name: 'B', abstraction: '', status: '', description: '', url: '' },
+      },
+      edges: [{ from: '1', to: '2', type: 'Overlaps' }],
+    };
+    const graph = buildGraph(data);
+    expect(graph.relatedTo.get('2')).toEqual([{ from: '2', to: '1', type: 'Overlaps' }]);
+  });
+
+  it('records an Overlaps declared from both sides once on each side', () => {
+    const data: CweData = {
+      meta: sampleData.meta,
+      nodes: {
+        '1': { id: '1', name: 'A', abstraction: '', status: '', description: '', url: '' },
+        '2': { id: '2', name: 'B', abstraction: '', status: '', description: '', url: '' },
+      },
+      edges: [
+        { from: '1', to: '2', type: 'Overlaps' },
+        { from: '2', to: '1', type: 'Overlaps' },
+      ],
+    };
+    const graph = buildGraph(data);
+    expect(graph.relatedTo.get('1')).toEqual([{ from: '1', to: '2', type: 'Overlaps' }]);
+    expect(graph.relatedTo.get('2')).toEqual([{ from: '2', to: '1', type: 'Overlaps' }]);
+  });
+
   it('falls back to a generic "(inverse)" label for relation types with no known inverse', () => {
     const data: CweData = {
       meta: sampleData.meta,

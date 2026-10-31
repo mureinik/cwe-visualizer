@@ -409,10 +409,11 @@ Measured on 2026-10-29 by parsing each archive with today's
   three.
 - `Overlaps` is new in 4.21, not 5.0. MITRE describes it as symmetric,
   like `PeerOf`. Today [`graph.ts`][graph] doesn't know it, so it synthesises a
-  reverse edge labelled "Overlaps (inverse)", and [`relations.ts`][relations] doesn't
-  group it, so it isn't shown with the peer relations. Supporting 4.21
-  means treating `Overlaps` as its own inverse and grouping it with
-  `PeerOf`, with tests; per CONTRIBUTING these are real-world tests (the
+  reverse edge labelled "Overlaps (inverse)". [`relations.ts`][relations] doesn't
+  name it either, though its fallback for unknown types already shows it
+  with the peer relations. (Corrected on 2026-10-31: this first said it
+  wasn't shown with the peers.) Supporting 4.21 means treating `Overlaps`
+  as its own inverse and naming it in the peer group, with tests; per CONTRIBUTING these are real-world tests (the
   data has it).
 - 5.0's other changes (Category replaced by Grouping, Dimensions,
   Custom_Phases, Technical_Nuance, notes on relations, repeatable phases,
