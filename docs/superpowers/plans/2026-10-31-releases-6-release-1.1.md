@@ -73,60 +73,60 @@ item 6 of "Plan of work".
 
 ### Task 1: Preflight
 
-- [ ] Run `git checkout main && git pull --ff-only` and record the SHA to
+- [x] Run `git checkout main && git pull --ff-only` and record the SHA to
   cut from. `cat cwe-version` prints `4.21`, and
   `jq -r .version package.json` prints `0.0.0`.
-- [ ] `main`'s latest CI run on that SHA passed:
+- [x] `main`'s latest CI run on that SHA passed:
   `gh run list --branch main --workflow ci.yml --limit 1`.
-- [ ] Release-branch protection applies to the new branch:
+- [x] Release-branch protection applies to the new branch:
   `gh api repos/mureinik/cwe-visualizer/rules/branches/v1.1 --jq '.[].type'`
   prints the eight types CONTRIBUTING lists.
-- [ ] The `release-base-tags` ruleset is active, as CONTRIBUTING's check
+- [x] The `release-base-tags` ruleset is active, as CONTRIBUTING's check
   for it shows.
-- [ ] `gh secret list` shows `BACKPORT_TOKEN` and `VERCEL_DEPLOY_HOOK_URL`.
-- [ ] `git ls-remote origin v1.1 v1.1-base` prints nothing.
+- [x] `gh secret list` shows `BACKPORT_TOKEN` and `VERCEL_DEPLOY_HOOK_URL`.
+- [x] `git ls-remote origin v1.1 v1.1-base` prints nothing.
   `git ls-tree --name-only origin/deploy` lists `v1` and no `v1.1`.
-- [ ] Production: `/` redirects to `/v1/`, which reports CWE `4.20`, and
+- [x] Production: `/` redirects to `/v1/`, which reports CWE `4.20`, and
   `/latest/` reports `4.21`.
 
 ### Task 2: Cut `v1.1`
 
-- [ ] Run CONTRIBUTING's step 3 for `v1.1`:
+- [x] Run CONTRIBUTING's step 3 for `v1.1`:
   `git tag -a v1.1-base -m "v1.1 branches from main here" main`, then
   `git push --atomic origin v1.1-base 'v1.1-base^{commit}:refs/heads/v1.1'`.
   `git ls-remote origin v1.1 'v1.1-base^{}'` prints the SHA from Task 1
   for both refs.
-- [ ] `release-dispatch.yml` ran for `v1.1` and started
+- [x] `release-dispatch.yml` ran for `v1.1` and started
   `release-publish.yml`. That run passed, with the notice `Not publishing
   v1.1: package.json version is 0.0.0, expected 1.1.0.`, and `deploy` has
   no new commit.
-- [ ] No workflow ran for the tag, and Vercel made no deployment for
+- [x] No workflow ran for the tag, and Vercel made no deployment for
   `v1.1` or the tag.
 
 ### Task 3: The version-bump PR
 
-- [ ] Run `git fetch origin && git checkout -b release/1.1.0 origin/v1.1`,
+- [x] Run `git fetch origin && git checkout -b release/1.1.0 origin/v1.1`,
   then `npm version 1.1.0 --no-git-tag-version`. `git diff` changes only
   the version, from `0.0.0` to `1.1.0`: once in `package.json`, twice in
   `package-lock.json`.
-- [ ] Run `npm run lint && npx tsc --noEmit && npm test`, then commit
+- [x] Run `npm run lint && npx tsc --noEmit && npm test`, then commit
   `chore: release 1.1.0` with the trailer.
-- [ ] Push and open the PR to the Global Constraints. Wait for CI. The
+- [x] Push and open the PR to the Global Constraints. Wait for CI. The
   checks the `release-branches` ruleset requires must pass: `build`,
   `validate-issue-link`, `dependency-review`, `lint-workflows` and
   `semgrep`.
-- [ ] Ask the owner to merge it.
+- [x] Ask the owner to merge it.
 
 ### Task 4: Publish and check (after the owner merges)
 
-- [ ] Confirm the merge: `gh pr view <n> --json state` says `MERGED`, and
+- [x] Confirm the merge: `gh pr view <n> --json state` says `MERGED`, and
   `origin/v1.1` contains the PR's head.
-- [ ] The merge's push to `v1.1` started `release-publish.yml`, and it
+- [x] The merge's push to `v1.1` started `release-publish.yml`, and it
   passed. `deploy` has a new commit `v1.1: built from v1.1@<sha>`, and
   `git ls-tree --name-only origin/deploy` lists both `v1` and `v1.1`.
-- [ ] Production rebuilt: the latest production deployment is newer than
+- [x] Production rebuilt: the latest production deployment is newer than
   the merge, and READY.
-- [ ] The site:
+- [x] The site:
   - `curl -s https://cwe-visualizer.vercel.app/` is the redirect page to
     `/v1.1/`.
   - `/v1.1/` returns 200. Its HTML loads assets from `/v1.1/assets/`, and
@@ -134,7 +134,7 @@ item 6 of "Plan of work".
   - `/v1.1/data/meta.json` reports `4.21`.
   - `/v1/data/meta.json` still reports `4.20`.
   - `/latest/data/meta.json` reports `4.21`.
-- [ ] Ask the owner to open `https://cwe-visualizer.vercel.app/?cwe=787`
+- [x] Ask the owner to open `https://cwe-visualizer.vercel.app/?cwe=787`
   in a browser. It lands on `/v1.1/?cwe=787`, which lists CWE-788 under
   "Peers" as "Overlaps", with no "+1 more" chip. Then
   `https://cwe-visualizer.vercel.app/v1/?cwe=787` still shows 1.0 on CWE
@@ -142,11 +142,11 @@ item 6 of "Plan of work".
 
 ### Task 5: Finish
 
-- [ ] If the run turned up anything CONTRIBUTING's "To cut a release"
+- [x] If the run turned up anything CONTRIBUTING's "To cut a release"
   gets wrong or leaves out, fix it here. Run `npm run lint:md`, then
   commit `docs: correct the release steps`. If the steps were right, skip
   this.
-- [ ] Push to this plan's PR, tick the boxes above, and mark it ready. It
+- [x] Push to this plan's PR, tick the boxes above, and mark it ready. It
   closes [#262][i262].
 - [ ] After the owner merges, confirm with `gh pr view` that it merged.
   Then do the post-merge cleanup for `releases/6-release-1.1` and
