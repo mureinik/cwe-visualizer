@@ -169,6 +169,14 @@ describe('buildEgoGraph lateral cap', () => {
     expect(ego.lateralOverflow).toEqual({ left: 5, right: 0 });
   });
 
+  it('names the relations it dropped, so the overflow chip can point at them', () => {
+    const ego = buildEgoGraph(buildGraph(crowded()), '119', { lateralCap: 6 });
+    expect(ego.hiddenLaterals).toEqual({
+      left: ['406', '407', '408', '409', '410'].map((id) => ({ id, type: 'CanFollow' })),
+      right: [],
+    });
+  });
+
   it('places directional relations before balancing the rest, so none overflows while the other side has room', () => {
     // CWE-787 on CWE 4.21: 788 Overlaps it, and 822-825 each CanPrecede it.
     // Placed in id order, 788 took a left slot while both sides were empty,

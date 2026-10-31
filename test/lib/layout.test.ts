@@ -30,6 +30,7 @@ const ego: EgoGraph = {
   ],
   overflow: { parentId: '3', hiddenCount: 8 },
   lateralOverflow: { left: 0, right: 0 },
+  hiddenLaterals: { left: [], right: [] },
 };
 
 const at = (id: string) => layoutEgoGraph(ego, size).nodes.find((n) => n.id === id)!;
@@ -89,7 +90,7 @@ describe('layoutEgoGraph', () => {
   });
 
   it('does not divide by zero on an empty ego graph', () => {
-    const empty = layoutEgoGraph({ centerId: 'x', nodes: [], edges: [], overflow: null, lateralOverflow: { left: 0, right: 0 } }, size);
+    const empty = layoutEgoGraph({ centerId: 'x', nodes: [], edges: [], overflow: null, lateralOverflow: { left: 0, right: 0 }, hiddenLaterals: { left: [], right: [] } }, size);
     expect(empty.nodes).toEqual([]);
   });
 });
@@ -105,6 +106,7 @@ describe('layoutEgoGraph edge margin', () => {
       edges: [],
       overflow: null,
       lateralOverflow: { left: 0, right: 0 },
+      hiddenLaterals: { left: [], right: [] },
     };
     const xs = layoutEgoGraph(wide, size).nodes.filter((n) => n.band === 1).map((n) => n.x);
     expect(Math.min(...xs)).toBeGreaterThanOrEqual(EDGE_MARGIN);
@@ -121,6 +123,7 @@ describe('layoutEgoGraph edge margin', () => {
       edges: [],
       overflow: { parentId: 'c', hiddenCount: 33 },
       lateralOverflow: { left: 0, right: 0 },
+      hiddenLaterals: { left: [], right: [] },
     };
     const { overflow } = layoutEgoGraph(packed, size);
     expect(overflow!.x).toBeLessThanOrEqual(size.width - EDGE_MARGIN);
@@ -137,6 +140,7 @@ describe('layoutEgoGraph overflow chip', () => {
     edges: [],
     overflow: { parentId: 'c', hiddenCount: 33 },
     lateralOverflow: { left: 0, right: 0 },
+    hiddenLaterals: { left: [], right: [] },
   };
 
   it('does not overlap the last child', () => {
@@ -168,6 +172,7 @@ describe('layoutEgoGraph centre clearance', () => {
       edges: [],
       overflow: null,
       lateralOverflow: { left: 0, right: 0 },
+      hiddenLaterals: { left: [], right: [] },
     };
     const { nodes } = layoutEgoGraph(crowded, size);
     const centre = nodes.find((n) => n.id === 'c')!;
@@ -187,6 +192,10 @@ describe('layoutEgoGraph lateral overflow marker', () => {
       edges: [],
       overflow: null,
       lateralOverflow: { left: 5, right: 0 },
+      hiddenLaterals: {
+        left: Array.from({ length: 5 }, (_, i) => ({ id: `h${i}`, type: 'CanFollow' })),
+        right: [],
+      },
     };
     const { nodes, lateralOverflow } = layoutEgoGraph(capped, size);
     expect(lateralOverflow).toHaveLength(1);
@@ -195,6 +204,19 @@ describe('layoutEgoGraph lateral overflow marker', () => {
     expect(marker.hiddenCount).toBe(5);
     const leftmostNode = Math.min(...nodes.filter((n) => n.id !== 'c').map((n) => n.x));
     expect(marker.x).toBeLessThan(leftmostNode);
+  });
+
+  it('gives the marker the relations it stands for', () => {
+    const hidden = Array.from({ length: 5 }, (_, i) => ({ id: `h${i}`, type: 'CanFollow' }));
+    const capped: EgoGraph = {
+      centerId: 'c',
+      nodes: [{ id: 'c', band: 0, side: 'center' }],
+      edges: [],
+      overflow: null,
+      lateralOverflow: { left: 5, right: 0 },
+      hiddenLaterals: { left: hidden, right: [] },
+    };
+    expect(layoutEgoGraph(capped, size).lateralOverflow.map((m) => m.hidden)).toEqual([hidden]);
   });
 
   it('emits no marker when nothing was capped', () => {

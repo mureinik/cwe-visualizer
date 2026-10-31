@@ -202,3 +202,41 @@
     display: none;
   }
 }
+
+/*
+ * Points out the relations a lateral "+N more" chip on the graph stands for:
+ * a ring pulses out three times while a tint fades, then the chip is as it
+ * was. Long enough to outlast the smooth scroll that brings it into view.
+ */
+.relation-chip--flash {
+  animation:
+    relation-chip-pulse 700ms var(--ease) 3,
+    relation-chip-tint 2100ms var(--ease);
+}
+
+@keyframes relation-chip-pulse {
+  from {
+    box-shadow: 0 0 0 0 var(--abs-class);
+  }
+
+  to {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+@keyframes relation-chip-tint {
+  from {
+    border-color: var(--abs-class);
+    background: color-mix(in srgb, var(--abs-class) 25%, var(--surface));
+  }
+}
+
+/*
+ * base.css cuts every animation short under reduced motion, which would leave
+ * nothing to see. Keep the tint, which fades in place, and drop the pulse.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .relation-chip--flash {
+    animation: relation-chip-tint 2100ms var(--ease) !important;
+  }
+}

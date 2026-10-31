@@ -287,6 +287,14 @@ describe('GraphStage lateral overflow marker', () => {
     expect(onShowRelations).toHaveBeenCalled();
   });
 
+  it('hands over the relations it stands for, so the detail card can point them out', async () => {
+    const onShowRelations = renderCrowded();
+    await userEvent.click(screen.getByRole('button', { name: /Show \d+ more related weaknesses/ }));
+    expect(onShowRelations).toHaveBeenCalledExactlyOnceWith(
+      ['504', '505', '506', '507', '508'].map((id) => ({ id, type: 'CanFollow' })),
+    );
+  });
+
   it('acts on Enter, since an SVG group is not a native button', async () => {
     const onShowRelations = renderCrowded();
     screen.getByRole('button', { name: /Show \d+ more related weaknesses/ }).focus();

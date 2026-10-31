@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { buildGraph, type CweData, type Graph } from './lib/graph';
 import { TreeDrawer } from './components/TreeDrawer';
 import { GraphStage } from './components/GraphStage';
 import { LandingPanel } from './components/LandingPanel';
 import { NARROW_QUERY, useMediaQuery } from './lib/media';
-import { DetailPanel, RELATIONS_ANCHOR_ID } from './components/DetailPanel';
+import { DetailPanel, type RelationFlash } from './components/DetailPanel';
 import { AppHeader } from './components/AppHeader';
 import { Attribution } from './components/Attribution';
 
@@ -27,6 +27,10 @@ export function App() {
   const [selectedId, setSelectedId] = useState<string | null>(() => readSelectedIdFromUrl());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [revealId, setRevealId] = useState<string | null>(null);
+  const [flash, setFlash] = useState<RelationFlash | null>(null);
+  // Never reset, so every flash, even the first after a re-centre, is new to
+  // the detail card.
+  const flashCount = useRef(0);
   const narrow = useMediaQuery(NARROW_QUERY);
 
   useEffect(() => {
@@ -53,6 +57,8 @@ export function App() {
 
   const selectNode = useCallback((id: string) => {
     setSelectedId(id);
+    // The flashed relations belong to the CWE being left.
+    setFlash(null);
     const params = new URLSearchParams(window.location.search);
     params.set('cwe', id);
     window.history.replaceState(null, '', `?${params.toString()}`);
@@ -93,17 +99,16 @@ export function App() {
                 setRevealId(parentId);
                 setDrawerOpen(true);
               }}
-              onShowRelations={() => {
+              onShowRelations={(hidden) => {
                 // The capped relations are already in the detail card, so
-                // take them there rather than crowding them back onto the
-                // canvas. scrollIntoView is unimplemented in jsdom.
-                document
-                  .getElementById(RELATIONS_ANCHOR_ID)
-                  ?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+                // point them out there rather than crowding them back onto
+                // the canvas. The card scrolls to them itself.
+                flashCount.current += 1;
+                setFlash({ relations: hidden, token: flashCount.current });
               }}
               hops={narrow ? 1 : 2}
             />
-            <DetailPanel graph={state.graph} selectedId={selectedId} onSelect={selectNode} />
+            <DetailPanel graph={state.graph} selectedId={selectedId} onSelect={selectNode} flash={flash} />
           </>
         )}
         <TreeDrawer
