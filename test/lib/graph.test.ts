@@ -75,6 +75,7 @@ describe('buildGraph', () => {
       edges: [{ from: '1', to: '2', type: 'Overlaps' }],
     };
     const graph = buildGraph(data);
+    expect(graph.relatedTo.get('1')).toEqual([{ from: '1', to: '2', type: 'Overlaps' }]);
     expect(graph.relatedTo.get('2')).toEqual([{ from: '2', to: '1', type: 'Overlaps' }]);
   });
 

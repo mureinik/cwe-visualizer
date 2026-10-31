@@ -408,13 +408,14 @@ Measured on 2026-10-29 by parsing each archive with today's
   49 descriptions differ in wording. No field parses empty in any of the
   three.
 - `Overlaps` is new in 4.21, not 5.0. MITRE describes it as symmetric,
-  like `PeerOf`. Today [`graph.ts`][graph] doesn't know it, so it synthesises a
-  reverse edge labelled "Overlaps (inverse)". [`relations.ts`][relations] doesn't
-  name it either, though its fallback for unknown types already shows it
-  with the peer relations. (Corrected on 2026-10-31: this first said it
-  wasn't shown with the peers.) Supporting 4.21 means treating `Overlaps`
-  as its own inverse and naming it in the peer group, with tests; per CONTRIBUTING these are real-world tests (the
-  data has it).
+  like `PeerOf`. When this was written, [`graph.ts`][graph] didn't know
+  it, so it synthesised a reverse edge labelled "Overlaps (inverse)".
+  [`relations.ts`][relations] didn't name it either, though its fallback
+  for unknown types already showed it with the peer relations. (Corrected
+  on 2026-10-31: this first said it wasn't shown with the peers.)
+  Supporting 4.21 means treating `Overlaps` as its own inverse and naming
+  it in the peer group, with tests; per CONTRIBUTING these are real-world
+  tests (the data has it). [#255][i255] did this.
 - 5.0's other changes (Category replaced by Grouping, Dimensions,
   Custom_Phases, Technical_Nuance, notes on relations, repeatable phases,
   the namespace) touch nothing the parser reads, which is only Weakness
@@ -449,6 +450,7 @@ Not decided here, listed so that design starts from them:
 [i3]: https://github.com/mureinik/cwe-visualizer/issues/3
 [i162]: https://github.com/mureinik/cwe-visualizer/issues/162
 [i210]: https://github.com/mureinik/cwe-visualizer/issues/210
+[i255]: https://github.com/mureinik/cwe-visualizer/issues/255
 [pr226]: https://github.com/mureinik/cwe-visualizer/pull/226
 [pr234]: https://github.com/mureinik/cwe-visualizer/pull/234
 [pr236]: https://github.com/mureinik/cwe-visualizer/pull/236
