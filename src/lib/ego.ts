@@ -67,7 +67,10 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
   const childCap = options?.childCap ?? 10;
   const lateralCap = options?.lateralCap ?? 4;
 
-  if (!(centerId in graph.nodes)) {
+  // buildGraph gives every node a relatedTo list, so a missing one is an
+  // unknown centre.
+  const related = graph.relatedTo.get(centerId);
+  if (!related) {
     return { centerId, nodes: [], edges: [], overflow: null, lateralOverflow: { left: 0, right: 0 } };
   }
 
@@ -122,7 +125,7 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
     const base = baseRelationType(type);
     return LEADS_TO.has(base) || LEADS_FROM.has(base);
   };
-  const laterals = [...(graph.relatedTo.get(centerId) ?? [])].sort(
+  const laterals = [...related].sort(
     (a, b) => Number(hasDirection(b.type)) - Number(hasDirection(a.type)) || compareIds(a.to, b.to),
   );
   let left = 0;
