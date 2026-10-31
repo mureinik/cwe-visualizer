@@ -82,15 +82,15 @@ and schemas, and found nothing to change.
 
 - Modify: `cwe-version`
 
-- [ ] **Step 1: Move the pin.** `printf '5.0\n' > cwe-version`.
-- [ ] **Step 2: Regenerate the data.** `npm run prepare-data`. Then, on
+- [x] **Step 1: Move the pin.** `printf '5.0\n' > cwe-version`.
+- [x] **Step 2: Regenerate the data.** `npm run prepare-data`. Then, on
   `public/data/cwe.json`:
   - `jq -r .meta.cweVersion` prints `5.0`;
   - `jq '.nodes | length'` prints `984`;
   - `jq '[.edges[] | select(.type == "Overlaps")] | length'` prints `3`.
-- [ ] **Step 3: Verify and commit.** `npm run lint && npx tsc --noEmit &&
+- [x] **Step 3: Verify and commit.** `npm run lint && npx tsc --noEmit &&
   npm test`, then commit `feat: pin CWE 5.0`.
-- [ ] **Step 4: Open the PR.** Tick Task 1's boxes, push, mark this
+- [x] **Step 4: Open the PR.** Tick Task 1's boxes, push, mark this
   plan's PR ready, and wait for the required checks: build,
   validate-issue-link, dependency-review, lint-workflows, semgrep and
   codecov/project. Its body says `Closes #268` and `Closes #244`. The
