@@ -206,6 +206,19 @@ describe('layoutEgoGraph lateral overflow marker', () => {
     expect(marker.x).toBeLessThan(leftmostNode);
   });
 
+  it('gives the marker the relations it stands for', () => {
+    const hidden = Array.from({ length: 5 }, (_, i) => ({ id: `h${i}`, type: 'CanFollow' }));
+    const capped: EgoGraph = {
+      centerId: 'c',
+      nodes: [{ id: 'c', band: 0, side: 'center' }],
+      edges: [],
+      overflow: null,
+      lateralOverflow: { left: 5, right: 0 },
+      hiddenLaterals: { left: hidden, right: [] },
+    };
+    expect(layoutEgoGraph(capped, size).lateralOverflow.map((m) => m.hidden)).toEqual([hidden]);
+  });
+
   it('emits no marker when nothing was capped', () => {
     expect(layoutEgoGraph(ego, size).lateralOverflow).toEqual([]);
   });

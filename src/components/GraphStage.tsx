@@ -238,7 +238,7 @@ export function GraphStage({
                 y={marker.y}
                 count={marker.hiddenCount}
                 label={`Show ${marker.hiddenCount} more related weaknesses`}
-                onActivate={() => onShowRelations(ego?.hiddenLaterals[marker.side] ?? [])}
+                onActivate={() => onShowRelations(marker.hidden)}
               />
             ))}
             {childOverflow && (

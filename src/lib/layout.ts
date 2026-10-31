@@ -1,4 +1,4 @@
-import type { Band, EgoEdge, EgoGraph, EgoNode, EgoOverflow } from './ego';
+import type { Band, EgoEdge, EgoGraph, EgoNode, EgoOverflow, LateralRelation } from './ego';
 
 export interface StageSize {
   width: number;
@@ -24,6 +24,8 @@ export interface PositionedOverflow extends EgoOverflow {
 export interface PositionedLateralOverflow {
   side: 'left' | 'right';
   hiddenCount: number;
+  /** The relations the marker stands for. */
+  hidden: LateralRelation[];
   x: number;
   y: number;
 }
@@ -171,6 +173,7 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
       lateralOverflow.push({
         side,
         hiddenCount,
+        hidden: ego.hiddenLaterals[side],
         x: spread(markerIndex, slots, start, end),
         y: centerY,
       });
