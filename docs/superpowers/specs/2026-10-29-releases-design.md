@@ -339,15 +339,18 @@ repeatable by hand or by an agent:
    pins". If the release should be on a different CWE version, move
    `main`'s pin first (a normal PR).
 2. Open an issue for the release.
-3. Create the branch from `main` (`git push origin main:refs/heads/v1.1`).
-   Nothing publishes yet: its version is still `0.0.0`.
+3. Tag the commit on `main` the release branches from as `vX.Y-base`,
+   and create the branch from that tag in the same atomic push. Nothing
+   publishes yet: its version is still `0.0.0`. The tag only records where
+   the release diverged from `main`; nothing reads it, and publishing
+   always uses the branch. (Added on 2026-10-30, before the first cut.)
 4. Open a PR into the branch setting `package.json` to `X.Y.0`, closing
    the release issue. Merging it publishes the release (Flow 1), and `/`
    moves to it if it's the newest.
 5. Fixes later: PR into the release branch, with an issue, as for `main`.
    Merging redeploys that release in place.
 
-The docs also cover the release-branch ruleset, the `deploy` branch
+The docs also cover the release-branch and release-base-tag rulesets, the `deploy` branch
 ("never edit by hand"), the two watchers, and the backport workflow, and
 update the existing passages that describe the daily refresh as
 redeploying production and the production site as being `main`.
