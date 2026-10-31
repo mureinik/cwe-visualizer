@@ -8,10 +8,12 @@ const css = readFileSync(path.join(__dirname, '..', '..', 'src', 'styles', 'deta
 
 /** The declarations of the rule whose selector is exactly `selector`. */
 function declarations(selector: string): Record<string, string> {
-  const match = new RegExp(`(?:^|\\n)${selector.replace(/[.]/g, '\\.')}\\s*\\{([^}]*)\\}`).exec(css);
-  if (!match) throw new Error(`Rule not found: ${selector}`);
+  const start = `\n${css}`.indexOf(`\n${selector} {`);
+  if (start === -1) throw new Error(`Rule not found: ${selector}`);
+  const open = css.indexOf('{', start);
+  const body = css.slice(open + 1, css.indexOf('}', open));
   const result: Record<string, string> = {};
-  for (const line of match[1].split(';')) {
+  for (const line of body.split(';')) {
     const [name, ...rest] = line.split(':');
     if (rest.length) result[name.trim()] = rest.join(':').trim();
   }
