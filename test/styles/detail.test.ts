@@ -30,3 +30,15 @@ describe('detail panel CWE ids', () => {
     expect(rule.flex).toBe('none');
   });
 });
+
+// base.css shortens every animation to nothing under reduced motion, which
+// would leave the flash from the graph's "+N more" chip invisible (issue #260).
+describe('relation flash under reduced motion', () => {
+  it('keeps a tint that fades in place, without the pulse', () => {
+    const start = css.indexOf('@media (prefers-reduced-motion: reduce)');
+    expect(start).not.toBe(-1);
+    const block = css.slice(start, css.indexOf('\n}', start));
+    expect(block).toMatch(/\.relation-chip--flash \{\s*animation: relation-chip-tint [^;]*!important;/);
+    expect(block).not.toContain('relation-chip-pulse');
+  });
+});

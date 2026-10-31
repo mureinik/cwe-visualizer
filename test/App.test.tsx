@@ -194,6 +194,24 @@ describe('App', () => {
         delete (Element.prototype as Partial<Element>).scrollIntoView;
       }
     });
+
+    it('flashes the hidden relations in the detail card, and only those', async () => {
+      render(<App />);
+      await userEvent.click(await screen.findByRole('button', { name: /Show \d+ more related weaknesses/ }));
+      // The stage draws four laterals a side, so 504-508 are the hidden ones.
+      const hidden = screen.getByRole('button', { name: 'CanFollow CWE-504: Lateral 4' });
+      expect(hidden).toHaveClass('relation-chip--flash');
+      expect(hidden).toHaveFocus();
+      expect(screen.getByRole('button', { name: 'CanFollow CWE-508: Lateral 8' })).toHaveClass('relation-chip--flash');
+      expect(screen.getByRole('button', { name: 'CanFollow CWE-500: Lateral 0' })).not.toHaveClass('relation-chip--flash');
+    });
+
+    it('drops the flash when another CWE is selected', async () => {
+      render(<App />);
+      await userEvent.click(await screen.findByRole('button', { name: /Show \d+ more related weaknesses/ }));
+      await userEvent.click(screen.getByRole('button', { name: 'CWE-300: Child 0' }));
+      expect(document.querySelector('.relation-chip--flash')).toBeNull();
+    });
   });
 
   it('closes the tree from its close button', async () => {

@@ -107,6 +107,52 @@ describe('DetailPanel as a bottom sheet', () => {
   });
 });
 
+// The graph's lateral "+N more" chip on CWE-123 hides two relations whose
+// chips are already on screen, so scrolling alone shows nothing (issue #260).
+describe('DetailPanel flashing relations', () => {
+  const flashOf = (token: number) => ({ relations: [{ id: '20', type: 'CanFollow' }], token });
+  const chip = (name: string) => screen.getByRole('button', { name });
+  const canFollow20 = 'CanFollow CWE-20: Improper Input Validation';
+
+  it('flashes only the relations it is given', () => {
+    render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} flash={flashOf(1)} />);
+    expect(chip(canFollow20)).toHaveClass('relation-chip--flash');
+    expect(chip('PeerOf CWE-80: HTML Tag Neutralization')).not.toHaveClass('relation-chip--flash');
+    expect(chip('CWE-74: Injection')).not.toHaveClass('relation-chip--flash');
+  });
+
+  it('flashes nothing without a flash', () => {
+    const { container } = render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} />);
+    expect(container.querySelector('.relation-chip--flash')).toBeNull();
+  });
+
+  it('moves focus to the first flashed relation', () => {
+    render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} flash={flashOf(1)} />);
+    expect(chip(canFollow20)).toHaveFocus();
+  });
+
+  it('opens the bottom sheet, whose peek shows no relations', () => {
+    render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} flash={flashOf(1)} />);
+    expect(screen.getByRole('button', { name: 'Collapse details' })).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('lets the sheet be collapsed after a flash', async () => {
+    render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} flash={flashOf(1)} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse details' }));
+    expect(screen.getByRole('button', { name: 'Expand details' })).toBeInTheDocument();
+  });
+
+  it('flashes again when asked again, with a fresh chip whose animation restarts', () => {
+    const { rerender } = render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} flash={flashOf(1)} />);
+    const first = chip(canFollow20);
+    rerender(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} flash={flashOf(2)} />);
+    const second = chip(canFollow20);
+    expect(second).not.toBe(first);
+    expect(second).toHaveClass('relation-chip--flash');
+    expect(second).toHaveFocus();
+  });
+});
+
 describe('DetailPanel relation direction', () => {
   it('names the relation on each lateral chip, since the heading cannot', () => {
     render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} />);

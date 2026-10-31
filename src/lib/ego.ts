@@ -25,6 +25,12 @@ export interface EgoEdge {
   group: EdgeGroup;
 }
 
+/** A relation of the centre, as the detail card lists it. */
+export interface LateralRelation {
+  id: string;
+  type: string;
+}
+
 export interface EgoGraph {
   centerId: string;
   nodes: EgoNode[];
@@ -32,6 +38,8 @@ export interface EgoGraph {
   overflow: EgoOverflow | null;
   /** Laterals dropped by the per-side cap, so the row stays legible. */
   lateralOverflow: { left: number; right: number };
+  /** The relations behind those counts, so the overflow chip can point at them. */
+  hiddenLaterals: { left: LateralRelation[]; right: LateralRelation[] };
 }
 
 export interface EgoOptions {
@@ -71,7 +79,14 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
   // unknown centre.
   const related = graph.relatedTo.get(centerId);
   if (!related) {
-    return { centerId, nodes: [], edges: [], overflow: null, lateralOverflow: { left: 0, right: 0 } };
+    return {
+      centerId,
+      nodes: [],
+      edges: [],
+      overflow: null,
+      lateralOverflow: { left: 0, right: 0 },
+      hiddenLaterals: { left: [], right: [] },
+    };
   }
 
   const nodes: EgoNode[] = [{ id: centerId, band: 0, side: 'center' }];
@@ -130,8 +145,7 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
   );
   let left = 0;
   let right = 0;
-  let leftHidden = 0;
-  let rightHidden = 0;
+  const hiddenLaterals: EgoGraph['hiddenLaterals'] = { left: [], right: [] };
   for (const edge of laterals) {
     if (!(edge.to in graph.nodes) || edge.to === centerId) continue;
     // "<Type> (inverse)" is the direction buildGraph synthesized for a
@@ -152,8 +166,7 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
     }
 
     if ((side === 'left' ? left : right) >= lateralCap) {
-      if (side === 'left') leftHidden += 1;
-      else rightHidden += 1;
+      hiddenLaterals[side].push({ id: edge.to, type: edge.type });
       continue;
     }
 
@@ -163,5 +176,12 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
     edges.push({ from: centerId, to: edge.to, type: edge.type, group: relationGroup(edge.type) });
   }
 
-  return { centerId, nodes, edges, overflow, lateralOverflow: { left: leftHidden, right: rightHidden } };
+  return {
+    centerId,
+    nodes,
+    edges,
+    overflow,
+    lateralOverflow: { left: hiddenLaterals.left.length, right: hiddenLaterals.right.length },
+    hiddenLaterals,
+  };
 }

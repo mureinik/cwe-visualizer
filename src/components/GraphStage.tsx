@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Graph } from '../lib/graph';
-import { buildEgoGraph, type AncestorHops } from '../lib/ego';
+import { buildEgoGraph, type AncestorHops, type LateralRelation } from '../lib/ego';
 import { childCapFor, edgeMargin, layoutEgoGraph, type StageSize } from '../lib/layout';
 import { elideSharedPrefix, fitLabel, labelBudget } from '../lib/labels';
 import { arrowMarkerId, EDGE_GROUPS } from '../lib/relations';
@@ -19,9 +19,9 @@ interface GraphStageProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   onShowChildren: (parentId: string) => void;
-  /** Invoked by the lateral "+N more" marker, which stands for relations
-   *  the detail card already lists in full. */
-  onShowRelations: () => void;
+  /** Invoked by a lateral "+N more" marker with the relations it stands
+   *  for, which the detail card already lists in full. */
+  onShowRelations: (hidden: LateralRelation[]) => void;
   hops: AncestorHops;
 }
 
@@ -238,7 +238,7 @@ export function GraphStage({
                 y={marker.y}
                 count={marker.hiddenCount}
                 label={`Show ${marker.hiddenCount} more related weaknesses`}
-                onActivate={onShowRelations}
+                onActivate={() => onShowRelations(ego?.hiddenLaterals[marker.side] ?? [])}
               />
             ))}
             {childOverflow && (

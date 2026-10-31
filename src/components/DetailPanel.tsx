@@ -1,15 +1,26 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { LateralRelation } from '../lib/ego';
 import { isDeprecated, type Graph } from '../lib/graph';
 import { RELATION_GROUPS, relationGroup, type RelationGroup } from '../lib/relations';
 import { Glyph } from './Glyph';
 
 export const RELATIONS_ANCHOR_ID = 'detail-relations';
 
+/** Relations to point out, for the graph's lateral "+N more" chip. */
+export interface RelationFlash {
+  relations: readonly LateralRelation[];
+  /** New for every flash, so asking again flashes them again. */
+  token: number;
+}
+
 interface DetailPanelProps {
   graph: Graph;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  flash?: RelationFlash | null;
 }
+
+const flashKey = (id: string, type: string) => `${id} ${type}`;
 
 interface Entry {
   id: string;
@@ -52,10 +63,12 @@ function relationSections(graph: Graph, id: string): Section[] {
 function RelationChip({
   graph,
   entry,
+  flashed,
   onSelect,
 }: {
   graph: Graph;
   entry: Entry;
+  flashed: boolean;
   onSelect: (id: string) => void;
 }) {
   const { id, type } = entry;
@@ -65,7 +78,7 @@ function RelationChip({
     <li>
       <button
         type="button"
-        className="relation-chip"
+        className={`relation-chip${flashed ? ' relation-chip--flash' : ''}`}
         onClick={() => onSelect(id)}
         aria-label={type ? `${type} ${name}` : name}
       >
@@ -78,11 +91,30 @@ function RelationChip({
   );
 }
 
-export function DetailPanel({ graph, selectedId, onSelect }: DetailPanelProps) {
+export function DetailPanel({ graph, selectedId, onSelect, flash = null }: DetailPanelProps) {
   // Narrow screens show this as a bottom sheet with two heights: a peek
   // showing the title and badges, and an expanded read. The grabber is
   // hidden by CSS on wide screens, where the card is simply a card.
   const [expanded, setExpanded] = useState(false);
+  const relationsRef = useRef<HTMLDivElement>(null);
+
+  // The peek shows no relations, so a flash there would go unseen: open the
+  // sheet, once per flash, which still lets the reader collapse it again.
+  const [seenFlash, setSeenFlash] = useState<number | null>(null);
+  if (flash && flash.token !== seenFlash) {
+    setSeenFlash(flash.token);
+    setExpanded(true);
+  }
+
+  // Take focus to the first flashed relation, so a keyboard or screen-reader
+  // user lands on what the chip stood for. The graph's chip already scrolls
+  // the card, so don't scroll it again.
+  useEffect(() => {
+    if (!flash) return;
+    relationsRef.current
+      ?.querySelector<HTMLButtonElement>('.relation-chip--flash')
+      ?.focus({ preventScroll: true });
+  }, [flash]);
 
   if (!selectedId) {
     return <div className="detail-panel detail-panel--empty">Select a CWE to see its details.</div>;
@@ -95,6 +127,7 @@ export function DetailPanel({ graph, selectedId, onSelect }: DetailPanelProps) {
 
   const deprecated = isDeprecated(node);
   const sections = relationSections(graph, selectedId);
+  const flashed = new Set(flash?.relations.map((r) => flashKey(r.id, r.type)));
 
   return (
     <div className={`detail-panel${expanded ? ' detail-panel--expanded' : ''}`}>
@@ -130,23 +163,22 @@ export function DetailPanel({ graph, selectedId, onSelect }: DetailPanelProps) {
 
       {/*
         Scroll target for the graph's lateral "+N more" marker: the relations
-        it stands for are all listed here.
+        it stands for are all listed here, and flashed.
       */}
-      <div id={RELATIONS_ANCHOR_ID} className="detail-panel__relations">
+      <div id={RELATIONS_ANCHOR_ID} className="detail-panel__relations" ref={relationsRef}>
         {sections.map((section) => (
           <section key={section.label} className="relation-section">
             <h3 className="relation-section__heading">
               {section.label} ({section.entries.length})
             </h3>
             <ul className="relation-list">
-              {section.entries.map((entry) => (
-                <RelationChip
-                  key={`${section.label}-${entry.id}-${entry.type ?? ''}`}
-                  graph={graph}
-                  entry={entry}
-                  onSelect={onSelect}
-                />
-              ))}
+              {section.entries.map((entry) => {
+                const isFlashed = entry.type !== undefined && flashed.has(flashKey(entry.id, entry.type));
+                // A new key per flash remounts the chip, which restarts its
+                // animation when the same relations are flashed again.
+                const key = `${section.label}-${entry.id}-${entry.type ?? ''}${isFlashed ? `-flash${flash?.token}` : ''}`;
+                return <RelationChip key={key} graph={graph} entry={entry} flashed={isFlashed} onSelect={onSelect} />;
+              })}
             </ul>
           </section>
         ))}
