@@ -99,7 +99,7 @@ design of its own.
 **Interfaces:** none new. `buildGraph`, `relationGroup` and
 `INVERSE_SUFFIX` keep their signatures.
 
-- [ ] **Step 1: Write the failing tests.** In `test/lib/graph.test.ts`,
+- [x] **Step 1: Write the failing tests.** In `test/lib/graph.test.ts`,
   inside `describe('buildGraph')`, after `'labels a synthesized CanPrecede
   inverse as CanFollow'`, using the same two-node `CweData` shape:
   - `'labels a synthesized Overlaps inverse as Overlaps, since it is
@@ -114,19 +114,19 @@ design of its own.
 
   In `test/lib/relations.test.ts`, add `['Overlaps', 'peer']` to the
   `relationGroup` `it.each` table, after `['CanAlsoBe', 'peer']`.
-- [ ] **Step 2: Run them.** `npx vitest run test/lib/graph.test.ts
+- [x] **Step 2: Run them.** `npx vitest run test/lib/graph.test.ts
   test/lib/relations.test.ts`. Expected: both new `graph.test.ts` tests
   fail, with `'Overlaps (inverse)'` where `'Overlaps'` is expected. The
   first test's synthesized inverse is mislabelled. In the second, each side
   gets the mislabelled inverse as well as its own edge. `groups Overlaps as
   peer` already passes, through the fallback for unknown types. It pins
   the grouping so that it no longer depends on that fallback.
-- [ ] **Step 3: Implement.** Add `['Overlaps', 'Overlaps']` to
+- [x] **Step 3: Implement.** Add `['Overlaps', 'Overlaps']` to
   `INVERSE_NATURES` in `src/lib/graph.ts`, after `['CanAlsoBe',
   'CanAlsoBe']`. Add `['Overlaps', 'peer']` to `BY_TYPE` in
   `src/lib/relations.ts`, after `['CanAlsoBe', 'peer']`.
-- [ ] **Step 4: Run them again.** Same command. Expected: all pass.
-- [ ] **Step 5: Correct the spec.** In "What changes between 4.20, 4.21
+- [x] **Step 4: Run them again.** Same command. Expected: all pass.
+- [x] **Step 5: Correct the spec.** In "What changes between 4.20, 4.21
   and 5.0, for this app", replace the claim that `relations.ts` doesn't
   group `Overlaps` with what happens:
   - `relationGroup` already shows `Overlaps` with the peers, through its
@@ -134,7 +134,7 @@ design of its own.
   - what is wrong is the reverse direction's label.
 
   Run `npm run lint:md`.
-- [ ] **Step 6: Verify and commit.** `npm run lint && npx tsc --noEmit &&
+- [x] **Step 6: Verify and commit.** `npm run lint && npx tsc --noEmit &&
   npm test`, then commit `feat: treat Overlaps as a symmetric peer
   relation`.
 
@@ -144,15 +144,15 @@ design of its own.
 
 - Modify: `cwe-version`
 
-- [ ] **Step 1: Move the pin.** `printf '4.21\n' > cwe-version`.
-- [ ] **Step 2: Regenerate the data.** `npm run prepare-data`. Then, on
+- [x] **Step 1: Move the pin.** `printf '4.21\n' > cwe-version`.
+- [x] **Step 2: Regenerate the data.** `npm run prepare-data`. Then, on
   `public/data/cwe.json`:
   - `jq -r .meta.cweVersion` prints `4.21`;
   - `jq '.nodes | length'` prints `984`;
   - `jq '[.edges[] | select(.type == "Overlaps")] | length'` prints `3`.
-- [ ] **Step 3: Verify and commit.** `npm run lint && npx tsc --noEmit &&
+- [x] **Step 3: Verify and commit.** `npm run lint && npx tsc --noEmit &&
   npm test`, then commit `feat: pin CWE 4.21`.
-- [ ] **Step 4: Open the PR.** Tick Tasks 1 and 2's boxes, push, mark
+- [x] **Step 4: Open the PR.** Tick Tasks 1 and 2's boxes, push, mark
   this plan's PR ready, and wait for the required checks: build, validate-issue-link, dependency-review,
   lint-workflows, semgrep and codecov/project. Its body says
   `Closes #255` and `Closes #243`. The owner merges it.
