@@ -34,6 +34,7 @@ describe('relationGroup', () => {
     ['StartsWith (inverse)', 'sequence'],
     ['PeerOf', 'peer'],
     ['CanAlsoBe', 'peer'],
+    ['Overlaps', 'peer'],
     ['Requires', 'requires'],
     ['RequiredBy', 'requires'],
   ])('groups %s as %s', (type, expected) => {
