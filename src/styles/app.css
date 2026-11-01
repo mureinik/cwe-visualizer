@@ -37,6 +37,55 @@
   white-space: nowrap;
 }
 
+.release-switcher {
+  position: relative;
+}
+
+.release-switcher__button {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2);
+  white-space: nowrap;
+}
+
+.release-switcher__list {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + var(--space-1));
+  z-index: 3;
+  margin: 0;
+  padding: var(--space-1);
+  list-style: none;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.release-switcher__option {
+  display: block;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: var(--text-md);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.release-switcher__option:hover,
+.release-switcher__option:focus-visible {
+  background: var(--surface);
+}
+
+.release-switcher__option[aria-current="page"] {
+  font-weight: 600;
+}
+
 .theme-toggle {
   background: none;
   border: 1px solid var(--border);

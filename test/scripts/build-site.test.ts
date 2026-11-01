@@ -1,18 +1,31 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { existsSync } from 'node:fs';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import AdmZip from 'adm-zip';
-import { deployArchiveUrl, extractReleases, newestRelease, parseRelease, redirectPage, run } from '../../scripts/build-site.ts';
+import {
+  buildManifest,
+  deployArchiveUrl,
+  extractReleases,
+  parseRelease,
+  redirectPage,
+  run,
+} from '../../scripts/build-site.ts';
 
 const ROOT = 'cwe-visualizer-0123abc/';
 
-function zipOf(files: string[]): Buffer {
+function metaJson(cweVersion: string): string {
+  return JSON.stringify({ meta: { cweVersion, catalogDate: '2026-04-30', lastModified: 'x', generatedAt: 'y' } });
+}
+
+// A file list, or a map from each file to its content.
+function zipOf(files: string[] | Record<string, string>): Buffer {
+  const entries = Array.isArray(files) ? files.map((file) => [file, `content of ${file}`]) : Object.entries(files);
   const zip = new AdmZip();
-  for (const file of files) {
-    zip.addFile(`${ROOT}${file}`, Buffer.from(`content of ${file}`));
+  for (const [file, content] of entries) {
+    zip.addFile(`${ROOT}${file}`, Buffer.from(content));
   }
   return zip.toBuffer();
 }
@@ -27,8 +40,13 @@ function fakeFetch(zip: Buffer, status = 200) {
   );
 }
 
-function fakeBuild() {
-  return vi.fn<(base: string, outDir: string) => Promise<void>>(() => Promise.resolve());
+// Writes the data/meta.json a real build of main would, when given a version.
+function fakeBuild(cweVersion?: string) {
+  return vi.fn<(base: string, outDir: string) => Promise<void>>(async (_base, outDir) => {
+    if (cweVersion === undefined) return;
+    await mkdir(path.join(outDir, 'data'), { recursive: true });
+    await writeFile(path.join(outDir, 'data', 'meta.json'), metaJson(cweVersion));
+  });
 }
 
 describe('parseRelease', () => {
@@ -42,18 +60,6 @@ describe('parseRelease', () => {
     for (const name of ['latest', 'v1.1.1', 'v', '1.0', 'v1.', 'V1', 'v01x']) {
       expect(parseRelease(name)).toBeNull();
     }
-  });
-});
-
-describe('newestRelease', () => {
-  it('compares major then minor numerically', () => {
-    expect(newestRelease(['v1', 'v1.9', 'v1.10', 'v1.2'])).toBe('v1.10');
-    expect(newestRelease(['v1.10', 'v2'])).toBe('v2');
-  });
-
-  it('ignores non-release names and returns null when none', () => {
-    expect(newestRelease(['latest', 'README.md'])).toBeNull();
-    expect(newestRelease([])).toBeNull();
   });
 });
 
@@ -119,6 +125,42 @@ describe('extractReleases and run', () => {
     });
   });
 
+  describe('buildManifest', () => {
+    async function writeMeta(release: string, cweVersion: string) {
+      await mkdir(path.join(outDir, release, 'data'), { recursive: true });
+      await writeFile(path.join(outDir, release, 'data', 'meta.json'), metaJson(cweVersion));
+    }
+
+    it('lists /latest/ first, then the releases newest first, with their CWE versions', async () => {
+      await writeMeta('latest', '4.22');
+      await writeMeta('v1', '4.20');
+      await writeMeta('v1.1', '4.21');
+      expect(await buildManifest(outDir, ['v1', 'v1.1'])).toEqual({
+        releases: [
+          { path: '/latest/', label: 'Latest', unreleased: true, cweVersion: '4.22' },
+          { path: '/v1.1/', label: '1.1', unreleased: false, cweVersion: '4.21' },
+          { path: '/v1/', label: '1.0', unreleased: false, cweVersion: '4.20' },
+        ],
+      });
+    });
+
+    it('orders by major, then minor, numerically', async () => {
+      const manifest = await buildManifest(outDir, ['v1', 'v1.9', 'v2', 'v1.10', 'v1.2']);
+      expect(manifest.releases.map((r) => r.label)).toEqual(['Latest', '2.0', '1.10', '1.9', '1.2', '1.0']);
+    });
+
+    it('lists a release whose data is missing or unreadable without a CWE version', async () => {
+      // A release is copied from the deploy branch, which is outside this
+      // build's control, so its data may not be what this build expects.
+      await mkdir(path.join(outDir, 'v1', 'data'), { recursive: true });
+      await writeFile(path.join(outDir, 'v1', 'data', 'meta.json'), 'not json');
+      await mkdir(path.join(outDir, 'v1.1', 'data'), { recursive: true });
+      await writeFile(path.join(outDir, 'v1.1', 'data', 'meta.json'), '{"meta":{"cweVersion":4.21}}');
+      const manifest = await buildManifest(outDir, ['v1', 'v1.1', 'v2']);
+      expect(manifest.releases.map((r) => r.cweVersion)).toEqual([null, null, null, null]);
+    });
+  });
+
   describe('run', () => {
     it('builds a single app at / outside production', async () => {
       const buildApp = fakeBuild();
@@ -127,11 +169,21 @@ describe('extractReleases and run', () => {
       expect(buildApp.mock.calls).toEqual([['/', outDir]]);
       expect(fetchSpy).not.toHaveBeenCalled();
       expect(result.layout).toBe('single');
+      // A single app has no other releases to switch to.
+      expect(result.manifest).toBeNull();
+      expect(existsSync(path.join(outDir, 'data', 'releases.json'))).toBe(false);
     });
 
     it('assembles releases in production', async () => {
-      const buildApp = fakeBuild();
-      const fetchSpy = fakeFetch(zipOf(['v1/index.html', 'v1.1/index.html']));
+      const buildApp = fakeBuild('4.22');
+      const fetchSpy = fakeFetch(
+        zipOf({
+          'v1/index.html': 'v1',
+          'v1/data/meta.json': metaJson('4.20'),
+          'v1.1/index.html': 'v1.1',
+          'v1.1/data/meta.json': metaJson('4.21'),
+        }),
+      );
       const result = await run({
         env: { VERCEL_ENV: 'production' },
         outDir,
@@ -141,8 +193,18 @@ describe('extractReleases and run', () => {
       expect(buildApp.mock.calls).toEqual([['/latest/', path.join(outDir, 'latest')]]);
       expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([deployArchiveUrl('mureinik', 'cwe-visualizer')]);
       expect(existsSync(path.join(outDir, 'v1', 'index.html'))).toBe(true);
-      expect(await readFile(path.join(outDir, 'index.html'), 'utf-8')).toContain('"/v1.1/"');
-      expect(result).toEqual({ layout: 'releases', releases: ['v1', 'v1.1'], redirect: '/v1.1/' });
+      // / goes to /latest/ even when releases exist; the header's release
+      // switcher reaches them from there.
+      expect(await readFile(path.join(outDir, 'index.html'), 'utf-8')).toContain('"/latest/"');
+      const manifest = {
+        releases: [
+          { path: '/latest/', label: 'Latest', unreleased: true, cweVersion: '4.22' },
+          { path: '/v1.1/', label: '1.1', unreleased: false, cweVersion: '4.21' },
+          { path: '/v1/', label: '1.0', unreleased: false, cweVersion: '4.20' },
+        ],
+      };
+      expect(JSON.parse(await readFile(path.join(outDir, 'data', 'releases.json'), 'utf-8'))).toEqual(manifest);
+      expect(result).toEqual({ layout: 'releases', releases: ['v1', 'v1.1'], redirect: '/latest/', manifest });
     });
 
     it('uses the Vercel repository variables', async () => {
@@ -163,8 +225,11 @@ describe('extractReleases and run', () => {
         buildApp: fakeBuild(),
         fetchImpl: fakeFetch(zipOf(['README.md'])) as unknown as typeof fetch,
       });
-      expect(result).toEqual({ layout: 'releases', releases: [], redirect: '/latest/' });
+      expect(result).toMatchObject({ layout: 'releases', releases: [], redirect: '/latest/' });
       expect(await readFile(path.join(outDir, 'index.html'), 'utf-8')).toContain('"/latest/"');
+      expect(JSON.parse(await readFile(path.join(outDir, 'data', 'releases.json'), 'utf-8'))).toEqual({
+        releases: [{ path: '/latest/', label: 'Latest', unreleased: true, cweVersion: null }],
+      });
     });
 
     it('assembles releases when SITE_LAYOUT is releases', async () => {
@@ -176,7 +241,8 @@ describe('extractReleases and run', () => {
         fetchImpl: fakeFetch(zipOf(['v2/index.html'])) as unknown as typeof fetch,
       });
       expect(buildApp.mock.calls).toEqual([['/latest/', path.join(outDir, 'latest')]]);
-      expect(result.redirect).toBe('/v2/');
+      expect(result.redirect).toBe('/latest/');
+      expect(result.manifest?.releases.map((r) => r.path)).toEqual(['/latest/', '/v2/']);
     });
 
     it("fails when the deploy branch can't be downloaded", async () => {
