@@ -29,9 +29,10 @@ License; see [`LICENSE.md`](LICENSE.md).
 
 ## Releases
 
-The site at `/` is the newest release.
-[`/latest/`](https://cwe-visualizer.vercel.app/latest/) follows development
-on `main`, and older releases stay at `/vX.Y/`. See the Releases section of
+The site at `/` opens [`/latest/`](https://cwe-visualizer.vercel.app/latest/),
+which follows development on `main`. Stable releases stay at `/vX.Y/`, and
+the release switcher in the header moves between them, keeping the selected
+CWE. See the Releases section of
 [`CONTRIBUTING.md`](CONTRIBUTING.md#releases) for how they are cut.
 
 ## Contributing

@@ -1,4 +1,5 @@
 import type { Graph } from '../lib/graph';
+import { ReleaseSwitcher } from './ReleaseSwitcher';
 import { SearchBox } from './SearchBox';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -25,6 +26,7 @@ export function AppHeader({ graph, onSelect, drawerOpen, onToggleDrawer }: AppHe
       <div className="app-header__search">
         <SearchBox graph={graph} onSelect={onSelect} />
       </div>
+      <ReleaseSwitcher />
       <span className="app-header__version">CWE {graph.meta.cweVersion}</span>
       <ThemeToggle />
       <a

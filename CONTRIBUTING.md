@@ -224,21 +224,22 @@ preview. Production deployments always build.
 Vercel runs `npm run build:site` (`scripts/build-site.ts`), not `npm run
 build`. A production build compiles `main` under `/latest/`, copies every
 release from the `deploy` branch next to it, and writes a root
-`index.html` that redirects to the newest release (see
-[Releases](#releases)). A PR preview is still a single copy of the app at
-`/`.
+`index.html` that redirects to `/latest/` and a release manifest,
+`data/releases.json` (see [Releases](#releases)). A PR preview is still a
+single copy of the app at `/`, with no manifest, so it shows no release
+switcher.
 
 ## Releases
 
-The production site serves several releases side by side. Until the
-first release is cut, `/` redirects to `/latest/`. Afterwards the layout
+The production site serves several releases side by side. The layout
 is, with placeholders for the releases:
 
 ```text
-/          redirects to the newest release, or to /latest/ if there is none
-/latest/   main, built from source on every production build
-/vX/       release X.0, copied from the deploy branch
-/vX.Y/     release X.Y, copied from the deploy branch
+/                    redirects to /latest/
+/data/releases.json  the release manifest, rewritten on every production build
+/latest/             main, built from source on every production build
+/vX/                 release X.0, copied from the deploy branch
+/vX.Y/               release X.Y, copied from the deploy branch
 ```
 
 A release `X.Y` lives on a branch named `vX` for `X.0` or `vX.Y`
@@ -247,10 +248,20 @@ CWE schema line (4.x to 5.x) is a new major, one that moves to a new CWE
 version within a line (4.20 to 4.21) is a new minor, and one with no CWE
 change is either, depending on its content. On a release branch,
 `package.json`'s `version` is `X.Y.0` and never changes after the cut. On
-`main` it stays `0.0.0`, meaning unreleased. The newest release, the one
-`/` redirects to, is the highest by comparing `X`, then `Y`, not the most
-recent by date. The redirect keeps the query string and the hash, so an
-old link such as `/?cwe=79` still opens CWE-79.
+`main` it stays `0.0.0`, meaning unreleased. The redirect keeps the query
+string and the hash, so an old link such as `/?cwe=79` still opens CWE-79.
+
+The release switcher in the header moves between them. It reads the
+manifest from the site root, not from its own base path: a release is
+built once and never rebuilt, so only the root's copy, which every
+production build rewrites, lists the releases cut after it. The manifest
+lists `/latest/` first, labelled as unreleased, then the releases from the
+highest to the lowest by comparing `X`, then `Y`, not by date, each with
+the CWE version in its own `data/meta.json`. Switching keeps the query
+string, so the other release opens on the same CWE, or says it has no such
+CWE. A release built before the switcher existed (`v1` and `v1.1`) doesn't
+show it until a fix to its branch brings it in, though `/latest/` and
+newer releases still list them.
 
 To cut a release:
 
@@ -280,7 +291,8 @@ To cut a release:
    `Closes #N` for the release issue, since `validate-issue-link` reads the
    body, but GitHub only closes issues automatically when a PR merges into
    the default branch, so close the issue by hand after merging. Merging
-   publishes the release, and `/` moves to it if it is the newest.
+   publishes the release, and the switcher lists it once production
+   rebuilds.
 5. Fix a release later with a PR into its branch, with an issue, as for
    `main`. Merging it republishes that release in place. The same applies
    to the issue: close it by hand after the merge.

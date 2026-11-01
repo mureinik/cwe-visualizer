@@ -1,7 +1,9 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import AdmZip from 'adm-zip';
 import escapeHtml from 'escape-html';
+import type { Release, ReleaseManifest } from '../src/lib/releases.ts';
 
 const RELEASE_PATTERN = /^v(\d+)(?:\.(\d+))?$/;
 const DEFAULT_OWNER = 'mureinik';
@@ -20,9 +22,47 @@ function compareReleases(a: string, b: string): number {
   return x.major - y.major || x.minor - y.minor;
 }
 
-export function newestRelease(names: string[]): string | null {
-  const releases = names.filter((name) => parseRelease(name) !== null).sort(compareReleases);
-  return releases.at(-1) ?? null;
+// Where / sends visitors. It is /latest/ even once releases exist: the
+// switcher in the header reaches every stable release from there.
+export const ROOT_REDIRECT = '/latest/';
+
+// The module cache keeps each import by URL, which is harmless here: a build
+// reads each release's metadata once.
+async function readCweVersion(appDir: string): Promise<string | null> {
+  try {
+    const url = pathToFileURL(path.join(appDir, 'data', 'meta.json')).href;
+    const { default: data } = (await import(url, { with: { type: 'json' } })) as {
+      default: { meta?: { cweVersion?: unknown } } | null;
+    };
+    const version = data?.meta?.cweVersion;
+    return typeof version === 'string' ? version : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The manifest of everything the site serves, read from the assembled
+ * output: /latest/ first, then the releases from newest to oldest, each with
+ * the CWE version its own data/meta.json names. A release whose data can't
+ * be read is still listed, without a CWE version, rather than failing the
+ * whole deployment.
+ */
+export async function buildManifest(outDir: string, releases: string[]): Promise<ReleaseManifest> {
+  const entries: Release[] = [
+    { path: '/latest/', label: 'Latest', unreleased: true, cweVersion: await readCweVersion(path.join(outDir, 'latest')) },
+  ];
+  for (const name of [...releases].sort(compareReleases).reverse()) {
+    const parsed = parseRelease(name);
+    if (!parsed) continue;
+    entries.push({
+      path: `/${name}/`,
+      label: `${parsed.major}.${parsed.minor}`,
+      unreleased: false,
+      cweVersion: await readCweVersion(path.join(outDir, name)),
+    });
+  }
+  return { releases: entries };
 }
 
 export function redirectPage(target: string): string {
@@ -92,6 +132,7 @@ export interface RunResult {
   layout: 'single' | 'releases';
   releases: string[];
   redirect: string | null;
+  manifest: ReleaseManifest | null;
 }
 
 export async function run({
@@ -103,7 +144,7 @@ export async function run({
   if (env.VERCEL_ENV !== 'production' && env.SITE_LAYOUT !== 'releases') {
     console.log('Layout: single app at /');
     await buildApp('/', outDir);
-    return { layout: 'single', releases: [], redirect: null };
+    return { layout: 'single', releases: [], redirect: null, manifest: null };
   }
 
   console.log('Layout: releases (/latest/ plus published releases)');
@@ -117,11 +158,15 @@ export async function run({
     throw new Error(`Failed to download the deploy branch (HTTP ${response.status}): ${url}`);
   }
   const releases = await extractReleases(Buffer.from(await response.arrayBuffer()), outDir);
-  const redirect = `/${newestRelease(releases) ?? 'latest'}/`;
-  await fs.writeFile(path.join(outDir, 'index.html'), redirectPage(redirect));
+  const manifest = await buildManifest(outDir, releases);
+  // Every release fetches this from the root, so a release built before a
+  // newer one was cut still lists it.
+  await fs.mkdir(path.join(outDir, 'data'), { recursive: true });
+  await fs.writeFile(path.join(outDir, 'data', 'releases.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+  await fs.writeFile(path.join(outDir, 'index.html'), redirectPage(ROOT_REDIRECT));
   console.log(`Releases found: ${releases.length > 0 ? releases.join(', ') : 'none'}`);
-  console.log(`/ redirects to ${redirect}`);
-  return { layout: 'releases', releases, redirect };
+  console.log(`/ redirects to ${ROOT_REDIRECT}`);
+  return { layout: 'releases', releases, redirect: ROOT_REDIRECT, manifest };
 }
 
 // See scripts/prepare-data.ts for why this uses import.meta.main and the

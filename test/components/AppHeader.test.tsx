@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { AppHeader } from '../../src/components/AppHeader';
 import { buildGraph, type CweData } from '../../src/lib/graph';
@@ -34,5 +34,14 @@ describe('AppHeader', () => {
     expect(link).toHaveAttribute('href', 'https://github.com/mureinik/cwe-visualizer');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noreferrer');
+  });
+
+  it('puts the release switcher to the left of the CWE version', async () => {
+    vi.stubEnv('BASE_URL', '/v1/');
+    const releases = [{ path: '/v1/', label: '1.0', unreleased: false, cweVersion: '4.20' }];
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({ releases }) })));
+    render(<AppHeader graph={buildGraph(data)} onSelect={() => {}} drawerOpen={false} onToggleDrawer={() => {}} />);
+    const switcher = await screen.findByRole('button', { name: /^Release:/ });
+    expect(switcher.compareDocumentPosition(screen.getByText('CWE 4.20')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
