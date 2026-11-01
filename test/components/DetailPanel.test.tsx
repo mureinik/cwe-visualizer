@@ -90,6 +90,41 @@ describe('DetailPanel', () => {
   });
 });
 
+// CWE-119 on CWE 4.21, where the data lists its parents 118, 20 and its
+// sequence relations 1257, 1260, 128, ... 20, 839, 843 (issue #273).
+describe('DetailPanel relation order', () => {
+  const n = (id: string) => ({ id, name: `Entry ${id}`, abstraction: 'Base', status: 'Draft', description: '', url: '' });
+  const ordered: CweData = {
+    meta: data.meta,
+    nodes: Object.fromEntries(['119', '118', '20', '1257', '128', '839', '1260'].map((id) => [id, n(id)])),
+    edges: [
+      { from: '119', to: '118', type: 'ChildOf' },
+      { from: '119', to: '20', type: 'ChildOf' },
+      ...['1257', '1260', '128', '20', '839'].map((from) => ({ from, to: '119', type: 'CanPrecede' })),
+      // Listed twice in one section, under two types.
+      { from: '119', to: '128', type: 'CanPrecede' },
+    ],
+  };
+
+  const idsIn = (heading: RegExp) => {
+    const section = screen.getByRole('heading', { name: heading }).closest('section')!;
+    return Array.from(section.querySelectorAll('.relation-chip'), (chip) => chip.getAttribute('aria-label'));
+  };
+
+  it('lists each section by CWE number, not as text', () => {
+    render(<DetailPanel graph={buildGraph(ordered)} selectedId="119" onSelect={() => {}} />);
+    expect(idsIn(/^Parents/)).toEqual(['CWE-20: Entry 20', 'CWE-118: Entry 118']);
+    expect(idsIn(/^Sequence/)).toEqual([
+      'CanFollow CWE-20: Entry 20',
+      'CanFollow CWE-128: Entry 128',
+      'CanPrecede CWE-128: Entry 128',
+      'CanFollow CWE-839: Entry 839',
+      'CanFollow CWE-1257: Entry 1257',
+      'CanFollow CWE-1260: Entry 1260',
+    ]);
+  });
+});
+
 describe('DetailPanel as a bottom sheet', () => {
   it('starts collapsed, with a control that says it will expand', () => {
     render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} />);

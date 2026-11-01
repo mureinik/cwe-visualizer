@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LateralRelation } from '../lib/ego';
-import { isDeprecated, type Graph } from '../lib/graph';
+import { compareIds, isDeprecated, type Graph } from '../lib/graph';
 import { RELATION_GROUPS, relationGroup, type RelationGroup } from '../lib/relations';
 import { Glyph } from './Glyph';
 
@@ -35,16 +35,22 @@ interface Section {
   entries: Entry[];
 }
 
+// Every section lists by CWE number, as everywhere else ids are listed: the
+// data's own order is lexicographic, which puts CWE-1257 before CWE-128.
 function relationSections(graph: Graph, id: string): Section[] {
   const sections: Section[] = [
     { label: 'Parents', entries: (graph.parentsOf.get(id) ?? []).map((to) => ({ id: to })) },
     { label: 'Children', entries: (graph.childrenOf.get(id) ?? []).map((to) => ({ id: to })) },
   ];
+  for (const section of sections) section.entries.sort((x, y) => compareIds(x.id, y.id));
 
   // buildGraph already records each relation once per target and type.
   const related = graph.relatedTo.get(id) ?? [];
+  // A CWE can still appear under two types in one group, so those are
+  // ordered by type to keep the order stable.
+  const byIdThenType = [...related].sort((x, y) => compareIds(x.to, y.to) || x.type.localeCompare(y.type));
   const byGroup = new Map<RelationGroup, Entry[]>();
-  for (const edge of related) {
+  for (const edge of byIdThenType) {
     const group = relationGroup(edge.type);
     const list = byGroup.get(group) ?? [];
     list.push({ id: edge.to, type: edge.type });
