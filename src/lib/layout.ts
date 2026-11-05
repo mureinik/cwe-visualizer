@@ -235,19 +235,23 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
   // Edges between the same pair, in the order the ego graph gives them, are
   // spread symmetrically about the line between the two nodes.
   const pairKey = (edge: EgoEdge) => [edge.from, edge.to].sort().join('|');
-  const bundles = new Map<string, EgoEdge[]>();
-  for (const edge of ego.edges) {
-    const bundle = bundles.get(pairKey(edge)) ?? [];
-    bundle.push(edge);
-    bundles.set(pairKey(edge), bundle);
+  const bent = ego.edges.map((edge) => ({ edge, bend: 0 }));
+  const bundles = new Map<string, typeof bent>();
+  for (const item of bent) {
+    const bundle = bundles.get(pairKey(item.edge)) ?? [];
+    bundle.push(item);
+    bundles.set(pairKey(item.edge), bundle);
+  }
+  for (const bundle of bundles.values()) {
+    bundle.forEach((item, i) => {
+      item.bend = (i - (bundle.length - 1) / 2) * BUNDLE_GAP;
+    });
   }
 
-  const edges: PositionedEdge[] = ego.edges.flatMap((edge) => {
+  const edges: PositionedEdge[] = bent.flatMap(({ edge, bend }) => {
     const from = positioned.get(edge.from);
     const to = positioned.get(edge.to);
     if (!from || !to) return [];
-    const bundle = bundles.get(pairKey(edge)) ?? [edge];
-    const bend = (bundle.indexOf(edge) - (bundle.length - 1) / 2) * BUNDLE_GAP;
     const normal = pairNormal(from, to);
     // A line within 60° of vertical bends partly sideways, where the labels'
     // width would make them collide; anchoring them outwards keeps them

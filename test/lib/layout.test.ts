@@ -358,3 +358,29 @@ describe('layoutEgoGraph edges between the same pair', () => {
     expect(edge.labelAnchor).toBe('middle');
   });
 });
+
+describe('layoutEgoGraph on a stage too short for its bands', () => {
+  // At 54px or less there is no room between the bands, so they share one
+  // row, and a lone parent lands exactly on the centre. The window decides
+  // the stage's height, so this is real, if rare.
+  const flat = layoutEgoGraph(ego, { width: 1000, height: 50 });
+
+  it('draws the edge between two nodes at one point without NaN', () => {
+    const parent = flat.edges.find((e) => e.to === '2')!;
+    expect(parent.path).not.toMatch(/NaN/);
+    expect(parent.label.x).not.toBeNaN();
+    expect(parent.label.y).not.toBeNaN();
+  });
+});
+
+describe('layoutEgoGraph with an edge to a node it was not given', { tags: ['theoretical'] }, () => {
+  // buildEgoGraph only records edges between nodes it placed, so every edge
+  // has both ends positioned.
+  it('drops the edge rather than draw it to nowhere', () => {
+    const dangling: EgoGraph = {
+      ...ego,
+      edges: [...ego.edges, { from: '3', to: '99', types: ['PeerOf'], group: 'peer' }],
+    };
+    expect(layoutEgoGraph(dangling, size).edges.map((e) => e.to)).toEqual(['2', '30']);
+  });
+});
