@@ -368,3 +368,48 @@ describe('GraphStage sizing', () => {
     expect(stage.observers[0].disconnect).toHaveBeenCalledOnce();
   });
 });
+
+describe('GraphStage edges between the same pair', () => {
+  // CWE 5.0: 126 ChildOf 788, and 788 Overlaps 126.
+  const pair = buildGraph({
+    meta: data.meta,
+    nodes: { '126': node('126', 'Buffer Over-read'), '788': node('788', 'Access of Memory Location After End of Buffer') },
+    edges: [
+      { from: '126', to: '788', type: 'ChildOf' },
+      { from: '788', to: '126', type: 'Overlaps' },
+    ],
+  });
+
+  it('labels both when the other end is hovered, on opposite sides', async () => {
+    const { container } = render(
+      <GraphStage graph={pair} selectedId="788" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+    await userEvent.hover(screen.getByRole('button', { name: /^CWE-126/ }));
+    const labels = Array.from(container.querySelectorAll('.graph-edge__label'), (l) => [l.textContent, l.getAttribute('text-anchor')]);
+    expect(labels.map(([text]) => text).sort()).toEqual(['ChildOf', 'Overlaps']);
+    expect(labels.map(([, anchor]) => anchor).sort()).toEqual(['end', 'start']);
+  });
+});
+
+// The schema allows two relations in one group between the same pair, though
+// no release up to 5.0 has one.
+describe('GraphStage with two relations in one group', () => {
+  const twice = buildGraph({
+    meta: data.meta,
+    nodes: { '787': node('787', 'Out-of-bounds Write'), '788': node('788', 'Access of Memory Location After End of Buffer') },
+    edges: [
+      { from: '788', to: '787', type: 'PeerOf' },
+      { from: '788', to: '787', type: 'Overlaps' },
+    ],
+  });
+
+  it('draws one edge, labelled and titled with both', async () => {
+    const { container } = render(
+      <GraphStage graph={twice} selectedId="788" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+    expect(container.querySelectorAll('.graph-edge')).toHaveLength(1);
+    expect(container.querySelector('.graph-edge title')).toHaveTextContent('Overlaps, PeerOf');
+    await userEvent.hover(screen.getByRole('button', { name: /^CWE-787/ }));
+    expect(container.querySelector('.graph-edge__label')).toHaveTextContent('Overlaps, PeerOf');
+  });
+});

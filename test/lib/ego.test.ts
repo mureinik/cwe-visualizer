@@ -232,3 +232,51 @@ describe('buildEgoGraph lateral cap', () => {
     expect(ego.lateralOverflow).toEqual({ left: 0, right: 0 });
   });
 });
+
+// No pair of CWEs in any release up to 5.0 has two relations in one group,
+// but the schema allows it: Related_Weakness repeats freely, and nothing
+// keeps two of them from naming the same CWE under different natures.
+describe('buildEgoGraph with two relations in one group', () => {
+  const pair: CweData = {
+    meta: data.meta,
+    nodes: { '787': node('787'), '788': node('788') },
+    edges: [
+      { from: '788', to: '787', type: 'PeerOf' },
+      { from: '788', to: '787', type: 'Overlaps' },
+    ],
+  };
+
+  it('draws them as one edge that names both', () => {
+    const ego = buildEgoGraph(buildGraph(pair), '788');
+    expect(ego.edges).toEqual([{ from: '788', to: '787', types: ['Overlaps', 'PeerOf'], group: 'peer' }]);
+  });
+
+  it('counts the CWE once when the cap hides it, but names both relations', () => {
+    const ego = buildEgoGraph(buildGraph(pair), '788', { lateralCap: 0 });
+    expect(ego.lateralOverflow).toEqual({ left: 1, right: 0 });
+    expect(ego.hiddenLaterals.left).toEqual([
+      { id: '787', type: 'Overlaps' },
+      { id: '787', type: 'PeerOf' },
+    ]);
+  });
+});
+
+describe('buildEgoGraph with a relation to a parent or child', () => {
+  // CWE 5.0: 126 ChildOf 788, and 788 Overlaps 126.
+  const pair: CweData = {
+    meta: data.meta,
+    nodes: { '126': node('126'), '788': node('788') },
+    edges: [
+      { from: '126', to: '788', type: 'ChildOf' },
+      { from: '788', to: '126', type: 'Overlaps' },
+    ],
+  };
+
+  it('keeps one edge per group, since the groups are drawn differently', () => {
+    const ego = buildEgoGraph(buildGraph(pair), '788');
+    expect(ego.edges).toEqual([
+      { from: '126', to: '788', types: ['ChildOf'], group: 'hierarchy' },
+      { from: '788', to: '126', types: ['Overlaps'], group: 'peer' },
+    ]);
+  });
+});

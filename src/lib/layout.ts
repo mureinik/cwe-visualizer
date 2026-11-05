@@ -12,8 +12,14 @@ export interface PositionedNode extends EgoNode {
 
 export interface PositionedEdge extends EgoEdge {
   path: string;
-  /** Where the edge's label goes: midway between its endpoints. */
+  /** Where the edge's label goes: the midpoint of its curve. */
   label: { x: number; y: number };
+  /**
+   * Which end of the label sits on that point. An edge bent sideways to clear
+   * another between the same pair anchors its label on the outer side, so
+   * the two labels grow away from each other.
+   */
+  labelAnchor: 'start' | 'middle' | 'end';
 }
 
 export interface PositionedOverflow extends EgoOverflow {
@@ -103,13 +109,42 @@ function spread(index: number, count: number, start: number, end: number): numbe
   return start + ((end - start) * (index + 0.5)) / count;
 }
 
-function cubic(from: PositionedNode | PositionedOverflow, to: PositionedNode): string {
+interface Point {
+  x: number;
+  y: number;
+}
+
+/**
+ * How far apart, at their midpoints, two edges between the same pair are
+ * drawn. A hierarchy edge and a relation between the same two CWEs would
+ * otherwise share one curve, and only the one drawn last would show.
+ */
+export const BUNDLE_GAP = 20;
+
+/**
+ * The curve from one node to another, with its midpoint moved `bend` pixels
+ * along `normal`. A cubic's midpoint is (P0 + 3·P1 + 3·P2 + P3) / 8, so
+ * moving both control points by d moves it by ¾d.
+ */
+function cubic(from: Point, to: Point, normal: Point, bend: number): string {
   const sameBand = Math.abs(from.y - to.y) < 1;
   const [c1x, c1y, c2x, c2y] = sameBand
     ? [(from.x + to.x) / 2, from.y, (from.x + to.x) / 2, to.y]
     : [from.x, (from.y + to.y) / 2, to.x, (from.y + to.y) / 2];
+  const dx = (normal.x * bend * 4) / 3;
+  const dy = (normal.y * bend * 4) / 3;
   const n = (v: number) => Number(v.toFixed(2));
-  return `M ${n(from.x)} ${n(from.y)} C ${n(c1x)} ${n(c1y)}, ${n(c2x)} ${n(c2y)}, ${n(to.x)} ${n(to.y)}`;
+  return `M ${n(from.x)} ${n(from.y)} C ${n(c1x + dx)} ${n(c1y + dy)}, ${n(c2x + dx)} ${n(c2y + dy)}, ${n(to.x)} ${n(to.y)}`;
+}
+
+/**
+ * The unit normal of the line between two nodes, taken in id order, so both
+ * edges of a pair agree on it whichever way each one runs.
+ */
+function pairNormal(a: Point & { id: string }, b: Point & { id: string }): Point {
+  const [p, q] = a.id < b.id ? [a, b] : [b, a];
+  const length = Math.hypot(q.x - p.x, q.y - p.y) || 1;
+  return { x: -(q.y - p.y) / length, y: (q.x - p.x) / length };
 }
 
 export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
@@ -197,12 +232,41 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
     return node ? [node] : [];
   });
 
-  const edges: PositionedEdge[] = ego.edges.flatMap((edge) => {
+  // Edges between the same pair, in the order the ego graph gives them, are
+  // spread symmetrically about the line between the two nodes.
+  const pairKey = (edge: EgoEdge) => [edge.from, edge.to].sort().join('|');
+  const bent = ego.edges.map((edge) => ({ edge, bend: 0 }));
+  const bundles = new Map<string, typeof bent>();
+  for (const item of bent) {
+    const bundle = bundles.get(pairKey(item.edge)) ?? [];
+    bundle.push(item);
+    bundles.set(pairKey(item.edge), bundle);
+  }
+  for (const bundle of bundles.values()) {
+    bundle.forEach((item, i) => {
+      item.bend = (i - (bundle.length - 1) / 2) * BUNDLE_GAP;
+    });
+  }
+
+  const edges: PositionedEdge[] = bent.flatMap(({ edge, bend }) => {
     const from = positioned.get(edge.from);
     const to = positioned.get(edge.to);
-    return from && to
-      ? [{ ...edge, path: cubic(from, to), label: { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 } }]
-      : [];
+    if (!from || !to) return [];
+    const normal = pairNormal(from, to);
+    // A line within 60° of vertical bends partly sideways, where the labels'
+    // width would make them collide; anchoring them outwards keeps them
+    // apart. A flatter one bends up and down, which separates them already.
+    const sideways = Math.abs(normal.x) >= 0.5;
+    const outward = normal.x * bend;
+    const labelAnchor = !sideways || bend === 0 ? 'middle' : outward > 0 ? 'start' : 'end';
+    return [
+      {
+        ...edge,
+        path: cubic(from, to, normal, bend),
+        label: { x: (from.x + to.x) / 2 + normal.x * bend, y: (from.y + to.y) / 2 + normal.y * bend },
+        labelAnchor,
+      },
+    ];
   });
 
   return { nodes, edges, overflow, lateralOverflow };

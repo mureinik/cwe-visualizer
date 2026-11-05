@@ -23,11 +23,12 @@ const flashKey = (id: string, type: string) => `${id} ${type}`;
 interface Entry {
   id: string;
   /**
-   * The relation's own name. A family heading alone loses direction —
+   * The relations' own names. A family heading alone loses direction —
    * "Sequence" covers both CanPrecede and CanFollow — so each chip carries
-   * its type. Hierarchy sections don't need it; the heading says it.
+   * its types: one chip per CWE, naming every relation the section has to
+   * it. Hierarchy sections don't need them; the heading says it.
    */
-  type?: string;
+  types?: string[];
 }
 
 interface Section {
@@ -44,16 +45,18 @@ function relationSections(graph: Graph, id: string): Section[] {
   ];
   for (const section of sections) section.entries.sort((x, y) => compareIds(x.id, y.id));
 
-  // buildGraph already records each relation once per target and type.
+  // buildGraph already records each relation once per target and type, but
+  // a CWE can still be related under two types in one group. It gets one
+  // chip naming both, in type order to keep it stable.
   const related = graph.relatedTo.get(id) ?? [];
-  // A CWE can still appear under two types in one group, so those are
-  // ordered by type to keep the order stable.
   const byIdThenType = [...related].sort((x, y) => compareIds(x.to, y.to) || x.type.localeCompare(y.type));
   const byGroup = new Map<RelationGroup, Entry[]>();
   for (const edge of byIdThenType) {
     const group = relationGroup(edge.type);
     const list = byGroup.get(group) ?? [];
-    list.push({ id: edge.to, type: edge.type });
+    const last = list.at(-1);
+    if (last?.id === edge.to) last.types?.push(edge.type);
+    else list.push({ id: edge.to, types: [edge.type] });
     byGroup.set(group, list);
   }
 
@@ -75,7 +78,8 @@ function RelationChip({
   flashed: boolean;
   onSelect: (id: string) => void;
 }) {
-  const { id, type } = entry;
+  const { id, types } = entry;
+  const type = types?.join(', ');
   const node = graph.nodes[id];
   const name = node ? `CWE-${id}: ${node.name}` : `CWE-${id}`;
   return (
@@ -176,10 +180,10 @@ export function DetailPanel({ graph, selectedId, onSelect, flash = null }: Detai
             </h3>
             <ul className="relation-list">
               {section.entries.map((entry) => {
-                const isFlashed = entry.type !== undefined && flashed.has(flashKey(entry.id, entry.type));
+                const isFlashed = entry.types?.some((type) => flashed.has(flashKey(entry.id, type))) ?? false;
                 // A new key per flash remounts the chip, which restarts its
                 // animation when the same relations are flashed again.
-                const key = `${section.label}-${entry.id}-${entry.type ?? ''}${isFlashed ? `-flash${flash?.token}` : ''}`;
+                const key = `${section.label}-${entry.id}${isFlashed ? `-flash${flash?.token}` : ''}`;
                 return <RelationChip key={key} graph={graph} entry={entry} flashed={isFlashed} onSelect={onSelect} />;
               })}
             </ul>

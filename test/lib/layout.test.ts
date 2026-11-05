@@ -25,8 +25,8 @@ const ego: EgoGraph = {
     { id: '30', band: 0, side: 'right' },
   ],
   edges: [
-    { from: '3', to: '2', type: 'ChildOf', group: 'hierarchy' },
-    { from: '3', to: '30', type: 'CanPrecede', group: 'sequence' },
+    { from: '3', to: '2', types: ['ChildOf'], group: 'hierarchy' },
+    { from: '3', to: '30', types: ['CanPrecede'], group: 'sequence' },
   ],
   overflow: { parentId: '3', hiddenCount: 8 },
   lateralOverflow: { left: 0, right: 0 },
@@ -299,5 +299,88 @@ describe('layoutEgoGraph short stages', () => {
     expect(y('1')).toBeLessThan(y('2'));
     expect(y('2')).toBeLessThan(y('3'));
     expect(y('3')).toBeLessThan(y('10'));
+  });
+});
+
+describe('layoutEgoGraph edges between the same pair', () => {
+  // CWE 5.0: 126 ChildOf 788, and 788 Overlaps 126. Drawn on the same curve,
+  // the dashed peer edge hid the hierarchy edge, and their labels collided.
+  const pair = (centerId: string): EgoGraph => {
+    const other = centerId === '788' ? '126' : '788';
+    return {
+      centerId,
+      nodes: [
+        { id: centerId, band: 0, side: 'center' },
+        { id: other, band: centerId === '788' ? 1 : -1, side: 'center' },
+      ],
+      edges: [
+        { from: '126', to: '788', types: ['ChildOf'], group: 'hierarchy' },
+        { from: centerId, to: other, types: ['Overlaps'], group: 'peer' },
+      ],
+      overflow: null,
+      lateralOverflow: { left: 0, right: 0 },
+      hiddenLaterals: { left: [], right: [] },
+    };
+  };
+
+  for (const centerId of ['788', '126']) {
+    describe(`centred on ${centerId}`, () => {
+      const [hierarchy, peer] = layoutEgoGraph(pair(centerId), size).edges;
+
+      it('bends them apart rather than draw one on top of the other', () => {
+        expect(hierarchy.path).not.toBe(peer.path);
+        expect(hierarchy.label).not.toEqual(peer.label);
+      });
+
+      it('bends them to opposite sides of the line between the two', () => {
+        const mid = {
+          x: (hierarchy.label.x + peer.label.x) / 2,
+          y: (hierarchy.label.y + peer.label.y) / 2,
+        };
+        const nodes = layoutEgoGraph(pair(centerId), size).nodes;
+        const a = nodes.find((n) => n.id === '788')!;
+        const b = nodes.find((n) => n.id === '126')!;
+        expect(mid.x).toBeCloseTo((a.x + b.x) / 2);
+        expect(mid.y).toBeCloseTo((a.y + b.y) / 2);
+      });
+
+      it('anchors each label away from the other, so they cannot overlap', () => {
+        expect([hierarchy.labelAnchor, peer.labelAnchor].sort()).toEqual(['end', 'start']);
+        const anchored = hierarchy.labelAnchor === 'start' ? hierarchy : peer;
+        const other = anchored === hierarchy ? peer : hierarchy;
+        expect(anchored.label.x).toBeGreaterThan(other.label.x);
+      });
+    });
+  }
+
+  it('leaves a lone edge on the straight curve, with a centred label', () => {
+    const edge = layoutEgoGraph(ego, size).edges[0];
+    expect(edge.labelAnchor).toBe('middle');
+  });
+});
+
+describe('layoutEgoGraph on a stage too short for its bands', () => {
+  // At 54px or less there is no room between the bands, so they share one
+  // row, and a lone parent lands exactly on the centre. The window decides
+  // the stage's height, so this is real, if rare.
+  const flat = layoutEgoGraph(ego, { width: 1000, height: 50 });
+
+  it('draws the edge between two nodes at one point without NaN', () => {
+    const parent = flat.edges.find((e) => e.to === '2')!;
+    expect(parent.path).not.toMatch(/NaN/);
+    expect(parent.label.x).not.toBeNaN();
+    expect(parent.label.y).not.toBeNaN();
+  });
+});
+
+describe('layoutEgoGraph with an edge to a node it was not given', { tags: ['theoretical'] }, () => {
+  // buildEgoGraph only records edges between nodes it placed, so every edge
+  // has both ends positioned.
+  it('drops the edge rather than draw it to nowhere', () => {
+    const dangling: EgoGraph = {
+      ...ego,
+      edges: [...ego.edges, { from: '3', to: '99', types: ['PeerOf'], group: 'peer' }],
+    };
+    expect(layoutEgoGraph(dangling, size).edges.map((e) => e.to)).toEqual(['2', '30']);
   });
 });

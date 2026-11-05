@@ -1,4 +1,5 @@
 import { arrowMarkerId, EDGE_GROUPS } from '../lib/relations';
+import { relationLabel } from '../lib/ego';
 import type { PositionedEdge } from '../lib/layout';
 
 interface GraphEdgeProps {
@@ -21,10 +22,10 @@ export function GraphEdge({ edge, dimmed, label }: GraphEdgeProps) {
         strokeDasharray={line.dash}
         markerEnd={line.arrow ? `url(#${arrowMarkerId('graph', edge.group)})` : undefined}
       >
-        <title>{edge.type}</title>
+        <title>{relationLabel(edge)}</title>
       </path>
       {label && (
-        <text className="graph-edge__label" x={edge.label.x} y={edge.label.y} textAnchor="middle">
+        <text className="graph-edge__label" x={edge.label.x} y={edge.label.y} textAnchor={edge.labelAnchor}>
           {label}
         </text>
       )}
