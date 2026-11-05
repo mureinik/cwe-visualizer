@@ -14,7 +14,7 @@ interface GraphNodeProps {
   selected: boolean;
   dimmed: boolean;
   onSelect: (id: string) => void;
-  onKeyDown: (event: React.KeyboardEvent<SVGGElement>, id: string) => void;
+  onKeyDown: (event: React.KeyboardEvent<SVGGElement>) => void;
   onHover: (id: string | null) => void;
 }
 
@@ -46,7 +46,7 @@ export function GraphNode({
       aria-label={label}
       aria-current={selected ? 'true' : undefined}
       onClick={() => onSelect(node.id)}
-      onKeyDown={(event) => onKeyDown(event, node.id)}
+      onKeyDown={onKeyDown}
       onMouseEnter={() => onHover(node.id)}
       onMouseLeave={() => onHover(null)}
       onFocus={() => onHover(node.id)}
