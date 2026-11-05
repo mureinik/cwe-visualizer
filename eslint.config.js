@@ -154,6 +154,9 @@ export default tseslint.config(
       }),
     ],
     rules: {
+      // Every if, else, for, while and do gets a braced body, so adding a
+      // second statement can't silently leave it outside.
+      curly: ['error', 'all'],
       // Quote a key only when it must be, and always quote numeric ones
       // (CWE ids like '79').
       '@stylistic/quote-props': ['error', 'as-needed', { numbers: true }],

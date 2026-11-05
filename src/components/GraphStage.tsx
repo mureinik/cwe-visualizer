@@ -35,10 +35,14 @@ function useStageSize(ref: React.RefObject<HTMLDivElement | null>): StageSize {
 
   useEffect(() => {
     const element = ref.current;
-    if (!element || typeof ResizeObserver !== 'function') return;
+    if (!element || typeof ResizeObserver !== 'function') {
+      return;
+    }
     const observer = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
-      if (width > 0 && height > 0) setSize({ width, height });
+      if (width > 0 && height > 0) {
+        setSize({ width, height });
+      }
     });
     observer.observe(element);
     return () => observer.disconnect();
@@ -89,12 +93,16 @@ export function GraphStage({
   const displayNames = useMemo(() => {
     const result = new Map<string, string>();
     const compact = new Map<string, boolean>();
-    if (!layout) return { names: result, compact };
+    if (!layout) {
+      return { names: result, compact };
+    }
 
     const usable = Math.max(0, size.width - 2 * edgeMargin(size.width));
     for (const band of [-2, -1, 0, 1] as const) {
       const members = layout.nodes.filter((n) => n.band === band);
-      if (members.length === 0) continue;
+      if (members.length === 0) {
+        continue;
+      }
 
       // Elide in band order, before sorting: dominantPrefix breaks ties by
       // the order it sees the names in.
@@ -127,7 +135,9 @@ export function GraphStage({
   const active = hovered && layout?.nodes.some((n) => n.id === hovered) ? hovered : null;
 
   const incident = useMemo(() => {
-    if (!layout || !active) return null;
+    if (!layout || !active) {
+      return null;
+    }
     const edges = layout.edges.filter((e) => e.from === active || e.to === active);
     const nodes = new Set<string>([active]);
     for (const edge of edges) {
@@ -148,9 +158,13 @@ export function GraphStage({
    * down move through the hierarchy, left and right along the current band.
    */
   function onNodeKeyDown(event: React.KeyboardEvent<SVGGElement>, id: string) {
-    if (!layout) return;
+    if (!layout) {
+      return;
+    }
     const current = layout.nodes.find((n) => n.id === id);
-    if (!current) return;
+    if (!current) {
+      return;
+    }
 
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
@@ -168,7 +182,9 @@ export function GraphStage({
             Math.abs(a.y - current.y) - Math.abs(b.y - current.y) ||
             Math.abs(a.x - current.x) - Math.abs(b.x - current.x),
         );
-      if (candidates[0]) focusNode(candidates[0].id);
+      if (candidates[0]) {
+        focusNode(candidates[0].id);
+      }
       return;
     }
 
@@ -178,7 +194,9 @@ export function GraphStage({
       const sameBand = layout.nodes
         .filter((n) => n.band === current.band && (horizontal < 0 ? n.x < current.x : n.x > current.x))
         .sort((a, b) => Math.abs(a.x - current.x) - Math.abs(b.x - current.x));
-      if (sameBand[0]) focusNode(sameBand[0].id);
+      if (sameBand[0]) {
+        focusNode(sameBand[0].id);
+      }
     }
   }
 

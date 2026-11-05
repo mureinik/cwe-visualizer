@@ -39,11 +39,15 @@ export function App() {
     // served from, not only at the domain root.
     fetch(`${import.meta.env.BASE_URL}data/cwe.json`)
       .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
         return res.json() as Promise<CweData>;
       })
       .then((data) => {
-        if (!cancelled) setState({ status: 'ready', graph: buildGraph(data) });
+        if (!cancelled) {
+          setState({ status: 'ready', graph: buildGraph(data) });
+        }
       })
       .catch((err: unknown) => {
         if (!cancelled) {
@@ -121,7 +125,9 @@ export function App() {
             // Below the breakpoint the drawer covers the whole screen, so the
             // pick would re-centre a graph nobody can see. Wider, the graph
             // shows beside it and the drawer stays open for browsing.
-            if (narrow) setDrawerOpen(false);
+            if (narrow) {
+              setDrawerOpen(false);
+            }
           }}
           revealId={revealId}
         />

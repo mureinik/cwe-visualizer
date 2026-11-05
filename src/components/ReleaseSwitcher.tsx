@@ -40,9 +40,13 @@ export function ReleaseSwitcher() {
   }, []);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     const closeOutside = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
     };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -59,7 +63,9 @@ export function ReleaseSwitcher() {
   }, [open]);
 
   const current = releases?.find((release) => release.path === import.meta.env.BASE_URL);
-  if (!releases || !current) return null;
+  if (!releases || !current) {
+    return null;
+  }
 
   return (
     <div
@@ -67,7 +73,9 @@ export function ReleaseSwitcher() {
       className="release-switcher"
       onBlur={(event) => {
         // Tabbing out of the list closes it, as a click outside does.
-        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setOpen(false);
+        }
       }}
     >
       <button

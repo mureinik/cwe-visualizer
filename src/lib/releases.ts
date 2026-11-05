@@ -22,7 +22,9 @@ export interface ReleaseManifest {
 }
 
 function isRelease(value: unknown): value is Release {
-  if (typeof value !== 'object' || value === null) return false;
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
   const r = value as Record<string, unknown>;
   return (
     typeof r.path === 'string' &&
@@ -38,8 +40,12 @@ function isRelease(value: unknown): value is Release {
  * dev server) holds no manifest and may answer with anything.
  */
 export function parseReleaseManifest(json: unknown): Release[] | null {
-  if (typeof json !== 'object' || json === null) return null;
+  if (typeof json !== 'object' || json === null) {
+    return null;
+  }
   const { releases } = json as Record<string, unknown>;
-  if (!Array.isArray(releases) || !releases.every(isRelease)) return null;
+  if (!Array.isArray(releases) || !releases.every(isRelease)) {
+    return null;
+  }
   return releases;
 }

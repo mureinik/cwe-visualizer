@@ -24,7 +24,9 @@ describe.each(THEMES)('$name theme tokens', ({ selector }) => {
 
   it('defines a background and every text token', () => {
     expect(tokens['--bg']).toMatch(/^#[0-9a-f]{6}$/i);
-    for (const name of TEXT_ON_BG) expect(tokens[name]).toMatch(/^#[0-9a-f]{6}$/i);
+    for (const name of TEXT_ON_BG) {
+      expect(tokens[name]).toMatch(/^#[0-9a-f]{6}$/i);
+    }
   });
 
   it.each(TEXT_ON_BG)('%s reaches 4.5:1 against --bg', (name) => {

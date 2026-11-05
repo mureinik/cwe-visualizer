@@ -43,7 +43,9 @@ function fakeFetch(zip: Buffer, status = 200) {
 // Writes the data/meta.json a real build of main would, when given a version.
 function fakeBuild(cweVersion?: string) {
   return vi.fn<(base: string, outDir: string) => Promise<void>>(async (_base, outDir) => {
-    if (cweVersion === undefined) return;
+    if (cweVersion === undefined) {
+      return;
+    }
     await mkdir(path.join(outDir, 'data'), { recursive: true });
     await writeFile(path.join(outDir, 'data', 'meta.json'), metaJson(cweVersion));
   });
@@ -116,7 +118,9 @@ describe('extractReleases and run', () => {
       zip.addFile(`${ROOT}v1/../../escape.txt`, Buffer.from('evil'));
       const entry = zip.getEntries().find((e) => e.entryName.endsWith('escape.txt'));
       // Some adm-zip versions normalize names on add; force the raw name.
-      if (entry) entry.entryName = `${ROOT}v1/../../escape.txt`;
+      if (entry) {
+        entry.entryName = `${ROOT}v1/../../escape.txt`;
+      }
       expect(entry?.entryName).toContain('..');
       await expect(extractReleases(zip.toBuffer(), outDir)).rejects.toThrow(/outside/);
       expect(existsSync(path.join(dir, 'escape.txt'))).toBe(false);

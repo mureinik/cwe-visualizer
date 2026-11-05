@@ -12,7 +12,9 @@ export function ThemeToggle() {
   const theme: Theme = chosen ?? (prefersDark ? 'dark' : 'light');
 
   useEffect(() => {
-    if (chosen) applyTheme(chosen);
+    if (chosen) {
+      applyTheme(chosen);
+    }
   }, [chosen]);
 
   const next: Theme = theme === 'dark' ? 'light' : 'dark';

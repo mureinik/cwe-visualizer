@@ -16,13 +16,19 @@ const MIN_PREFIX = 8;
 const MAX_CHARS = 34;
 
 export function longestCommonPrefix(values: string[]): string {
-  if (values.length < 2) return '';
+  if (values.length < 2) {
+    return '';
+  }
   let prefix = values[0];
   for (const value of values.slice(1)) {
     let i = 0;
-    while (i < prefix.length && i < value.length && prefix[i] === value[i]) i += 1;
+    while (i < prefix.length && i < value.length && prefix[i] === value[i]) {
+      i += 1;
+    }
     prefix = prefix.slice(0, i);
-    if (prefix === '') return '';
+    if (prefix === '') {
+      return '';
+    }
   }
   return prefix;
 }
@@ -31,7 +37,9 @@ export function longestCommonPrefix(values: string[]): string {
 function wordPrefixes(name: string): string[] {
   const prefixes: string[] = [];
   for (let i = 0; i < name.length; i += 1) {
-    if (name[i] === ' ') prefixes.push(name.slice(0, i + 1));
+    if (name[i] === ' ') {
+      prefixes.push(name.slice(0, i + 1));
+    }
   }
   return prefixes;
 }
@@ -45,7 +53,9 @@ function wordPrefixes(name: string): string[] {
  * otherwise force all seven to keep the prefix nobody needs to read.
  */
 export function dominantPrefix(names: string[]): string {
-  if (names.length < 2) return '';
+  if (names.length < 2) {
+    return '';
+  }
   const threshold = Math.max(2, Math.ceil(names.length / 2));
 
   const counts = new Map<string, number>();
@@ -71,7 +81,9 @@ export function dominantPrefix(names: string[]): string {
  */
 export function elideSharedPrefix(names: string[]): string[] {
   const prefix = dominantPrefix(names);
-  if (prefix === '') return names;
+  if (prefix === '') {
+    return names;
+  }
 
   const elided = names.map((name) =>
     name.startsWith(prefix) && name.length > prefix.length ? `…${name.slice(prefix.length)}` : name,
@@ -81,9 +93,15 @@ export function elideSharedPrefix(names: string[]): string[] {
 
 /** Truncates to at most `maxChars` characters, ellipsis included. */
 export function fitLabel(text: string, maxChars: number): string {
-  if (maxChars <= 0) return '';
-  if (text.length <= maxChars) return text;
-  if (maxChars === 1) return '…';
+  if (maxChars <= 0) {
+    return '';
+  }
+  if (text.length <= maxChars) {
+    return text;
+  }
+  if (maxChars === 1) {
+    return '…';
+  }
   return `${text.slice(0, maxChars - 1).trimEnd()}…`;
 }
 

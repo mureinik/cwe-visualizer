@@ -11,14 +11,18 @@ const DEFAULT_REPO = 'cwe-visualizer';
 
 export function parseRelease(name: string): { major: number; minor: number } | null {
   const match = RELEASE_PATTERN.exec(name);
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
   return { major: Number(match[1]), minor: Number(match[2] ?? 0) };
 }
 
 function compareReleases(a: string, b: string): number {
   const x = parseRelease(a);
   const y = parseRelease(b);
-  if (!x || !y) return 0;
+  if (!x || !y) {
+    return 0;
+  }
   return x.major - y.major || x.minor - y.minor;
 }
 
@@ -54,7 +58,9 @@ export async function buildManifest(outDir: string, releases: string[]): Promise
   ];
   for (const name of [...releases].sort(compareReleases).reverse()) {
     const parsed = parseRelease(name);
-    if (!parsed) continue;
+    if (!parsed) {
+      continue;
+    }
     entries.push({
       path: `/${name}/`,
       label: `${parsed.major}.${parsed.minor}`,
@@ -97,10 +103,14 @@ export async function extractReleases(zip: Buffer, outDir: string): Promise<stri
   const found = new Set<string>();
   const writes: { target: string; data: Buffer }[] = [];
   for (const entry of new AdmZip(zip).getEntries()) {
-    if (entry.isDirectory) continue;
+    if (entry.isDirectory) {
+      continue;
+    }
     // GitHub zipballs wrap everything in a single "<repo>-<sha>/" folder.
     const [, release, ...rest] = entry.entryName.split('/');
-    if (!release || rest.length === 0 || parseRelease(release) === null) continue;
+    if (!release || rest.length === 0 || parseRelease(release) === null) {
+      continue;
+    }
     const target = path.resolve(root, release, ...rest);
     const relative = path.relative(root, target);
     if (relative.startsWith('..') || path.isAbsolute(relative)) {
