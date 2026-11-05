@@ -113,3 +113,26 @@ describe('SearchBox with no matches', () => {
     expect(screen.queryByText('No matches')).not.toBeInTheDocument();
   });
 });
+
+// App builds the graph once and never replaces it, so the results can't
+// shrink under an active option without the query changing, which resets it.
+describe('SearchBox when the graph changes under an active option', { tags: ['theoretical'] }, () => {
+  it('selects nothing on Enter if the active option is gone', async () => {
+    const onSelect = vi.fn();
+    // React reports a throw from an event handler here, not to the test, and
+    // onSelect goes uncalled either way.
+    const onError = vi.fn((event: ErrorEvent) => event.preventDefault());
+    window.addEventListener('error', onError);
+    const { rerender } = render(<SearchBox graph={buildGraph(data)} onSelect={onSelect} />);
+    await userEvent.type(screen.getByRole('combobox'), 'i');
+    await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+
+    const smaller = { ...data, nodes: { '89': data.nodes['89'] } };
+    rerender(<SearchBox graph={buildGraph(smaller)} onSelect={onSelect} />);
+    await userEvent.keyboard('{Enter}');
+
+    window.removeEventListener('error', onError);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+  });
+});

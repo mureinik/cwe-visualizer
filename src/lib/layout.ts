@@ -105,9 +105,6 @@ export const CENTER_CLEARANCE = 100;
 
 /** Spreads n items evenly across [start, end], centred. */
 function spread(index: number, count: number, start: number, end: number): number {
-  if (count <= 0) {
-    return (start + end) / 2;
-  }
   return start + ((end - start) * (index + 0.5)) / count;
 }
 

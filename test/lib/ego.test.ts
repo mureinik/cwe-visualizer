@@ -119,6 +119,16 @@ describe('buildEgoGraph', () => {
       });
       expect(bandOf(buildEgoGraph(dangling, '3'), '99999')).toBeUndefined();
     });
+
+    it('skips a parent that is not in the corpus', () => {
+      const dangling = buildGraph({
+        ...data,
+        edges: [...data.edges, { from: '3', to: '99999', type: 'ChildOf' }],
+      });
+      const ego = buildEgoGraph(dangling, '3');
+      expect(bandOf(ego, '99999')).toBeUndefined();
+      expect(ego.edges.some((e) => e.to === '99999')).toBe(false);
+    });
   });
 
   // As for the lookups in graph.test.ts, the centre is always a numeric id.
@@ -278,5 +288,36 @@ describe('buildEgoGraph with a relation to a parent or child', () => {
       { from: '126', to: '788', types: ['ChildOf'], group: 'hierarchy' },
       { from: '788', to: '126', types: ['Overlaps'], group: 'peer' },
     ]);
+  });
+});
+
+describe('buildEgoGraph reaching a CWE twice on the way up', () => {
+  const childOf = (from: string, to: string) => ({ from, to, types: ['ChildOf'], group: 'hierarchy' });
+  const hierarchy = (ids: string[], edges: [string, string][]) =>
+    buildGraph({
+      meta: data.meta,
+      nodes: Object.fromEntries(ids.map((id) => [id, node(id)])),
+      edges: edges.map(([from, to]) => ({ from, to, type: 'ChildOf' })),
+    });
+
+  it('places a grandparent two parents share once, with an edge from each', () => {
+    // CWE 5.0: 1105's parents, 758 and 1061, are both children of 710.
+    const ego = buildEgoGraph(
+      hierarchy(['1105', '758', '1061', '710'], [['1105', '758'], ['1105', '1061'], ['758', '710'], ['1061', '710']]),
+      '1105',
+    );
+    expect(ego.nodes.filter((n) => n.id === '710')).toEqual([{ id: '710', band: -2, side: 'center' }]);
+    expect(ego.edges).toContainEqual(childOf('758', '710'));
+    expect(ego.edges).toContainEqual(childOf('1061', '710'));
+  });
+
+  it('keeps a CWE that is both a parent and a grandparent on the nearer band', () => {
+    // CWE 5.0: 102's parents are 20 and 1173, and 1173 is a child of 20.
+    const ego = buildEgoGraph(
+      hierarchy(['102', '1173', '20'], [['102', '1173'], ['102', '20'], ['1173', '20']]),
+      '102',
+    );
+    expect(ego.nodes.filter((n) => n.id === '20')).toEqual([{ id: '20', band: -1, side: 'center' }]);
+    expect(ego.edges).toContainEqual(childOf('1173', '20'));
   });
 });

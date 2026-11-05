@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Graph } from '../lib/graph';
 import { buildEgoGraph, edgeKey, relationLabel, type AncestorHops, type LateralRelation } from '../lib/ego';
-import { childCapFor, edgeMargin, layoutEgoGraph, type StageSize } from '../lib/layout';
+import { childCapFor, edgeMargin, layoutEgoGraph, type PositionedNode, type StageSize } from '../lib/layout';
 import { elideSharedPrefix, fitLabel, labelBudget } from '../lib/labels';
 import { arrowMarkerId, EDGE_GROUPS } from '../lib/relations';
 import { GraphEdge } from './GraphEdge';
@@ -157,25 +157,17 @@ export function GraphStage({
    * Arrow keys follow the layout's own axes rather than DOM order: up and
    * down move through the hierarchy, left and right along the current band.
    */
-  function onNodeKeyDown(event: React.KeyboardEvent<SVGGElement>, id: string) {
-    if (!layout) {
-      return;
-    }
-    const current = layout.nodes.find((n) => n.id === id);
-    if (!current) {
-      return;
-    }
-
+  function onNodeKeyDown(event: React.KeyboardEvent<SVGGElement>, current: PositionedNode, nodes: PositionedNode[]) {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      onSelect(id);
+      onSelect(current.id);
       return;
     }
 
     const vertical = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0;
     if (vertical !== 0) {
       event.preventDefault();
-      const candidates = layout.nodes
+      const candidates = nodes
         .filter((n) => (vertical < 0 ? n.y < current.y : n.y > current.y))
         .sort(
           (a, b) =>
@@ -191,7 +183,7 @@ export function GraphStage({
     const horizontal = event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0;
     if (horizontal !== 0) {
       event.preventDefault();
-      const sameBand = layout.nodes
+      const sameBand = nodes
         .filter((n) => n.band === current.band && (horizontal < 0 ? n.x < current.x : n.x > current.x))
         .sort((a, b) => Math.abs(a.x - current.x) - Math.abs(b.x - current.x));
       if (sameBand[0]) {
@@ -245,7 +237,7 @@ export function GraphStage({
                 selected={node.id === ego?.centerId}
                 dimmed={!!incident && !incident.nodes.has(node.id)}
                 onSelect={onSelect}
-                onKeyDown={onNodeKeyDown}
+                onKeyDown={(event) => onNodeKeyDown(event, node, layout.nodes)}
                 onHover={setHovered}
               />
             ))}
