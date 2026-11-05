@@ -6,9 +6,11 @@ interface GraphEdgeProps {
   edge: PositionedEdge;
   dimmed: boolean;
   label: string | null;
+  /** Whether the edge ends at the selected node, whose halo is the larger. */
+  intoCenter?: boolean;
 }
 
-export function GraphEdge({ edge, dimmed, label }: GraphEdgeProps) {
+export function GraphEdge({ edge, dimmed, label, intoCenter = false }: GraphEdgeProps) {
   const { line } = EDGE_GROUPS[edge.group];
 
   return (
@@ -20,7 +22,7 @@ export function GraphEdge({ edge, dimmed, label }: GraphEdgeProps) {
         stroke={`var(${line.token})`}
         strokeWidth={line.width}
         strokeDasharray={line.dash}
-        markerEnd={line.arrow ? `url(#${arrowMarkerId('graph', edge.group)})` : undefined}
+        markerEnd={line.arrow ? `url(#${arrowMarkerId(intoCenter ? 'graph-center' : 'graph', edge.group)})` : undefined}
       >
         <title>{relationLabel(edge)}</title>
       </path>

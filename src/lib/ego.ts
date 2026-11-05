@@ -204,11 +204,20 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
     } else {
       side = left <= right ? 'left' : 'right';
     }
+    // A relation with a direction runs left to right from whichever end is
+    // selected, so its arrow doesn't flip with the view.
+    const inbound = hasDirection(edge.type) && side === 'left';
+    const drawn: EgoEdge = {
+      from: inbound ? edge.to : centerId,
+      to: inbound ? centerId : edge.to,
+      types: edge.types,
+      group: edge.group,
+    };
 
     // Already on the canvas as a parent, child or earlier relation: record
     // the edge, but it occupies no new slot.
     if (seen.has(edge.to)) {
-      edges.push({ from: centerId, to: edge.to, types: edge.types, group: edge.group });
+      edges.push(drawn);
       continue;
     }
 
@@ -226,7 +235,7 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
     } else {
       right += 1;
     }
-    edges.push({ from: centerId, to: edge.to, types: edge.types, group: edge.group });
+    edges.push(drawn);
   }
 
   return {

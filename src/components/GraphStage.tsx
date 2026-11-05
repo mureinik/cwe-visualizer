@@ -4,6 +4,7 @@ import { buildEgoGraph, edgeKey, relationLabel, type AncestorHops, type LateralR
 import { childCapFor, edgeMargin, layoutEgoGraph, type PositionedNode, type StageSize } from '../lib/layout';
 import { elideSharedPrefix, fitLabel, labelBudget } from '../lib/labels';
 import { arrowMarkerId, EDGE_GROUPS } from '../lib/relations';
+import { HALO_GAP, NODE_RADIUS, SELECTED_NODE_RADIUS } from '../lib/shapes';
 import { GraphEdge } from './GraphEdge';
 import { GraphNode } from './GraphNode';
 import { Legend } from './Legend';
@@ -13,6 +14,18 @@ const DEFAULT_STAGE: StageSize = { width: 960, height: 600 };
 
 /** Children drawn before the rest collapse into the overflow chip, where the stage has room. */
 const CHILD_CAP = 10;
+
+const ARROW_SIZE = 9;
+/** How far an arrow's tip stops outside whatever it points at. */
+const ARROW_CLEARANCE = 3;
+/**
+ * An edge runs to its node's centre, so each arrow stops short of that by
+ * enough for the glyph not to cover it.
+ */
+const ARROW_STOPS = [
+  { scope: 'graph', inset: NODE_RADIUS + ARROW_CLEARANCE },
+  { scope: 'graph-center', inset: SELECTED_NODE_RADIUS + HALO_GAP + ARROW_CLEARANCE },
+] as const;
 
 interface GraphStageProps {
   graph: Graph;
@@ -212,11 +225,23 @@ export function GraphStage({
             <defs>
               {Object.values(EDGE_GROUPS)
                 .filter(({ line }) => line.arrow)
-                .map(({ key, line }) => (
-                  <marker key={key} id={arrowMarkerId('graph', key)} viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
-                    <path d="M 0 0 L 8 4 L 0 8 z" fill={`var(${line.token})`} />
-                  </marker>
-                ))}
+                .flatMap(({ key, line }) =>
+                  ARROW_STOPS.map(({ scope, inset }) => (
+                    <marker
+                      key={`${scope}-${key}`}
+                      id={arrowMarkerId(scope, key)}
+                      viewBox={`0 0 ${ARROW_SIZE} ${ARROW_SIZE}`}
+                      refX={ARROW_SIZE + inset}
+                      refY={ARROW_SIZE / 2}
+                      markerUnits="userSpaceOnUse"
+                      markerWidth={ARROW_SIZE}
+                      markerHeight={ARROW_SIZE}
+                      orient="auto"
+                    >
+                      <path d={`M 0 0 L ${ARROW_SIZE} ${ARROW_SIZE / 2} L 0 ${ARROW_SIZE} z`} fill={`var(${line.token})`} />
+                    </marker>
+                  )),
+                )}
             </defs>
             {layout.edges.map((edge) => {
               const key = edgeKey(edge);
@@ -224,7 +249,7 @@ export function GraphStage({
               // Every edge meets the centre, so labelling them all when it is
               // active stacks the labels on top of one another around it.
               const labelled = incident && lit && active !== ego?.centerId;
-              return <GraphEdge key={key} edge={edge} dimmed={!lit} label={labelled ? relationLabel(edge) : null} />;
+              return <GraphEdge key={key} edge={edge} dimmed={!lit} label={labelled ? relationLabel(edge) : null} intoCenter={edge.to === ego?.centerId} />;
             })}
             {layout.nodes.map((node) => (
               <GraphNode

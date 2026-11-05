@@ -413,3 +413,36 @@ describe('GraphStage with two relations in one group', () => {
     expect(container.querySelector('.graph-edge__label')).toHaveTextContent('Overlaps, PeerOf');
   });
 });
+
+describe('GraphStage arrows', () => {
+  // CWE 5.0: 113 CanPrecede 79.
+  const sequence = buildGraph({
+    meta: data.meta,
+    nodes: { '79': node('79', 'Cross-site Scripting'), '113': node('113', 'CRLF Injection') },
+    edges: [{ from: '113', to: '79', type: 'CanPrecede' }],
+  });
+  const stage = (selectedId: string) =>
+    render(
+      <GraphStage graph={sequence} selectedId={selectedId} onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    ).container;
+
+  /** How far short of the end of its edge the arrow's tip stops. */
+  function tipInset(container: HTMLElement) {
+    const id = container.querySelector('.graph-edge')?.getAttribute('marker-end')?.match(/#([^)]+)/)?.[1];
+    const marker = container.querySelector(`marker[id="${id}"]`);
+    const [, , width] = marker!.getAttribute('viewBox')!.split(' ').map(Number);
+    return Number(marker!.getAttribute('refX')) - width;
+  }
+
+  it('stops an arrow into the selected node outside its halo', () => {
+    // The selected glyph's radius is 13, and its halo 7 beyond that.
+    expect(tipInset(stage('79'))).toBeGreaterThan(20);
+  });
+
+  it('stops an arrow into a neighbour outside its glyph', () => {
+    // A neighbour's radius is 9, and a ringed glyph's stroke adds 1.4.
+    const inset = tipInset(stage('113'));
+    expect(inset).toBeGreaterThan(10.4);
+    expect(inset).toBeLessThan(20);
+  });
+});

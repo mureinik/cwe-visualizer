@@ -42,6 +42,13 @@ describe('Legend', () => {
     });
   });
 
+  it('marks every relation with a direction with an arrow', () => {
+    const { container } = render(<Legend />);
+    const arrows = Array.from(container.querySelectorAll('.legend__swatch line[marker-end]'), (line) =>
+      line.closest('.legend__row')?.textContent);
+    expect(arrows).toEqual(['Sequence', 'Requires']);
+  });
+
   it('explains every abstraction shape', () => {
     render(<Legend />);
     for (const label of ['Pillar', 'Class', 'Base', 'Variant', 'Compound']) {
