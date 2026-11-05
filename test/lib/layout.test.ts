@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   layoutEgoGraph,
   bandY,
+  BUNDLE_GAP,
   childCapFor,
   edgeMargin,
   EDGE_MARGIN,
@@ -76,9 +77,10 @@ describe('layoutEgoGraph', () => {
     }
   });
 
-  it('puts each edge label midway between its endpoints', () => {
+  it('puts each edge label at the midpoint of its curve', () => {
     const edge = layoutEgoGraph(ego, size).edges.find((e) => e.to === '30')!;
-    expect(edge.label).toEqual({ x: (at('3').x + at('30').x) / 2, y: (at('3').y + at('30').y) / 2 });
+    expect(edge.label.x).toBe((at('3').x + at('30').x) / 2);
+    expect(edge.label.y).toBeCloseTo(at('3').y - 22);
   });
 
   it('positions the overflow chip on the children band', () => {
@@ -386,5 +388,84 @@ describe('layoutEgoGraph with an edge to a node it was not given', { tags: ['the
       edges: [...ego.edges, { from: '3', to: '99', types: ['PeerOf'], group: 'peer' }],
     };
     expect(layoutEgoGraph(dangling, size).edges.map((e) => e.to)).toEqual(['2', '30']);
+  });
+});
+
+describe('lateral arcs', () => {
+  const lateral = (id: string, side: 'left' | 'right') => ({ id, band: 0 as const, side });
+  const relation = (to: string) => ({ from: '50', to, types: ['PeerOf'], group: 'peer' as const });
+  // CWE-79 in CWE 5.0 has two laterals on each side. The ids run either side
+  // of the centre's, which decides which way the pair's normal points.
+  const row: EgoGraph = {
+    centerId: '50',
+    nodes: [
+      { id: '50', band: 0, side: 'center' },
+      lateral('10', 'left'),
+      lateral('11', 'left'),
+      lateral('90', 'right'),
+      lateral('91', 'right'),
+    ],
+    edges: ['10', '11', '90', '91'].map(relation),
+    overflow: null,
+    lateralOverflow: { left: 0, right: 0 },
+    hiddenLaterals: { left: [], right: [] },
+  };
+
+  /** How far above the row each edge's midpoint sits, by the node it reaches. */
+  function heights(graph: EgoGraph) {
+    const layout = layoutEgoGraph(graph, size);
+    const y = layout.nodes.find((n) => n.id === '50')!.y;
+    return Object.fromEntries(layout.edges.map((e) => [e.to, Math.round(y - e.label.y)]));
+  }
+
+  it('raises each lateral one step above the one nearer the centre', () => {
+    expect(heights(row)).toEqual({ '11': 22, '10': 44, '90': 22, '91': 44 });
+  });
+
+  it('gives the slot of a "+N more" marker no arc, since no edge reaches it', () => {
+    const capped = { ...row, lateralOverflow: { left: 3, right: 3 } };
+    expect(heights(capped)).toEqual(heights(row));
+  });
+
+  it('draws the arc through the point its label sits on', () => {
+    const edge = layoutEgoGraph(row, size).edges.find((e) => e.to === '90')!;
+    const [, y0, , c1y, , c2y, , y3] = edge.path.match(/[\d.-]+/g)!.map(Number);
+    expect((y0 + 3 * c1y + 3 * c2y + y3) / 8).toBeCloseTo(edge.label.y, 1);
+  });
+
+  it('keeps two edges of one pair apart, either side of their arc', () => {
+    // Different groups between the same two laterals can't share a line.
+    const two = {
+      ...row,
+      nodes: row.nodes.filter((n) => n.id === '50' || n.id === '90'),
+      edges: [relation('90'), { from: '50', to: '90', types: ['Requires'], group: 'requires' as const }],
+    };
+    const ys = layoutEgoGraph(two, size).edges.map((e) => e.label.y).sort((a, b) => a - b);
+    expect(ys[1] - ys[0]).toBeCloseTo(BUNDLE_GAP);
+    const y = layoutEgoGraph(two, size).nodes.find((n) => n.id === '50')!.y;
+    expect(y - (ys[0] + ys[1]) / 2).toBeCloseTo(22);
+  });
+
+  it('centres a label on its arc where there is room', () => {
+    expect(layoutEgoGraph(row, size).edges.map((e) => e.labelAnchor)).toEqual(['middle', 'middle', 'middle', 'middle']);
+  });
+
+  it('grows the nearest labels outwards on a phone, so they cannot meet across the centre', () => {
+    // CWE-345 in CWE 5.0, at 390px: "CanAlsoBe (inverse)" on either side.
+    const anchors = Object.fromEntries(
+      layoutEgoGraph(row, { width: 390, height: 420 }).edges.map((e) => [e.to, e.labelAnchor]),
+    );
+    expect(anchors).toEqual({ '11': 'end', '10': 'middle', '90': 'start', '91': 'middle' });
+  });
+
+  it('leaves an edge to a parent or child alone', () => {
+    const vertical: EgoGraph = {
+      ...row,
+      nodes: [{ id: '50', band: 0, side: 'center' }, { id: '40', band: -1, side: 'center' }],
+      edges: [{ from: '50', to: '40', types: ['ChildOf'], group: 'hierarchy' }],
+    };
+    const layout = layoutEgoGraph(vertical, size);
+    const [a, b] = layout.nodes;
+    expect(layout.edges[0].label).toEqual({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
   });
 });

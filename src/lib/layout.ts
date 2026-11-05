@@ -121,6 +121,21 @@ interface Point {
 export const BUNDLE_GAP = 20;
 
 /**
+ * How much higher, at its midpoint, each lateral's edge arcs than the one
+ * nearer the centre. Laterals share the centre's row, so straight edges would
+ * lie on top of each other, and their labels with them. One step clears a
+ * line of label text, and the nearest edge takes one too, so that its label
+ * stays off the row's glyphs.
+ */
+const LATERAL_ARC = 22;
+
+/**
+ * Half the width of the longest label on a lateral, "StartsWith (inverse)".
+ * One centred closer than this to the selected node would reach across it.
+ */
+const LATERAL_LABEL_REACH = 64;
+
+/**
  * The curve from one node to another, with its midpoint moved `bend` pixels
  * along `normal`. A cubic's midpoint is (P0 + 3·P1 + 3·P2 + P3) / 8, so
  * moving both control points by d moves it by ¾d.
@@ -186,6 +201,8 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
   }
 
   const lateralOverflow: PositionedLateralOverflow[] = [];
+  /** How many arc steps above the row each lateral's edge runs. */
+  const arcSteps = new Map<string, number>();
   for (const side of ['left', 'right'] as const) {
     const members = ego.nodes.filter((n) => n.band === 0 && n.side === side);
     const [start, end] =
@@ -203,6 +220,7 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
 
     members.forEach((node, i) => {
       positioned.set(node.id, { ...node, x: spread(memberIndex(i), slots, start, end), y: centerY });
+      arcSteps.set(node.id, side === 'left' ? members.length - i : i + 1);
     });
 
     if (hiddenCount > 0) {
@@ -261,12 +279,21 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
     // apart. A flatter one bends up and down, which separates them already.
     const sideways = Math.abs(normal.x) >= 0.5;
     const outward = normal.x * bend;
-    const labelAnchor = !sideways || bend === 0 ? 'middle' : outward > 0 ? 'start' : 'end';
+    let labelAnchor: PositionedEdge['labelAnchor'] = !sideways || bend === 0 ? 'middle' : outward > 0 ? 'start' : 'end';
+    // Only a lateral has steps, and its edge lies along the row, so its normal
+    // points straight up or down. The sign keeps every arc going up.
+    const steps = arcSteps.get(edge.from) ?? arcSteps.get(edge.to) ?? 0;
+    const arced = bend - Math.sign(normal.y) * steps * LATERAL_ARC;
+    // Labels on opposite sides sit at the same height, so one that reaches
+    // the centre grows away from it, or the two run together on a phone.
+    if (steps > 0 && Math.abs(to.x - from.x) / 2 < LATERAL_LABEL_REACH) {
+      labelAnchor = Math.min(from.x, to.x) < width / 2 ? 'end' : 'start';
+    }
     return [
       {
         ...edge,
-        path: cubic(from, to, normal, bend),
-        label: { x: (from.x + to.x) / 2 + normal.x * bend, y: (from.y + to.y) / 2 + normal.y * bend },
+        path: cubic(from, to, normal, arced),
+        label: { x: (from.x + to.x) / 2 + normal.x * arced, y: (from.y + to.y) / 2 + normal.y * arced },
         labelAnchor,
       },
     ];

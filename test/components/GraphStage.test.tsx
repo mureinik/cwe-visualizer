@@ -446,3 +446,58 @@ describe('GraphStage arrows', () => {
     expect(inset).toBeLessThan(20);
   });
 });
+
+describe('GraphStage relation labels', () => {
+  // CWE 5.0: 79 ChildOf 74, 113 CanPrecede 79 and 79 CanPrecede 494.
+  const related = buildGraph({
+    meta: data.meta,
+    nodes: {
+      '74': node('74', 'Injection'),
+      '79': node('79', 'Cross-site Scripting'),
+      '113': node('113', 'CRLF Injection'),
+      '494': node('494', 'Download of Code Without Integrity Check'),
+    },
+    edges: [
+      { from: '79', to: '74', type: 'ChildOf' },
+      { from: '113', to: '79', type: 'CanPrecede' },
+      { from: '79', to: '494', type: 'CanPrecede' },
+    ],
+  });
+  const stage = () =>
+    render(
+      <GraphStage graph={related} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    ).container;
+  const labels = (container: HTMLElement) =>
+    Array.from(container.querySelectorAll('.graph-edge__label'), (l) => l.textContent).sort();
+
+  it('names every relation at rest, and no parent or child edge', () => {
+    expect(labels(stage())).toEqual(['CanFollow', 'CanPrecede']);
+  });
+
+  it('keeps them, without labelling the hierarchy, when the centre is hovered', async () => {
+    // A phone rests here: the node just tapped keeps focus as it re-centres.
+    const container = stage();
+    await userEvent.hover(screen.getByRole('button', { name: /^CWE-79/ }));
+    expect(labels(container)).toEqual(['CanFollow', 'CanPrecede']);
+  });
+
+  it('draws every label over every edge, so no line cuts through one', () => {
+    const container = stage();
+    const lastEdge = Array.from(container.querySelectorAll('.graph-edge')).at(-1)!;
+    const firstLabel = container.querySelector('.graph-edge__label')!;
+    expect(lastEdge.compareDocumentPosition(firstLabel)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('dims a label with its edge', async () => {
+    const container = stage();
+    await userEvent.hover(screen.getByRole('button', { name: /^CWE-74/ }));
+    const dimmed = Array.from(container.querySelectorAll('.graph-edge-group--dimmed .graph-edge__label'));
+    expect(dimmed.map((l) => l.textContent).sort()).toEqual(['CanFollow', 'CanPrecede']);
+  });
+
+  it('adds the hierarchy edge when its other end is hovered', async () => {
+    const container = stage();
+    await userEvent.hover(screen.getByRole('button', { name: /^CWE-74/ }));
+    expect(labels(container)).toEqual(['CanFollow', 'CanPrecede', 'ChildOf']);
+  });
+});
