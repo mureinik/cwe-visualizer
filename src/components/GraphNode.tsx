@@ -1,5 +1,6 @@
 import { isDeprecated, type CweNode } from '../lib/graph';
 import type { PositionedNode } from '../lib/layout';
+import { HALO_GAP, NODE_RADIUS, SELECTED_NODE_RADIUS } from '../lib/shapes';
 import { GlyphShape } from './Glyph';
 
 interface GraphNodeProps {
@@ -31,10 +32,10 @@ export function GraphNode({
   onHover,
 }: GraphNodeProps) {
   const deprecated = isDeprecated(cweNode);
-  const r = selected ? 13 : 9;
+  const r = selected ? SELECTED_NODE_RADIUS : NODE_RADIUS;
   // Clear the selection halo as well as the glyph, so the label's knockout
   // stroke doesn't cut a gap through the ring.
-  const labelTop = (selected ? r + 7 : r) + 16;
+  const labelTop = (selected ? r + HALO_GAP : r) + 16;
 
   return (
     <g
@@ -52,7 +53,7 @@ export function GraphNode({
       onFocus={() => onHover(node.id)}
       onBlur={() => onHover(null)}
     >
-      {selected && <circle className="graph-node__halo" r={r + 7} />}
+      {selected && <circle className="graph-node__halo" r={r + HALO_GAP} />}
       <GlyphShape abstraction={cweNode.abstraction} r={r} deprecated={deprecated} />
       <text className="graph-node__id" y={labelTop} textAnchor="middle">
         {compactId ? node.id : `CWE-${node.id}`}

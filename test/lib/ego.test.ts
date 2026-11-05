@@ -321,3 +321,43 @@ describe('buildEgoGraph reaching a CWE twice on the way up', () => {
     expect(ego.edges).toContainEqual(childOf('1173', '20'));
   });
 });
+
+describe('buildEgoGraph edge direction', () => {
+  const pairOf = (type: string): CweData => ({
+    meta: data.meta,
+    nodes: { '1': node('1'), '2': node('2') },
+    edges: [{ from: '1', to: '2', type }],
+  });
+  const lateral = (ego: ReturnType<typeof buildEgoGraph>) => {
+    const edge = ego.edges.find((e) => e.group !== 'hierarchy');
+    return `${edge?.from}->${edge?.to}`;
+  };
+
+  // CWE 5.0: 113 CanPrecede 79, 689 Requires 362 and 680 StartsWith 190.
+  it.each(['CanPrecede', 'Requires', 'StartsWith'])('runs %s from its source whichever end is selected', (type) => {
+    const pair = buildGraph(pairOf(type));
+    expect(lateral(buildEgoGraph(pair, '1'))).toBe('1->2');
+    expect(lateral(buildEgoGraph(pair, '2'))).toBe('1->2');
+  });
+
+  // CWE 5.0 states neither, but the schema allows both.
+  it.each(['CanFollow', 'RequiredBy'])('runs a stated %s into its source, which comes later', (type) => {
+    const pair = buildGraph(pairOf(type));
+    expect(lateral(buildEgoGraph(pair, '1'))).toBe('2->1');
+    expect(lateral(buildEgoGraph(pair, '2'))).toBe('2->1');
+  });
+
+  it('keeps the direction of an edge to a node already on the canvas', () => {
+    // CWE 5.0: 119 ChildOf 20, and 20 CanPrecede 119.
+    const both = buildGraph({
+      meta: data.meta,
+      nodes: { '20': node('20'), '119': node('119') },
+      edges: [
+        { from: '119', to: '20', type: 'ChildOf' },
+        { from: '20', to: '119', type: 'CanPrecede' },
+      ],
+    });
+    expect(lateral(buildEgoGraph(both, '119'))).toBe('20->119');
+    expect(lateral(buildEgoGraph(both, '20'))).toBe('20->119');
+  });
+});

@@ -1,3 +1,10 @@
+/** A node's glyph radius on the graph. */
+export const NODE_RADIUS = 9;
+/** The selected node's glyph radius: it stands out from its neighbours. */
+export const SELECTED_NODE_RADIUS = 13;
+/** How far the selection halo sits outside the selected glyph. */
+export const HALO_GAP = 7;
+
 export type ShapeName = 'diamond' | 'ringed-circle' | 'circle' | 'hollow-circle' | 'hexagon' | 'square';
 
 export interface Glyph {

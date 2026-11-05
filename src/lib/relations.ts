@@ -41,7 +41,7 @@ export const RELATION_GROUPS: Record<RelationGroup, RelationGroupSpec> = {
   requires: {
     key: 'requires',
     label: 'Requires',
-    line: { token: '--rel-requires', width: 1.5, arrow: false },
+    line: { token: '--rel-requires', width: 1.5, arrow: true },
   },
 };
 
@@ -55,10 +55,11 @@ export const EDGE_GROUPS: Record<EdgeGroup, EdgeGroupSpec> = {
 };
 
 /**
- * The id of a group's arrowhead marker. The graph and the legend each define
- * their own, at different sizes, so the id names which one.
+ * The id of a group's arrowhead marker. The legend defines its own, at a
+ * different size, and the graph has one for each size of node an arrow can
+ * stop at, so the id names which one.
  */
-export function arrowMarkerId(scope: 'graph' | 'legend', group: EdgeGroup): string {
+export function arrowMarkerId(scope: 'graph' | 'graph-center' | 'legend', group: EdgeGroup): string {
   return `${scope}-arrow-${group}`;
 }
 
