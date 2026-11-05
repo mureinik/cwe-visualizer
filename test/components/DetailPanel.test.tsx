@@ -101,7 +101,7 @@ describe('DetailPanel relation order', () => {
       { from: '119', to: '118', type: 'ChildOf' },
       { from: '119', to: '20', type: 'ChildOf' },
       ...['1257', '1260', '128', '20', '839'].map((from) => ({ from, to: '119', type: 'CanPrecede' })),
-      // Listed twice in one section, under two types.
+      // Related twice in one section, under two types.
       { from: '119', to: '128', type: 'CanPrecede' },
     ],
   };
@@ -116,8 +116,7 @@ describe('DetailPanel relation order', () => {
     expect(idsIn(/^Parents/)).toEqual(['CWE-20: Entry 20', 'CWE-118: Entry 118']);
     expect(idsIn(/^Sequence/)).toEqual([
       'CanFollow CWE-20: Entry 20',
-      'CanFollow CWE-128: Entry 128',
-      'CanPrecede CWE-128: Entry 128',
+      'CanFollow, CanPrecede CWE-128: Entry 128',
       'CanFollow CWE-839: Entry 839',
       'CanFollow CWE-1257: Entry 1257',
       'CanFollow CWE-1260: Entry 1260',
@@ -198,5 +197,37 @@ describe('DetailPanel relation direction', () => {
   it('leaves hierarchy chips unadorned, because the heading already says it', () => {
     render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} />);
     expect(screen.getByRole('button', { name: 'CWE-74: Injection' })).toBeInTheDocument();
+  });
+});
+
+// No pair of CWEs in any release up to 5.0 has two peer relations, but the
+// schema allows it: Related_Weakness repeats freely, and nothing keeps two
+// of them from naming the same CWE under different natures.
+describe('DetailPanel with two relations to one CWE in a section', () => {
+  const n = (id: string) => ({ id, name: `Entry ${id}`, abstraction: 'Base', status: 'Draft', description: '', url: '' });
+  const twice = buildGraph({
+    meta: data.meta,
+    nodes: { '787': n('787'), '788': n('788') },
+    edges: [
+      { from: '788', to: '787', type: 'PeerOf' },
+      { from: '788', to: '787', type: 'Overlaps' },
+    ],
+  });
+  const both = 'Overlaps, PeerOf CWE-787: Entry 787';
+
+  it('lists the CWE once, with both relations', () => {
+    render(<DetailPanel graph={twice} selectedId="788" onSelect={() => {}} />);
+    expect(screen.getByRole('heading', { name: 'Peers (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: both })).toHaveTextContent('Overlaps, PeerOf');
+  });
+
+  it('flashes the chip for either relation', () => {
+    for (const [token, type] of [[1, 'Overlaps'], [2, 'PeerOf']] as const) {
+      const { unmount } = render(
+        <DetailPanel graph={twice} selectedId="788" onSelect={() => {}} flash={{ relations: [{ id: '787', type }], token }} />,
+      );
+      expect(screen.getByRole('button', { name: both })).toHaveClass('relation-chip--flash');
+      unmount();
+    }
   });
 });

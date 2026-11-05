@@ -21,8 +21,25 @@ export interface EgoOverflow {
 export interface EgoEdge {
   from: string;
   to: string;
-  type: string;
+  /**
+   * Every relation the edge stands for. Two relations of one group between
+   * the same pair would be drawn identically, so they share one edge.
+   */
+  types: string[];
   group: EdgeGroup;
+}
+
+/** The relations an edge stands for, as its label and tooltip name them. */
+export function relationLabel(edge: Pick<EgoEdge, 'types'>): string {
+  return edge.types.join(', ');
+}
+
+/**
+ * Identifies an edge on the stage. There is at most one per pair and group,
+ * so its relations tell apart two edges between the same pair.
+ */
+export function edgeKey(edge: EgoEdge): string {
+  return `${edge.from}-${edge.to}-${edge.types.join(',')}`;
 }
 
 /** A relation of the centre, as the detail card lists it. */
@@ -36,7 +53,7 @@ export interface EgoGraph {
   nodes: EgoNode[];
   edges: EgoEdge[];
   overflow: EgoOverflow | null;
-  /** Laterals dropped by the per-side cap, so the row stays legible. */
+  /** CWEs dropped by the per-side cap, so the row stays legible. */
   lateralOverflow: { left: number; right: number };
   /** The relations behind those counts, so the overflow chip can point at them. */
   hiddenLaterals: { left: LateralRelation[]; right: LateralRelation[] };
@@ -109,7 +126,7 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
       for (const parentId of [...(graph.parentsOf.get(childId) ?? [])].sort(compareIds)) {
         if (!(parentId in graph.nodes)) continue;
         if (add(parentId, band, 'center')) next.push(parentId);
-        edges.push({ from: childId, to: parentId, type: 'ChildOf', group: 'hierarchy' });
+        edges.push({ from: childId, to: parentId, types: ['ChildOf'], group: 'hierarchy' });
       }
     }
     frontier = next;
@@ -126,7 +143,7 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
 
   for (const childId of allChildren.slice(0, childCap)) {
     add(childId, 1, 'center');
-    edges.push({ from: childId, to: centerId, type: 'ChildOf', group: 'hierarchy' });
+    edges.push({ from: childId, to: centerId, types: ['ChildOf'], group: 'hierarchy' });
   }
 
   const hiddenCount = allChildren.length - Math.min(allChildren.length, childCap);
@@ -140,13 +157,26 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
     const base = baseRelationType(type);
     return LEADS_TO.has(base) || LEADS_FROM.has(base);
   };
-  const laterals = [...related].sort(
+  const sorted = [...related].sort(
     (a, b) => Number(hasDirection(b.type)) - Number(hasDirection(a.type)) || compareIds(a.to, b.to),
   );
+  // One lateral per CWE and group: the first relation in that order places
+  // it, and the rest join its edge.
+  const laterals = new Map<string, { to: string; type: string; types: string[]; group: EdgeGroup }>();
+  for (const edge of sorted) {
+    const group = relationGroup(edge.type);
+    const key = `${edge.to}|${group}`;
+    const lateral = laterals.get(key);
+    if (lateral) lateral.types.push(edge.type);
+    else laterals.set(key, { to: edge.to, type: edge.type, types: [edge.type], group });
+  }
+  for (const lateral of laterals.values()) lateral.types.sort();
   let left = 0;
   let right = 0;
   const hiddenLaterals: EgoGraph['hiddenLaterals'] = { left: [], right: [] };
-  for (const edge of laterals) {
+  // CWEs, not relations: one hidden CWE can stand for two of them.
+  const hiddenCwes = { left: 0, right: 0 };
+  for (const edge of laterals.values()) {
     if (!(edge.to in graph.nodes) || edge.to === centerId) continue;
     // "<Type> (inverse)" is the direction buildGraph synthesized for a
     // relation with no named opposite, so it points the other way: treating
@@ -161,19 +191,20 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
     // Already on the canvas as a parent, child or earlier relation: record
     // the edge, but it occupies no new slot.
     if (seen.has(edge.to)) {
-      edges.push({ from: centerId, to: edge.to, type: edge.type, group: relationGroup(edge.type) });
+      edges.push({ from: centerId, to: edge.to, types: edge.types, group: edge.group });
       continue;
     }
 
     if ((side === 'left' ? left : right) >= lateralCap) {
-      hiddenLaterals[side].push({ id: edge.to, type: edge.type });
+      hiddenCwes[side] += 1;
+      for (const type of edge.types) hiddenLaterals[side].push({ id: edge.to, type });
       continue;
     }
 
     add(edge.to, 0, side);
     if (side === 'left') left += 1;
     else right += 1;
-    edges.push({ from: centerId, to: edge.to, type: edge.type, group: relationGroup(edge.type) });
+    edges.push({ from: centerId, to: edge.to, types: edge.types, group: edge.group });
   }
 
   return {
@@ -181,7 +212,7 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
     nodes,
     edges,
     overflow,
-    lateralOverflow: { left: hiddenLaterals.left.length, right: hiddenLaterals.right.length },
+    lateralOverflow: hiddenCwes,
     hiddenLaterals,
   };
 }
