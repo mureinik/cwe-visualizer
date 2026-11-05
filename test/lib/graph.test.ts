@@ -96,6 +96,56 @@ describe('buildGraph', () => {
     expect(graph.relatedTo.get('2')).toEqual([{ from: '2', to: '1', type: 'Overlaps' }]);
   });
 
+  // MITRE's schema: "the CanAlsoBe relationship is not necessarily reciprocal".
+  describe('CanAlsoBe', () => {
+    const nodes = {
+      '93': { id: '93', name: 'CRLF', abstraction: '', status: '', description: '', url: '' },
+      '144': { id: '144', name: 'Line Delimiters', abstraction: '', status: '', description: '', url: '' },
+      '1239': { id: '1239', name: 'Register Clearing', abstraction: '', status: '', description: '', url: '' },
+      '1258': { id: '1258', name: 'Debug Exposure', abstraction: '', status: '', description: '', url: '' },
+      '1272': { id: '1272', name: 'Debug State', abstraction: '', status: '', description: '', url: '' },
+    };
+
+    // CWE 5.0: 144 CanAlsoBe 93, and 93 states nothing back.
+    it('does not claim a one-sided CanAlsoBe for its target', () => {
+      const graph = buildGraph({
+        meta: sampleData.meta,
+        nodes,
+        edges: [{ from: '144', to: '93', type: 'CanAlsoBe' }],
+      });
+      expect(graph.relatedTo.get('144')).toEqual([{ from: '144', to: '93', type: 'CanAlsoBe' }]);
+      expect(graph.relatedTo.get('93')).toEqual([{ from: '93', to: '144', type: 'CanAlsoBe (inverse)' }]);
+    });
+
+    // CWE 5.0: 1239 and 1258 each state CanAlsoBe of the other.
+    it('records a CanAlsoBe stated from both ends once on each side', () => {
+      const graph = buildGraph({
+        meta: sampleData.meta,
+        nodes,
+        edges: [
+          { from: '1239', to: '1258', type: 'CanAlsoBe' },
+          { from: '1258', to: '1239', type: 'CanAlsoBe' },
+        ],
+      });
+      expect(graph.relatedTo.get('1239')).toEqual([{ from: '1239', to: '1258', type: 'CanAlsoBe' }]);
+      expect(graph.relatedTo.get('1258')).toEqual([{ from: '1258', to: '1239', type: 'CanAlsoBe' }]);
+    });
+
+    // CWE 5.0: 1272 CanAlsoBe 1239, and 1239 is 1272's child. The reverse
+    // relation is a different one, so it doesn't make the CanAlsoBe mutual.
+    it('keeps the target side of a CanAlsoBe whose reverse is a ChildOf', () => {
+      const graph = buildGraph({
+        meta: sampleData.meta,
+        nodes,
+        edges: [
+          { from: '1239', to: '1272', type: 'ChildOf' },
+          { from: '1272', to: '1239', type: 'CanAlsoBe' },
+        ],
+      });
+      expect(graph.relatedTo.get('1239')).toEqual([{ from: '1239', to: '1272', type: 'CanAlsoBe (inverse)' }]);
+    });
+  });
+
   it('falls back to a generic "(inverse)" label for relation types with no known inverse', () => {
     const data: CweData = {
       meta: sampleData.meta,
