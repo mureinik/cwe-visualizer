@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  lateralCapFor,
   layoutEgoGraph,
   bandY,
   BUNDLE_GAP,
@@ -269,6 +270,16 @@ describe('narrow stages', () => {
 
   it('shrinks the margin on a phone rather than give away 40% of the width', () => {
     expect(edgeMargin(412)).toBeLessThan(EDGE_MARGIN);
+  });
+
+  it.each([
+    [360, 2],
+    [412, 2],
+    [480, 3],
+    [600, 4],
+    [1000, 4],
+  ])('caps laterals per side on a %ipx stage at %i', (width, cap) => {
+    expect(lateralCapFor(width, 4)).toBe(cap);
   });
 
   it('caps children so each, and the overflow chip, gets a legible slot', () => {

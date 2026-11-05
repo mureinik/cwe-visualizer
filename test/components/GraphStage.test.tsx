@@ -348,6 +348,23 @@ describe('GraphStage sizing', () => {
     expect(canvas(container)).toHaveAttribute('viewBox', '0 0 640 360');
   });
 
+  it('shows fewer laterals a side on a phone, and offers the rest', () => {
+    // CWE-119 in CWE 5.0 has eleven, all to its left.
+    const crowded = buildGraph({
+      meta: data.meta,
+      nodes: Object.fromEntries(['119', '120', '121', '122', '123'].map((id) => [id, node(id, `Name ${id}`)])),
+      edges: ['120', '121', '122', '123'].map((from) => ({ from, to: '119', type: 'CanPrecede' })),
+    });
+    const stage = stubResizeObserver();
+    render(
+      <GraphStage graph={crowded} selectedId="119" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+    stage.resize(1000, 600);
+    expect(screen.queryByRole('button', { name: /more related weaknesses/ })).not.toBeInTheDocument();
+    stage.resize(390, 330);
+    expect(screen.getByRole('button', { name: 'Show 2 more related weaknesses' })).toBeInTheDocument();
+  });
+
   it('ignores a size of zero, as a hidden stage reports', () => {
     const stage = stubResizeObserver();
     const { container } = render(

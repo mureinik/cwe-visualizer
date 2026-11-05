@@ -103,6 +103,19 @@ export function childCapFor(width: number, max: number): number {
  */
 export const CENTER_CLEARANCE = 100;
 
+/** The narrowest slot a lateral can have: its glyph and a gutter to the next. */
+const MIN_LATERAL_SLOT = 28;
+
+/**
+ * How many laterals fit on each side of a stage this wide, never more than
+ * `max`. A phone's stage is too short for more than two arcs under the parent
+ * row, so two always fit and the "+N more" marker offers the rest.
+ */
+export function lateralCapFor(width: number, max: number): number {
+  const half = width / 2 - CENTER_CLEARANCE - edgeMargin(width);
+  return Math.max(2, Math.min(max, Math.floor(half / MIN_LATERAL_SLOT)));
+}
+
 /** Spreads n items evenly across [start, end], centred. */
 function spread(index: number, count: number, start: number, end: number): number {
   return start + ((end - start) * (index + 0.5)) / count;
