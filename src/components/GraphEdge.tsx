@@ -42,7 +42,13 @@ interface GraphEdgeLabelProps {
 export function GraphEdgeLabel({ edge, dimmed }: GraphEdgeLabelProps) {
   return (
     <g className={groupClass(dimmed)}>
-      <text className="graph-edge__label" x={edge.label.x} y={edge.label.y} textAnchor={edge.labelAnchor}>
+      <text
+        className="graph-edge__label"
+        x={edge.label.x}
+        y={edge.label.y}
+        textAnchor={edge.labelAnchor}
+        fill={`var(${EDGE_GROUPS[edge.group].line.token})`}
+      >
         {relationLabel(edge)}
       </text>
     </g>

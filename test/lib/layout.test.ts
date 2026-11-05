@@ -81,7 +81,7 @@ describe('layoutEgoGraph', () => {
   it('puts each edge label at the midpoint of its curve', () => {
     const edge = layoutEgoGraph(ego, size).edges.find((e) => e.to === '30')!;
     expect(edge.label.x).toBe((at('3').x + at('30').x) / 2);
-    expect(edge.label.y).toBeCloseTo(at('3').y - 22);
+    expect(edge.label.y).toBeCloseTo(at('3').y - 32);
   });
 
   it('positions the overflow chip on the children band', () => {
@@ -97,6 +97,78 @@ describe('layoutEgoGraph', () => {
   it('does not divide by zero on an empty ego graph', () => {
     const empty = layoutEgoGraph({ centerId: 'x', nodes: [], edges: [], overflow: null, lateralOverflow: { left: 0, right: 0 }, hiddenLaterals: { left: [], right: [] } }, size);
     expect(empty.nodes).toEqual([]);
+  });
+});
+
+describe('layoutEgoGraph child edge labels', () => {
+  // All of a CWE's child edges meet at it, so their midpoints crowd together;
+  // CWE-79 in CWE 5.0 has seven.
+  const family: EgoGraph = {
+    ...ego,
+    nodes: [
+      { id: '3', band: 0, side: 'center' },
+      { id: '10', band: 1, side: 'center' },
+      { id: '11', band: 1, side: 'center' },
+    ],
+    edges: ['10', '11'].map((from) => ({ from, to: '3', types: ['ChildOf'], group: 'hierarchy' as const })),
+    overflow: null,
+  };
+
+  it('puts the label nearer the child, where the edges have spread out', () => {
+    const layout = layoutEgoGraph(family, size);
+    const center = layout.nodes.find((n) => n.id === '3')!;
+    for (const edge of layout.edges) {
+      const child = layout.nodes.find((n) => n.id === edge.from)!;
+      expect(Math.abs(edge.label.y - child.y)).toBeLessThan(Math.abs(edge.label.y - center.y));
+      expect(Math.abs(edge.label.x - child.x)).toBeLessThan(Math.abs(edge.label.x - center.x));
+    }
+  });
+
+  it('keeps the label on its curve', () => {
+    const edge = layoutEgoGraph(family, size).edges[0];
+    const near = sample(edge.path).some((p) => Math.hypot(p.x - edge.label.x, p.y - edge.label.y) < 2);
+    expect(near).toBe(true);
+  });
+
+  describe('on a stage too narrow for them side by side', () => {
+    // CWE-79 in CWE 5.0 at 390px: six children and a "+1 more" chip.
+    const ids = ['10', '11', '12', '13', '14', '15'];
+    const crowded: EgoGraph = {
+      ...family,
+      nodes: [{ id: '3', band: 0, side: 'center' }, ...ids.map((id) => ({ id, band: 1 as const, side: 'center' as const }))],
+      edges: ids.map((from) => ({ from, to: '3', types: ['ChildOf'], group: 'hierarchy' as const })),
+      overflow: { parentId: '3', hiddenCount: 1 },
+    };
+    const labels = (stage: { width: number; height: number }) => layoutEgoGraph(crowded, stage).edges.map((e) => e.label);
+
+    it('alternates their heights, so neighbours cannot run together', () => {
+      const phone = labels({ width: 390, height: 330 });
+      for (let i = 1; i < phone.length; i += 1) {
+        expect(Math.abs(phone[i].y - phone[i - 1].y)).toBeGreaterThan(14);
+      }
+    });
+
+    it('leaves room between those that share a height', () => {
+      const phone = labels({ width: 390, height: 330 });
+      for (let i = 2; i < phone.length; i += 1) {
+        expect(Math.abs(phone[i].x - phone[i - 2].x)).toBeGreaterThan(48);
+      }
+    });
+
+    it('keeps them on one line where there is room', () => {
+      expect(new Set(labels(size).map((l) => l.y.toFixed(2))).size).toBe(1);
+    });
+  });
+
+  it('leaves a relation to a child at the midpoint', () => {
+    // CWE-788 Overlaps its child CWE-126 in CWE 5.0.
+    const related = {
+      ...family,
+      edges: [{ from: '10', to: '3', types: ['Overlaps'], group: 'peer' as const }],
+    };
+    const layout = layoutEgoGraph(related, size);
+    const [a, b] = [layout.nodes.find((n) => n.id === '3')!, layout.nodes.find((n) => n.id === '10')!];
+    expect(layout.edges[0].label.y).toBeCloseTo((a.y + b.y) / 2);
   });
 });
 
@@ -402,6 +474,24 @@ describe('layoutEgoGraph with an edge to a node it was not given', { tags: ['the
   });
 });
 
+/** Points along an edge's cubic, at even steps of its parameter. */
+function sample(path: string) {
+  const [x0, y0, x1, y1, x2, y2, x3, y3] = path.match(/[\d.-]+/g)!.map(Number);
+  return Array.from({ length: 201 }, (_, i) => {
+    const t = i / 200;
+    const u = 1 - t;
+    return {
+      x: u ** 3 * x0 + 3 * u ** 2 * t * x1 + 3 * u * t ** 2 * x2 + t ** 3 * x3,
+      y: u ** 3 * y0 + 3 * u ** 2 * t * y1 + 3 * u * t ** 2 * y2 + t ** 3 * y3,
+    };
+  });
+}
+
+/** The y of the sampled point nearest to x. */
+function heightAt(points: { x: number; y: number }[], x: number) {
+  return points.reduce((best, p) => (Math.abs(p.x - x) < Math.abs(best.x - x) ? p : best)).y;
+}
+
 describe('lateral arcs', () => {
   const lateral = (id: string, side: 'left' | 'right') => ({ id, band: 0 as const, side });
   const relation = (to: string) => ({ from: '50', to, types: ['PeerOf'], group: 'peer' as const });
@@ -430,7 +520,33 @@ describe('lateral arcs', () => {
   }
 
   it('raises each lateral one step above the one nearer the centre', () => {
-    expect(heights(row)).toEqual({ '11': 22, '10': 44, '90': 22, '91': 44 });
+    expect(heights(row)).toEqual({ '11': 32, '10': 64, '90': 32, '91': 64 });
+  });
+
+  it('closes the steps up on a stage with little room under the parent row', () => {
+    const under = {
+      ...row,
+      nodes: [...row.nodes, { id: '40', band: -1 as const, side: 'center' as const }],
+    };
+    expect(heights(under)).toEqual({ '11': 32, '10': 64, '90': 32, '91': 64 });
+    const phone = layoutEgoGraph(under, { width: 390, height: 330 });
+    const y = phone.nodes.find((n) => n.id === '50')!.y;
+    const rises = phone.edges.map((e) => Math.round(y - e.label.y));
+    expect(rises).toEqual([44, 22, 22, 44]);
+  });
+
+  it('keeps neighbouring arcs apart all the way from the halo', () => {
+    // CWE-79 in CWE 5.0: the arcs to CWE-494 and CWE-352 used to leave the
+    // centre at one angle, and ran along each other before they parted.
+    const stage = { width: 1170, height: 740 };
+    const layout = layoutEgoGraph(row, stage);
+    const center = layout.nodes.find((n) => n.id === '50')!;
+    const curve = (to: string) => sample(layout.edges.find((e) => e.to === to)!.path);
+    const reach = layout.nodes.find((n) => n.id === '90')!.x - center.x - 15;
+    for (let dx = 26; dx < reach; dx += 2) {
+      const gap = heightAt(curve('91'), center.x + dx) - heightAt(curve('90'), center.x + dx);
+      expect(gap).toBeLessThan(-6);
+    }
   });
 
   it('gives the slot of a "+N more" marker no arc, since no edge reaches it', () => {
@@ -454,7 +570,7 @@ describe('lateral arcs', () => {
     const ys = layoutEgoGraph(two, size).edges.map((e) => e.label.y).sort((a, b) => a - b);
     expect(ys[1] - ys[0]).toBeCloseTo(BUNDLE_GAP);
     const y = layoutEgoGraph(two, size).nodes.find((n) => n.id === '50')!.y;
-    expect(y - (ys[0] + ys[1]) / 2).toBeCloseTo(22);
+    expect(y - (ys[0] + ys[1]) / 2).toBeCloseTo(32);
   });
 
   it('centres a label on its arc where there is room', () => {

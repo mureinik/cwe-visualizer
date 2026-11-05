@@ -174,30 +174,22 @@ describe('GraphStage keyboard model', () => {
 });
 
 describe('GraphStage highlighting', () => {
-  it('shows no edge labels at rest', () => {
+  it('labels every edge at rest', () => {
     const { container } = render(
       <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
     );
-    expect(container.querySelectorAll('.graph-edge__label')).toHaveLength(0);
+    const edges = container.querySelectorAll('.graph-edge');
+    expect(edges.length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('.graph-edge__label')).toHaveLength(edges.length);
   });
 
-  it('labels the incident edges when a node is hovered', async () => {
-    const { container } = render(
-      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
-    );
-    await userEvent.hover(screen.getByRole('button', { name: /^CWE-74/ }));
-    expect(container.querySelectorAll('.graph-edge__label').length).toBeGreaterThan(0);
-  });
-
-  it('labels no edges when the centre itself is hovered', async () => {
-    // Every edge on the stage meets the centre, so labelling them all piles
-    // one label per edge on top of each other around it. On a phone this is
-    // the resting state: the node just tapped keeps focus as it re-centres.
+  it('keeps every label when the centre itself is hovered', async () => {
+    // A phone rests here: the node just tapped keeps focus as it re-centres.
     const { container } = render(
       <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
     );
     await userEvent.hover(screen.getByRole('button', { name: /^CWE-79/ }));
-    expect(container.querySelectorAll('.graph-edge__label')).toHaveLength(0);
+    expect(container.querySelectorAll('.graph-edge__label')).toHaveLength(container.querySelectorAll('.graph-edge').length);
   });
 
   it('dims the nodes that are not incident to the hovered one', async () => {
@@ -487,15 +479,17 @@ describe('GraphStage relation labels', () => {
   const labels = (container: HTMLElement) =>
     Array.from(container.querySelectorAll('.graph-edge__label'), (l) => l.textContent).sort();
 
-  it('names every relation at rest, and no parent or child edge', () => {
-    expect(labels(stage())).toEqual(['CanFollow', 'CanPrecede']);
+  it('names every relation at rest, parent and child edges included', () => {
+    expect(labels(stage())).toEqual(['CanFollow', 'CanPrecede', 'ChildOf']);
   });
 
-  it('keeps them, without labelling the hierarchy, when the centre is hovered', async () => {
-    // A phone rests here: the node just tapped keeps focus as it re-centres.
-    const container = stage();
-    await userEvent.hover(screen.getByRole('button', { name: /^CWE-79/ }));
-    expect(labels(container)).toEqual(['CanFollow', 'CanPrecede']);
+  it('colours each label like its line', () => {
+    const fills = Array.from(stage().querySelectorAll('.graph-edge__label'), (l) => [l.textContent, l.getAttribute('fill')]);
+    expect(Object.fromEntries(fills)).toEqual({
+      CanFollow: 'var(--rel-sequence)',
+      CanPrecede: 'var(--rel-sequence)',
+      ChildOf: 'var(--rel-hierarchy)',
+    });
   });
 
   it('draws every label over every edge, so no line cuts through one', () => {
@@ -510,11 +504,5 @@ describe('GraphStage relation labels', () => {
     await userEvent.hover(screen.getByRole('button', { name: /^CWE-74/ }));
     const dimmed = Array.from(container.querySelectorAll('.graph-edge-group--dimmed .graph-edge__label'));
     expect(dimmed.map((l) => l.textContent).sort()).toEqual(['CanFollow', 'CanPrecede']);
-  });
-
-  it('adds the hierarchy edge when its other end is hovered', async () => {
-    const container = stage();
-    await userEvent.hover(screen.getByRole('button', { name: /^CWE-74/ }));
-    expect(labels(container)).toEqual(['CanFollow', 'CanPrecede', 'ChildOf']);
   });
 });

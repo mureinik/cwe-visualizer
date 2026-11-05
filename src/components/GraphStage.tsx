@@ -254,13 +254,7 @@ export function GraphStage({
             })}
             {layout.edges.map((edge) => {
               const key = edgeKey(edge);
-              const lit = incident?.edges.has(key) ?? false;
-              // A relation's type is what its line can't show, and its arc
-              // keeps its label clear, so it always has one. Hierarchy edges
-              // all meet the centre on no arc, so labelling them all when it
-              // is active stacks the labels on top of one another around it.
-              const labelled = edge.group !== 'hierarchy' || (lit && active !== ego?.centerId);
-              return labelled && <GraphEdgeLabel key={key} edge={edge} dimmed={incident !== null && !lit} />;
+              return <GraphEdgeLabel key={key} edge={edge} dimmed={incident !== null && !incident.edges.has(key)} />;
             })}
             {layout.nodes.map((node) => (
               <GraphNode
