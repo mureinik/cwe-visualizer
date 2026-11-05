@@ -105,7 +105,9 @@ export const CENTER_CLEARANCE = 100;
 
 /** Spreads n items evenly across [start, end], centred. */
 function spread(index: number, count: number, start: number, end: number): number {
-  if (count <= 0) return (start + end) / 2;
+  if (count <= 0) {
+    return (start + end) / 2;
+  }
   return start + ((end - start) * (index + 0.5)) / count;
 }
 
@@ -182,7 +184,9 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
 
   const centerY = yOf(0);
   const center = ego.nodes.find((n) => n.band === 0 && n.side === 'center');
-  if (center) positioned.set(center.id, { ...center, x: width / 2, y: centerY });
+  if (center) {
+    positioned.set(center.id, { ...center, x: width / 2, y: centerY });
+  }
 
   const lateralOverflow: PositionedLateralOverflow[] = [];
   for (const side of ['left', 'right'] as const) {
@@ -251,7 +255,9 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
   const edges: PositionedEdge[] = bent.flatMap(({ edge, bend }) => {
     const from = positioned.get(edge.from);
     const to = positioned.get(edge.to);
-    if (!from || !to) return [];
+    if (!from || !to) {
+      return [];
+    }
     const normal = pairNormal(from, to);
     // A line within 60° of vertical bends partly sideways, where the labels'
     // width would make them collide; anchoring them outwards keeps them

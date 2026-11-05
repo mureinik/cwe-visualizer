@@ -24,14 +24,18 @@ export function SearchBox({ graph, onSelect }: SearchBoxProps) {
 
   function choose(index: number) {
     const node = results[index];
-    if (!node) return;
+    if (!node) {
+      return;
+    }
     onSelect(node.id);
     setQuery('');
     setActive(-1);
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
 
     // Escape first: the list is on screen whenever `open`, including the
     // "No matches" row, so it must be dismissible with nothing in it.
@@ -42,7 +46,9 @@ export function SearchBox({ graph, onSelect }: SearchBoxProps) {
       return;
     }
 
-    if (results.length === 0) return;
+    if (results.length === 0) {
+      return;
+    }
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       setActive((i) => (i + 1) % results.length);

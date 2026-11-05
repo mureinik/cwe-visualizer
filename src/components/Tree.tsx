@@ -121,7 +121,9 @@ function TreeNode({ id, graph, expanded, selectedId, onToggle, onSelect, ancestr
   // far outside the scrolled area. `nearest` leaves an already-visible row
   // alone. scrollIntoView is unimplemented in jsdom.
   useEffect(() => {
-    if (isSelected) rowRef.current?.scrollIntoView?.({ block: 'nearest' });
+    if (isSelected) {
+      rowRef.current?.scrollIntoView?.({ block: 'nearest' });
+    }
   }, [isSelected]);
 
   // Defends against a cycle in the source data (should not happen with real

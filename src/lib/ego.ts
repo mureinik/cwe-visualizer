@@ -111,7 +111,9 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
   const seen = new Set<string>([centerId]);
 
   const add = (id: string, band: Band, side: Side) => {
-    if (seen.has(id) || !(id in graph.nodes)) return false;
+    if (seen.has(id) || !(id in graph.nodes)) {
+      return false;
+    }
     seen.add(id);
     nodes.push({ id, band, side });
     return true;
@@ -124,8 +126,12 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
     const next: string[] = [];
     for (const childId of frontier) {
       for (const parentId of [...(graph.parentsOf.get(childId) ?? [])].sort(compareIds)) {
-        if (!(parentId in graph.nodes)) continue;
-        if (add(parentId, band, 'center')) next.push(parentId);
+        if (!(parentId in graph.nodes)) {
+          continue;
+        }
+        if (add(parentId, band, 'center')) {
+          next.push(parentId);
+        }
         edges.push({ from: childId, to: parentId, types: ['ChildOf'], group: 'hierarchy' });
       }
     }
@@ -167,26 +173,37 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
     const group = relationGroup(edge.type);
     const key = `${edge.to}|${group}`;
     const lateral = laterals.get(key);
-    if (lateral) lateral.types.push(edge.type);
-    else laterals.set(key, { to: edge.to, type: edge.type, types: [edge.type], group });
+    if (lateral) {
+      lateral.types.push(edge.type);
+    } else {
+      laterals.set(key, { to: edge.to, type: edge.type, types: [edge.type], group });
+    }
   }
-  for (const lateral of laterals.values()) lateral.types.sort();
+  for (const lateral of laterals.values()) {
+    lateral.types.sort();
+  }
   let left = 0;
   let right = 0;
   const hiddenLaterals: EgoGraph['hiddenLaterals'] = { left: [], right: [] };
   // CWEs, not relations: one hidden CWE can stand for two of them.
   const hiddenCwes = { left: 0, right: 0 };
   for (const edge of laterals.values()) {
-    if (!(edge.to in graph.nodes) || edge.to === centerId) continue;
+    if (!(edge.to in graph.nodes) || edge.to === centerId) {
+      continue;
+    }
     // "<Type> (inverse)" is the direction buildGraph synthesized for a
     // relation with no named opposite, so it points the other way: treating
     // it as the forward type would draw the arrow backwards.
     const inverted = isInverse(edge.type);
     const base = baseRelationType(edge.type);
     let side: Side;
-    if (LEADS_TO.has(base)) side = inverted ? 'left' : 'right';
-    else if (LEADS_FROM.has(base)) side = inverted ? 'right' : 'left';
-    else side = left <= right ? 'left' : 'right';
+    if (LEADS_TO.has(base)) {
+      side = inverted ? 'left' : 'right';
+    } else if (LEADS_FROM.has(base)) {
+      side = inverted ? 'right' : 'left';
+    } else {
+      side = left <= right ? 'left' : 'right';
+    }
 
     // Already on the canvas as a parent, child or earlier relation: record
     // the edge, but it occupies no new slot.
@@ -197,13 +214,18 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
 
     if ((side === 'left' ? left : right) >= lateralCap) {
       hiddenCwes[side] += 1;
-      for (const type of edge.types) hiddenLaterals[side].push({ id: edge.to, type });
+      for (const type of edge.types) {
+        hiddenLaterals[side].push({ id: edge.to, type });
+      }
       continue;
     }
 
     add(edge.to, 0, side);
-    if (side === 'left') left += 1;
-    else right += 1;
+    if (side === 'left') {
+      left += 1;
+    } else {
+      right += 1;
+    }
     edges.push({ from: centerId, to: edge.to, types: edge.types, group: edge.group });
   }
 

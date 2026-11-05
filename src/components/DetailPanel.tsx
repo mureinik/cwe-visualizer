@@ -43,7 +43,9 @@ function relationSections(graph: Graph, id: string): Section[] {
     { label: 'Parents', entries: (graph.parentsOf.get(id) ?? []).map((to) => ({ id: to })) },
     { label: 'Children', entries: (graph.childrenOf.get(id) ?? []).map((to) => ({ id: to })) },
   ];
-  for (const section of sections) section.entries.sort((x, y) => compareIds(x.id, y.id));
+  for (const section of sections) {
+    section.entries.sort((x, y) => compareIds(x.id, y.id));
+  }
 
   // buildGraph already records each relation once per target and type, but
   // a CWE can still be related under two types in one group. It gets one
@@ -55,8 +57,11 @@ function relationSections(graph: Graph, id: string): Section[] {
     const group = relationGroup(edge.type);
     const list = byGroup.get(group) ?? [];
     const last = list.at(-1);
-    if (last?.id === edge.to) last.types?.push(edge.type);
-    else list.push({ id: edge.to, types: [edge.type] });
+    if (last?.id === edge.to) {
+      last.types?.push(edge.type);
+    } else {
+      list.push({ id: edge.to, types: [edge.type] });
+    }
     byGroup.set(group, list);
   }
 
@@ -121,7 +126,9 @@ export function DetailPanel({ graph, selectedId, onSelect, flash = null }: Detai
   // without scrolling, or the jump would cut the smooth scroll short.
   // scrollIntoView is unimplemented in jsdom.
   useEffect(() => {
-    if (!flash) return;
+    if (!flash) {
+      return;
+    }
     const first = relationsRef.current?.querySelector<HTMLButtonElement>('.relation-chip--flash');
     first?.focus({ preventScroll: true });
     first?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });

@@ -15,7 +15,9 @@ export function TreeDrawer({ open, onClose, graph, selectedId, onSelect, revealI
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     // Hand focus back on close, or a keyboard user is returned to the top of
     // the document having lost their place.
     const opener = document.activeElement as HTMLElement | null;
@@ -24,15 +26,21 @@ export function TreeDrawer({ open, onClose, graph, selectedId, onSelect, revealI
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') {
+        onClose();
+      }
     }
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   return (
     <>

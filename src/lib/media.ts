@@ -11,7 +11,9 @@ export const NARROW_QUERY = '(max-width: 900px)';
 export function useMediaQuery(query: string): boolean {
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
-      if (typeof matchMedia !== 'function') return () => {};
+      if (typeof matchMedia !== 'function') {
+        return () => {};
+      }
       const list = matchMedia(query);
       list.addEventListener('change', onStoreChange);
       return () => list.removeEventListener('change', onStoreChange);

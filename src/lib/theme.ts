@@ -33,6 +33,8 @@ export function applyTheme(theme: Theme): void {
 }
 
 export function systemTheme(): Theme {
-  if (typeof matchMedia !== 'function') return 'light';
+  if (typeof matchMedia !== 'function') {
+    return 'light';
+  }
   return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }

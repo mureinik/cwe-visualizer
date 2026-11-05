@@ -71,7 +71,9 @@ describe('layoutEgoGraph', () => {
   it('emits a cubic path per edge', () => {
     const paths = layoutEgoGraph(ego, size).edges.map((e) => e.path);
     expect(paths).toHaveLength(2);
-    for (const path of paths) expect(path).toMatch(/^M [\d.-]+ [\d.-]+ C /);
+    for (const path of paths) {
+      expect(path).toMatch(/^M [\d.-]+ [\d.-]+ C /);
+    }
   });
 
   it('puts each edge label midway between its endpoints', () => {
@@ -252,7 +254,9 @@ describe('layoutEgoGraph empty upper bands', () => {
 
   it('keeps every band where it was when all four are populated', () => {
     const nodes = layoutEgoGraph(ego, size).nodes;
-    for (const node of nodes) expect(node.y).toBeCloseTo(size.height * bandY(node.band), 5);
+    for (const node of nodes) {
+      expect(node.y).toBeCloseTo(size.height * bandY(node.band), 5);
+    }
   });
 });
 

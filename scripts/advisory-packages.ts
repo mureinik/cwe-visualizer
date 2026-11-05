@@ -18,23 +18,31 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * affected" or as "fixed".
  */
 function vulnerabilitiesOf(report: unknown): Record<string, unknown> {
-  if (!isRecord(report)) throw new Error('The audit report is not a JSON object');
+  if (!isRecord(report)) {
+    throw new Error('The audit report is not a JSON object');
+  }
   if ('error' in report) {
     const { error } = report;
     const detail = isRecord(error) && typeof error.summary === 'string' ? `: ${error.summary}` : '';
     throw new Error(`npm audit reported an error${detail}`);
   }
   const { vulnerabilities } = report;
-  if (!isRecord(vulnerabilities)) throw new Error('The audit report has no "vulnerabilities" object');
+  if (!isRecord(vulnerabilities)) {
+    throw new Error('The audit report has no "vulnerabilities" object');
+  }
   return vulnerabilities;
 }
 
 /** Every object `via` entry in the report: the ones that name an advisory. */
 function* advisoryEntries(report: unknown): Generator<Record<string, unknown>> {
   for (const vulnerability of Object.values(vulnerabilitiesOf(report))) {
-    if (!isRecord(vulnerability) || !Array.isArray(vulnerability.via)) continue;
+    if (!isRecord(vulnerability) || !Array.isArray(vulnerability.via)) {
+      continue;
+    }
     for (const via of vulnerability.via as unknown[]) {
-      if (isRecord(via)) yield via;
+      if (isRecord(via)) {
+        yield via;
+      }
     }
   }
 }
@@ -64,9 +72,13 @@ export function advisoryIds(report: unknown): string[] {
   const ids = new Set<string>();
   for (const via of advisoryEntries(report)) {
     const rest = typeof via.url === 'string' ? ADVISORY_URL_PATTERN.exec(via.url)?.[1] : undefined;
-    if (rest === undefined) continue;
+    if (rest === undefined) {
+      continue;
+    }
     const id = `${rest.slice(0, 4).toUpperCase()}${rest.slice(4).toLowerCase()}`;
-    if (isGhsaId(id)) ids.add(id);
+    if (isGhsaId(id)) {
+      ids.add(id);
+    }
   }
   return [...ids].sort();
 }
@@ -84,7 +96,9 @@ function main(args: string[]): void {
   try {
     const report: unknown = JSON.parse(readFileSync(0, 'utf8'));
     const lines = arg === '--ids' ? advisoryIds(report) : advisoryPackages(report, arg);
-    for (const line of lines) console.log(line);
+    for (const line of lines) {
+      console.log(line);
+    }
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err));
     process.exitCode = 1;

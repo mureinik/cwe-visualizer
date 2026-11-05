@@ -101,10 +101,14 @@ export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
   const relatedSeen = new Map<string, Set<string>>();
   function addRelated(id: string, edge: CweEdge) {
     const list = relatedTo.get(id);
-    if (!list) return;
+    if (!list) {
+      return;
+    }
     const seen = relatedSeen.get(id) ?? new Set<string>();
     const key = `${edge.to}|${edge.type}`;
-    if (seen.has(key)) return;
+    if (seen.has(key)) {
+      return;
+    }
     seen.add(key);
     relatedSeen.set(id, seen);
     list.push(edge);
@@ -120,7 +124,9 @@ export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
     } else {
       addRelated(edge.from, edge);
       const inverse: CweEdge = { from: edge.to, to: edge.from, type: inverseNature(edge.type) };
-      if (edge.viewId !== undefined) inverse.viewId = edge.viewId;
+      if (edge.viewId !== undefined) {
+        inverse.viewId = edge.viewId;
+      }
       addRelated(edge.to, inverse);
     }
   }
@@ -150,7 +156,9 @@ export function ancestorsOf(graph: Graph, id: string): Set<string> {
   // Walk by index rather than shift(), which is O(n) per call.
   for (let i = 0; i < queue.length; i += 1) {
     const next = queue[i];
-    if (ancestors.has(next)) continue;
+    if (ancestors.has(next)) {
+      continue;
+    }
     ancestors.add(next);
     queue.push(...(graph.parentsOf.get(next) ?? []));
   }
@@ -168,7 +176,9 @@ export function countDescendants(graph: Graph, id: string): number {
   // Walk by index rather than shift(), which is O(n) per call.
   for (let i = 0; i < queue.length; i += 1) {
     const next = queue[i];
-    if (seen.has(next)) continue;
+    if (seen.has(next)) {
+      continue;
+    }
     seen.add(next);
     queue.push(...(graph.childrenOf.get(next) ?? []));
   }
