@@ -5,16 +5,19 @@ import type { PositionedEdge } from '../lib/layout';
 interface GraphEdgeProps {
   edge: PositionedEdge;
   dimmed: boolean;
-  label: string | null;
   /** Whether the edge ends at the selected node, whose halo is the larger. */
   intoCenter?: boolean;
 }
 
-export function GraphEdge({ edge, dimmed, label, intoCenter = false }: GraphEdgeProps) {
+function groupClass(dimmed: boolean) {
+  return `graph-edge-group${dimmed ? ' graph-edge-group--dimmed' : ''}`;
+}
+
+export function GraphEdge({ edge, dimmed, intoCenter = false }: GraphEdgeProps) {
   const { line } = EDGE_GROUPS[edge.group];
 
   return (
-    <g className={`graph-edge-group${dimmed ? ' graph-edge-group--dimmed' : ''}`}>
+    <g className={groupClass(dimmed)}>
       <path
         className={`graph-edge graph-edge--${edge.group}`}
         d={edge.path}
@@ -26,11 +29,28 @@ export function GraphEdge({ edge, dimmed, label, intoCenter = false }: GraphEdge
       >
         <title>{relationLabel(edge)}</title>
       </path>
-      {label && (
-        <text className="graph-edge__label" x={edge.label.x} y={edge.label.y} textAnchor={edge.labelAnchor}>
-          {label}
-        </text>
-      )}
+    </g>
+  );
+}
+
+interface GraphEdgeLabelProps {
+  edge: PositionedEdge;
+  dimmed: boolean;
+}
+
+/** Apart from its edge, so that it can be drawn over all of them. */
+export function GraphEdgeLabel({ edge, dimmed }: GraphEdgeLabelProps) {
+  return (
+    <g className={groupClass(dimmed)}>
+      <text
+        className="graph-edge__label"
+        x={edge.label.x}
+        y={edge.label.y}
+        textAnchor={edge.labelAnchor}
+        fill={`var(${EDGE_GROUPS[edge.group].line.token})`}
+      >
+        {relationLabel(edge)}
+      </text>
     </g>
   );
 }

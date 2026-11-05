@@ -12,7 +12,7 @@ export interface PositionedNode extends EgoNode {
 
 export interface PositionedEdge extends EgoEdge {
   path: string;
-  /** Where the edge's label goes: the midpoint of its curve. */
+  /** Where the edge's label goes: a point on its curve, usually the midpoint. */
   label: { x: number; y: number };
   /**
    * Which end of the label sits on that point. An edge bent sideways to clear
@@ -103,6 +103,19 @@ export function childCapFor(width: number, max: number): number {
  */
 export const CENTER_CLEARANCE = 100;
 
+/** The narrowest slot a lateral can have: its glyph and a gutter to the next. */
+const MIN_LATERAL_SLOT = 28;
+
+/**
+ * How many laterals fit on each side of a stage this wide, never more than
+ * `max`. A phone's stage is too short for more than two arcs under the parent
+ * row, so two always fit and the "+N more" marker offers the rest.
+ */
+export function lateralCapFor(width: number, max: number): number {
+  const half = width / 2 - CENTER_CLEARANCE - edgeMargin(width);
+  return Math.max(2, Math.min(max, Math.floor(half / MIN_LATERAL_SLOT)));
+}
+
 /** Spreads n items evenly across [start, end], centred. */
 function spread(index: number, count: number, start: number, end: number): number {
   return start + ((end - start) * (index + 0.5)) / count;
@@ -121,19 +134,73 @@ interface Point {
 export const BUNDLE_GAP = 20;
 
 /**
+ * How much higher, at its midpoint, each lateral's edge arcs than the one
+ * nearer the centre, at least. Laterals share the centre's row, so straight
+ * edges would lie on top of each other, and their labels with them. One step
+ * clears a line of label text, and the nearest edge takes one too, so that
+ * its label stays off the row's glyphs.
+ */
+const LATERAL_ARC = 22;
+
+/** The widest a step gets, however much room a tall stage has for it. */
+const MAX_LATERAL_ARC = 32;
+
+/**
+ * How far along the row an arc's control points sit from its ends. Being the
+ * same for every arc, the higher ones leave the centre at a steeper angle, so
+ * the arcs fan out. Placed by the arc's length instead, a lateral twice as far
+ * out at twice the height leaves at the same angle as its neighbour, and the
+ * two run along each other before they part.
+ */
+const LATERAL_FAN = 60;
+
+/**
+ * How far along a child's edge its label sits, from the child. All of a CWE's
+ * child edges meet at it, so the labels only have room near the other end.
+ */
+const CHILD_LABEL_AT = 0.2;
+
+/** Where every other label goes when they can't all fit in one line. */
+const CHILD_LABEL_STAGGERED_AT = 0.4;
+
+/** The narrowest child slot that fits a "ChildOf" and a gap to the next. */
+const MIN_CHILD_LABEL_SLOT = 56;
+
+/**
+ * Half the width of the longest label on a lateral, "StartsWith (inverse)".
+ * One centred closer than this to the selected node would reach across it.
+ */
+const LATERAL_LABEL_REACH = 64;
+
+type Cubic = [Point, Point, Point, Point];
+
+/**
  * The curve from one node to another, with its midpoint moved `bend` pixels
  * along `normal`. A cubic's midpoint is (P0 + 3·P1 + 3·P2 + P3) / 8, so
  * moving both control points by d moves it by ¾d.
  */
-function cubic(from: Point, to: Point, normal: Point, bend: number): string {
+function cubic(from: Point, to: Point, normal: Point, bend: number): Cubic {
   const sameBand = Math.abs(from.y - to.y) < 1;
+  // Inset equally from both ends, which leaves the midpoint where it was.
+  const inset = Math.sign(to.x - from.x) * Math.min(LATERAL_FAN, Math.abs(to.x - from.x) / 2);
   const [c1x, c1y, c2x, c2y] = sameBand
-    ? [(from.x + to.x) / 2, from.y, (from.x + to.x) / 2, to.y]
+    ? [from.x + inset, from.y, to.x - inset, to.y]
     : [from.x, (from.y + to.y) / 2, to.x, (from.y + to.y) / 2];
   const dx = (normal.x * bend * 4) / 3;
   const dy = (normal.y * bend * 4) / 3;
+  return [from, { x: c1x + dx, y: c1y + dy }, { x: c2x + dx, y: c2y + dy }, to];
+}
+
+function pathOf([from, c1, c2, to]: Cubic): string {
   const n = (v: number) => Number(v.toFixed(2));
-  return `M ${n(from.x)} ${n(from.y)} C ${n(c1x + dx)} ${n(c1y + dy)}, ${n(c2x + dx)} ${n(c2y + dy)}, ${n(to.x)} ${n(to.y)}`;
+  return `M ${n(from.x)} ${n(from.y)} C ${n(c1.x)} ${n(c1.y)}, ${n(c2.x)} ${n(c2.y)}, ${n(to.x)} ${n(to.y)}`;
+}
+
+function pointOn([from, c1, c2, to]: Cubic, t: number): Point {
+  const u = 1 - t;
+  const along = (a: number, b: number, c: number, d: number) =>
+    u ** 3 * a + 3 * u ** 2 * t * b + 3 * u * t ** 2 * c + t ** 3 * d;
+  return { x: along(from.x, c1.x, c2.x, to.x), y: along(from.y, c1.y, c2.y, to.y) };
 }
 
 /**
@@ -186,6 +253,8 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
   }
 
   const lateralOverflow: PositionedLateralOverflow[] = [];
+  /** How many arc steps above the row each lateral's edge runs. */
+  const arcSteps = new Map<string, number>();
   for (const side of ['left', 'right'] as const) {
     const members = ego.nodes.filter((n) => n.band === 0 && n.side === side);
     const [start, end] =
@@ -203,6 +272,7 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
 
     members.forEach((node, i) => {
       positioned.set(node.id, { ...node, x: spread(memberIndex(i), slots, start, end), y: centerY });
+      arcSteps.set(node.id, side === 'left' ? members.length - i : i + 1);
     });
 
     if (hiddenCount > 0) {
@@ -216,8 +286,17 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
     }
   }
 
+  // The steps share out the room under the row above, whose labels hang down
+  // into it. One more than the arcs, so the highest stays clear of them.
+  const ceiling = ego.nodes.some((n) => n.band === -1) ? yOf(-1) + LABEL_DEPTH : 0;
+  const arcCount = Math.max(0, ...arcSteps.values());
+  const arcStep = Math.max(LATERAL_ARC, Math.min(MAX_LATERAL_ARC, (centerY - ceiling) / (arcCount + 1)));
+
   const childBandY = yOf(1);
-  const childCount = ego.nodes.filter((n) => n.band === 1).length;
+  const children = ego.nodes.filter((n) => n.band === 1);
+  const childCount = children.length;
+  const childSlots = ego.overflow ? childCount + 1 : childCount;
+  const staggered = (width - 2 * margin) / childSlots < MIN_CHILD_LABEL_SLOT;
   const overflow: PositionedOverflow | null = ego.overflow
     ? {
         ...ego.overflow,
@@ -261,15 +340,25 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
     // apart. A flatter one bends up and down, which separates them already.
     const sideways = Math.abs(normal.x) >= 0.5;
     const outward = normal.x * bend;
-    const labelAnchor = !sideways || bend === 0 ? 'middle' : outward > 0 ? 'start' : 'end';
-    return [
-      {
-        ...edge,
-        path: cubic(from, to, normal, bend),
-        label: { x: (from.x + to.x) / 2 + normal.x * bend, y: (from.y + to.y) / 2 + normal.y * bend },
-        labelAnchor,
-      },
-    ];
+    let labelAnchor: PositionedEdge['labelAnchor'] = !sideways || bend === 0 ? 'middle' : outward > 0 ? 'start' : 'end';
+    // Only a lateral has steps, and its edge lies along the row, so its normal
+    // points straight up or down. The sign keeps every arc going up.
+    const steps = arcSteps.get(edge.from) ?? arcSteps.get(edge.to) ?? 0;
+    const arced = bend - Math.sign(normal.y) * steps * arcStep;
+    // Labels on opposite sides sit at the same height, so one that reaches
+    // the centre grows away from it, or the two run together on a phone.
+    if (steps > 0 && Math.abs(to.x - from.x) / 2 < LATERAL_LABEL_REACH) {
+      labelAnchor = Math.min(from.x, to.x) < width / 2 ? 'end' : 'start';
+    }
+    const curve = cubic(from, to, normal, arced);
+    // One that shares its pair stays level with the other edge's label, which
+    // it is anchored away from.
+    let labelAt = 0.5;
+    if (edge.group === 'hierarchy' && from.band === 1 && bend === 0) {
+      const raised = staggered && children.findIndex((n) => n.id === from.id) % 2 === 1;
+      labelAt = raised ? CHILD_LABEL_STAGGERED_AT : CHILD_LABEL_AT;
+    }
+    return [{ ...edge, path: pathOf(curve), label: pointOn(curve, labelAt), labelAnchor }];
   });
 
   return { nodes, edges, overflow, lateralOverflow };

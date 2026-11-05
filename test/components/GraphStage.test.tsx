@@ -174,30 +174,22 @@ describe('GraphStage keyboard model', () => {
 });
 
 describe('GraphStage highlighting', () => {
-  it('shows no edge labels at rest', () => {
+  it('labels every edge at rest', () => {
     const { container } = render(
       <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
     );
-    expect(container.querySelectorAll('.graph-edge__label')).toHaveLength(0);
+    const edges = container.querySelectorAll('.graph-edge');
+    expect(edges.length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('.graph-edge__label')).toHaveLength(edges.length);
   });
 
-  it('labels the incident edges when a node is hovered', async () => {
-    const { container } = render(
-      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
-    );
-    await userEvent.hover(screen.getByRole('button', { name: /^CWE-74/ }));
-    expect(container.querySelectorAll('.graph-edge__label').length).toBeGreaterThan(0);
-  });
-
-  it('labels no edges when the centre itself is hovered', async () => {
-    // Every edge on the stage meets the centre, so labelling them all piles
-    // one label per edge on top of each other around it. On a phone this is
-    // the resting state: the node just tapped keeps focus as it re-centres.
+  it('keeps every label when the centre itself is hovered', async () => {
+    // A phone rests here: the node just tapped keeps focus as it re-centres.
     const { container } = render(
       <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
     );
     await userEvent.hover(screen.getByRole('button', { name: /^CWE-79/ }));
-    expect(container.querySelectorAll('.graph-edge__label')).toHaveLength(0);
+    expect(container.querySelectorAll('.graph-edge__label')).toHaveLength(container.querySelectorAll('.graph-edge').length);
   });
 
   it('dims the nodes that are not incident to the hovered one', async () => {
@@ -348,6 +340,23 @@ describe('GraphStage sizing', () => {
     expect(canvas(container)).toHaveAttribute('viewBox', '0 0 640 360');
   });
 
+  it('shows fewer laterals a side on a phone, and offers the rest', () => {
+    // CWE-119 in CWE 5.0 has eleven, all to its left.
+    const crowded = buildGraph({
+      meta: data.meta,
+      nodes: Object.fromEntries(['119', '120', '121', '122', '123'].map((id) => [id, node(id, `Name ${id}`)])),
+      edges: ['120', '121', '122', '123'].map((from) => ({ from, to: '119', type: 'CanPrecede' })),
+    });
+    const stage = stubResizeObserver();
+    render(
+      <GraphStage graph={crowded} selectedId="119" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+    stage.resize(1000, 600);
+    expect(screen.queryByRole('button', { name: /more related weaknesses/ })).not.toBeInTheDocument();
+    stage.resize(390, 330);
+    expect(screen.getByRole('button', { name: 'Show 2 more related weaknesses' })).toBeInTheDocument();
+  });
+
   it('ignores a size of zero, as a hidden stage reports', () => {
     const stage = stubResizeObserver();
     const { container } = render(
@@ -444,5 +453,56 @@ describe('GraphStage arrows', () => {
     const inset = tipInset(stage('113'));
     expect(inset).toBeGreaterThan(10.4);
     expect(inset).toBeLessThan(20);
+  });
+});
+
+describe('GraphStage relation labels', () => {
+  // CWE 5.0: 79 ChildOf 74, 113 CanPrecede 79 and 79 CanPrecede 494.
+  const related = buildGraph({
+    meta: data.meta,
+    nodes: {
+      '74': node('74', 'Injection'),
+      '79': node('79', 'Cross-site Scripting'),
+      '113': node('113', 'CRLF Injection'),
+      '494': node('494', 'Download of Code Without Integrity Check'),
+    },
+    edges: [
+      { from: '79', to: '74', type: 'ChildOf' },
+      { from: '113', to: '79', type: 'CanPrecede' },
+      { from: '79', to: '494', type: 'CanPrecede' },
+    ],
+  });
+  const stage = () =>
+    render(
+      <GraphStage graph={related} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    ).container;
+  const labels = (container: HTMLElement) =>
+    Array.from(container.querySelectorAll('.graph-edge__label'), (l) => l.textContent).sort();
+
+  it('names every relation at rest, parent and child edges included', () => {
+    expect(labels(stage())).toEqual(['CanFollow', 'CanPrecede', 'ChildOf']);
+  });
+
+  it('colours each label like its line', () => {
+    const fills = Array.from(stage().querySelectorAll('.graph-edge__label'), (l) => [l.textContent, l.getAttribute('fill')]);
+    expect(Object.fromEntries(fills)).toEqual({
+      CanFollow: 'var(--rel-sequence)',
+      CanPrecede: 'var(--rel-sequence)',
+      ChildOf: 'var(--rel-hierarchy)',
+    });
+  });
+
+  it('draws every label over every edge, so no line cuts through one', () => {
+    const container = stage();
+    const lastEdge = Array.from(container.querySelectorAll('.graph-edge')).at(-1)!;
+    const firstLabel = container.querySelector('.graph-edge__label')!;
+    expect(lastEdge.compareDocumentPosition(firstLabel)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('dims a label with its edge', async () => {
+    const container = stage();
+    await userEvent.hover(screen.getByRole('button', { name: /^CWE-74/ }));
+    const dimmed = Array.from(container.querySelectorAll('.graph-edge-group--dimmed .graph-edge__label'));
+    expect(dimmed.map((l) => l.textContent).sort()).toEqual(['CanFollow', 'CanPrecede']);
   });
 });

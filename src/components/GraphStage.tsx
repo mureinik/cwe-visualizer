@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Graph } from '../lib/graph';
-import { buildEgoGraph, edgeKey, relationLabel, type AncestorHops, type LateralRelation } from '../lib/ego';
-import { childCapFor, edgeMargin, layoutEgoGraph, type PositionedNode, type StageSize } from '../lib/layout';
+import { buildEgoGraph, edgeKey, type AncestorHops, type LateralRelation } from '../lib/ego';
+import { childCapFor, edgeMargin, lateralCapFor, layoutEgoGraph, type PositionedNode, type StageSize } from '../lib/layout';
 import { elideSharedPrefix, fitLabel, labelBudget } from '../lib/labels';
 import { arrowMarkerId, EDGE_GROUPS } from '../lib/relations';
 import { HALO_GAP, NODE_RADIUS, SELECTED_NODE_RADIUS } from '../lib/shapes';
-import { GraphEdge } from './GraphEdge';
+import { GraphEdge, GraphEdgeLabel } from './GraphEdge';
 import { GraphNode } from './GraphNode';
 import { Legend } from './Legend';
 import { OverflowChip } from './OverflowChip';
@@ -14,6 +14,9 @@ const DEFAULT_STAGE: StageSize = { width: 960, height: 600 };
 
 /** Children drawn before the rest collapse into the overflow chip, where the stage has room. */
 const CHILD_CAP = 10;
+
+/** Laterals drawn on each side before the rest collapse into a marker, where the stage has room. */
+const LATERAL_CAP = 4;
 
 const ARROW_SIZE = 9;
 /** How far an arrow's tip stops outside whatever it points at. */
@@ -88,9 +91,10 @@ export function GraphStage({
   // A phone has room for far fewer children than a desktop, and ten packed
   // into it overlap; the chip still offers the rest.
   const childCap = childCapFor(size.width, CHILD_CAP);
+  const lateralCap = lateralCapFor(size.width, LATERAL_CAP);
   const ego = useMemo(
-    () => (selectedId ? buildEgoGraph(graph, selectedId, { ancestorHops: hops, childCap }) : null),
-    [graph, selectedId, hops, childCap],
+    () => (selectedId ? buildEgoGraph(graph, selectedId, { ancestorHops: hops, childCap, lateralCap }) : null),
+    [graph, selectedId, hops, childCap, lateralCap],
   );
   const layout = useMemo(() => (ego ? layoutEgoGraph(ego, size) : null), [ego, size]);
   // A local const, so the chip's click handler keeps the narrowing to non-null.
@@ -245,11 +249,12 @@ export function GraphStage({
             </defs>
             {layout.edges.map((edge) => {
               const key = edgeKey(edge);
-              const lit = !incident || incident.edges.has(key);
-              // Every edge meets the centre, so labelling them all when it is
-              // active stacks the labels on top of one another around it.
-              const labelled = incident && lit && active !== ego?.centerId;
-              return <GraphEdge key={key} edge={edge} dimmed={!lit} label={labelled ? relationLabel(edge) : null} intoCenter={edge.to === ego?.centerId} />;
+              const dimmed = incident !== null && !incident.edges.has(key);
+              return <GraphEdge key={key} edge={edge} dimmed={dimmed} intoCenter={edge.to === ego?.centerId} />;
+            })}
+            {layout.edges.map((edge) => {
+              const key = edgeKey(edge);
+              return <GraphEdgeLabel key={key} edge={edge} dimmed={incident !== null && !incident.edges.has(key)} />;
             })}
             {layout.nodes.map((node) => (
               <GraphNode

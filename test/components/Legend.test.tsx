@@ -36,7 +36,7 @@ describe('Legend', () => {
     groups.forEach((group, i) => {
       const edge = { from: '1', to: '2', types: ['X'], group, path: 'M 0 0 L 10 10', label: { x: 5, y: 5 }, labelAnchor: 'middle' as const };
       const { container: graph } = render(
-        <svg><GraphEdge edge={edge} dimmed={false} label={null} /></svg>,
+        <svg><GraphEdge edge={edge} dimmed={false} /></svg>,
       );
       expect(lineLook(swatches[i]), group).toEqual(lineLook(graph.querySelector('path.graph-edge')!));
     });
