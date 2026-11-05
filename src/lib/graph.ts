@@ -1,5 +1,5 @@
 import type { CweData, CweEdge, CweMeta, CweNode } from './cwe-data';
-import { INVERSE_SUFFIX } from './relations';
+import { INVERSE_SUFFIX, isInverse } from './relations';
 
 export type { CweData, CweEdge, CweMeta, CweNode } from './cwe-data';
 
@@ -40,10 +40,10 @@ export interface BuildGraphOptions {
 // should carry; anything not listed falls back to a generic "(inverse)"
 // label so it's never silently dropped or mislabeled as the original. A Map,
 // so a type that happens to share a name with an Object.prototype member
-// still falls back.
+// still falls back. CanAlsoBe is left out on purpose: MITRE's schema says it
+// "is not necessarily reciprocal", so its target can't be said to state it.
 const INVERSE_NATURES = new Map([
   ['PeerOf', 'PeerOf'],
-  ['CanAlsoBe', 'CanAlsoBe'],
   ['Overlaps', 'Overlaps'],
   ['CanPrecede', 'CanFollow'],
   ['CanFollow', 'CanPrecede'],
@@ -114,6 +114,11 @@ export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
     list.push(edge);
   }
 
+  // A relation with no named inverse can be stated from both ends, as CWE-1239
+  // and CWE-1258 do with CanAlsoBe. Each end then speaks for itself, and a
+  // synthesized "(inverse)" would only list the relation a second time.
+  const stated = new Set(data.edges.map((edge) => `${edge.from}|${edge.to}|${edge.type}`));
+
   for (const edge of data.edges) {
     if (edge.type === 'ChildOf') {
       addUnique(childrenOf, edge.to, edge.from);
@@ -123,7 +128,11 @@ export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
       addUnique(parentsOf, edge.to, edge.from);
     } else {
       addRelated(edge.from, edge);
-      const inverse: CweEdge = { from: edge.to, to: edge.from, type: inverseNature(edge.type) };
+      const inverseType = inverseNature(edge.type);
+      if (isInverse(inverseType) && stated.has(`${edge.to}|${edge.from}|${edge.type}`)) {
+        continue;
+      }
+      const inverse: CweEdge = { from: edge.to, to: edge.from, type: inverseType };
       if (edge.viewId !== undefined) {
         inverse.viewId = edge.viewId;
       }
