@@ -39,6 +39,8 @@ interface GraphStageProps {
    *  for, which the detail card already lists in full. */
   onShowRelations: (hidden: LateralRelation[]) => void;
   hops: AncestorHops;
+  /** Leaves only the labels of a hovered or focused node's edges. */
+  hideEdgeLabels?: boolean;
 }
 
 /**
@@ -83,6 +85,7 @@ export function GraphStage({
   onShowChildren,
   onShowRelations,
   hops,
+  hideEdgeLabels = false,
 }: GraphStageProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState<string | null>(null);
@@ -164,6 +167,18 @@ export function GraphStage({
     return { nodes, edges: new Set(edges.map(edgeKey)) };
   }, [layout, active]);
 
+  /**
+   * A tapped node keeps focus as it moves to the centre, with no pointer to
+   * leave it, and every one of the centre's edges counts as incident. So
+   * selecting ends the hover, or a tap would bring back all the labels.
+   */
+  function selectNode(id: string) {
+    if (id !== selectedId) {
+      setHovered(null);
+    }
+    onSelect(id);
+  }
+
   function focusNode(id: string) {
     // CWE ids are numeric strings, so they need no selector escaping.
     const target = stageRef.current?.querySelector<SVGGElement>(`[data-node-id="${id}"]`);
@@ -177,7 +192,7 @@ export function GraphStage({
   function onNodeKeyDown(event: React.KeyboardEvent<SVGGElement>, current: PositionedNode, nodes: PositionedNode[]) {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      onSelect(current.id);
+      selectNode(current.id);
       return;
     }
 
@@ -254,7 +269,11 @@ export function GraphStage({
             })}
             {layout.edges.map((edge) => {
               const key = edgeKey(edge);
-              return <GraphEdgeLabel key={key} edge={edge} dimmed={incident !== null && !incident.edges.has(key)} />;
+              const lit = incident?.edges.has(key) ?? false;
+              if (hideEdgeLabels && !lit) {
+                return null;
+              }
+              return <GraphEdgeLabel key={key} edge={edge} dimmed={incident !== null && !lit} />;
             })}
             {layout.nodes.map((node) => (
               <GraphNode
@@ -266,7 +285,7 @@ export function GraphStage({
                 compactId={displayNames.compact.get(node.id) ?? false}
                 selected={node.id === ego?.centerId}
                 dimmed={!!incident && !incident.nodes.has(node.id)}
-                onSelect={onSelect}
+                onSelect={selectNode}
                 onKeyDown={(event) => onNodeKeyDown(event, node, layout.nodes)}
                 onHover={setHovered}
               />

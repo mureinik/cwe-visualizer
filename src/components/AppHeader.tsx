@@ -1,4 +1,6 @@
+import type { EdgeLabels } from '../lib/edge-labels';
 import type { Graph } from '../lib/graph';
+import { EdgeLabelsToggle } from './EdgeLabelsToggle';
 import { ReleaseSwitcher } from './ReleaseSwitcher';
 import { SearchBox } from './SearchBox';
 import { ThemeToggle } from './ThemeToggle';
@@ -8,9 +10,18 @@ interface AppHeaderProps {
   onSelect: (id: string) => void;
   drawerOpen: boolean;
   onToggleDrawer: () => void;
+  edgeLabels: EdgeLabels;
+  onEdgeLabelsChange: (edgeLabels: EdgeLabels) => void;
 }
 
-export function AppHeader({ graph, onSelect, drawerOpen, onToggleDrawer }: AppHeaderProps) {
+export function AppHeader({
+  graph,
+  onSelect,
+  drawerOpen,
+  onToggleDrawer,
+  edgeLabels,
+  onEdgeLabelsChange,
+}: AppHeaderProps) {
   return (
     <header className="app-header">
       <button
@@ -28,6 +39,7 @@ export function AppHeader({ graph, onSelect, drawerOpen, onToggleDrawer }: AppHe
       </div>
       <ReleaseSwitcher />
       <span className="app-header__version">CWE {graph.meta.cweVersion}</span>
+      <EdgeLabelsToggle edgeLabels={edgeLabels} onChange={onEdgeLabelsChange} />
       <ThemeToggle />
       <a
         className="app-header__repo"
