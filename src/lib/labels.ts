@@ -7,7 +7,7 @@
  */
 
 /** Approximate advance width of one character at --text-xs. Deliberately generous. */
-const CHAR_PX = 7;
+export const CHAR_PX = 7;
 /** Blank space kept between one node's label and the next. */
 const LABEL_GUTTER_PX = 12;
 /** Below this, eliding a shared prefix costs more clarity than it buys. */
