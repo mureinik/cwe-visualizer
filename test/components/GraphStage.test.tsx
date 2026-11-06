@@ -423,6 +423,65 @@ describe('GraphStage with two relations in one group', () => {
   });
 });
 
+describe('GraphStage with edge labels hidden', () => {
+  const stage = (selectedId = '79', onSelect = vi.fn()) =>
+    render(
+      <GraphStage graph={graph} selectedId={selectedId} onSelect={onSelect} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} hideEdgeLabels />,
+    );
+  const labels = (container: HTMLElement) => container.querySelectorAll('.graph-edge__label');
+
+  it('keeps the lines and drops their labels at rest', () => {
+    const { container } = stage();
+    expect(container.querySelectorAll('.graph-edge')).toHaveLength(2);
+    expect(labels(container)).toHaveLength(0);
+  });
+
+  it('keeps naming each relation on its line', () => {
+    const { container } = stage();
+    expect(container.querySelector('.graph-edge title')).toHaveTextContent('ChildOf');
+  });
+
+  it('shows only the hovered node\'s labels', async () => {
+    const { container } = stage();
+    await userEvent.hover(screen.getByRole('button', { name: /^CWE-74/ }));
+    expect(labels(container)).toHaveLength(1);
+  });
+
+  it('hides them again when the pointer leaves', async () => {
+    const { container } = stage();
+    const target = screen.getByRole('button', { name: /^CWE-74/ });
+    await userEvent.hover(target);
+    await userEvent.unhover(target);
+    expect(labels(container)).toHaveLength(0);
+  });
+
+  it('shows a node\'s labels while it has keyboard focus', async () => {
+    const { container } = stage();
+    await userEvent.tab();
+    expect(document.activeElement).toHaveAttribute('data-node-id');
+    expect(labels(container).length).toBeGreaterThan(0);
+  });
+
+  it('does not bring every label back when a tapped node becomes the centre', async () => {
+    // A tap focuses the node, and it keeps focus as it moves to the centre,
+    // where all of its edges would count as hovered until the next tap.
+    const onSelect = vi.fn();
+    const { container, rerender } = stage('79', onSelect);
+    await userEvent.click(screen.getByRole('button', { name: /^CWE-74/ }));
+    expect(onSelect).toHaveBeenCalledWith('74');
+    rerender(
+      <GraphStage graph={graph} selectedId="74" onSelect={onSelect} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} hideEdgeLabels />,
+    );
+    expect(labels(container)).toHaveLength(0);
+  });
+
+  it('still shows the centre\'s labels when the centre itself is clicked', async () => {
+    const { container } = stage();
+    await userEvent.click(screen.getByRole('button', { name: /^CWE-79/ }));
+    expect(labels(container)).toHaveLength(2);
+  });
+});
+
 describe('GraphStage arrows', () => {
   // CWE 5.0: 113 CanPrecede 79.
   const sequence = buildGraph({

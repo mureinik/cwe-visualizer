@@ -6,6 +6,7 @@ import { LandingPanel } from './components/LandingPanel';
 import { NARROW_QUERY, useMediaQuery } from './lib/media';
 import { DetailPanel, type RelationFlash } from './components/DetailPanel';
 import { AppHeader } from './components/AppHeader';
+import { readStoredEdgeLabels } from './lib/edge-labels';
 import { Attribution } from './components/Attribution';
 
 type LoadState =
@@ -26,6 +27,7 @@ export function App() {
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [selectedId, setSelectedId] = useState<string | null>(() => readSelectedIdFromUrl());
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [edgeLabels, setEdgeLabels] = useState(readStoredEdgeLabels);
   const [revealId, setRevealId] = useState<string | null>(null);
   const [flash, setFlash] = useState<RelationFlash | null>(null);
   // Never reset, so every flash, even the first after a re-centre, is new to
@@ -82,6 +84,8 @@ export function App() {
         onSelect={selectNode}
         drawerOpen={drawerOpen}
         onToggleDrawer={() => setDrawerOpen((open) => !open)}
+        edgeLabels={edgeLabels}
+        onEdgeLabelsChange={setEdgeLabels}
       />
       <main className="app-stage">
         {selectedId === null ? (
@@ -111,6 +115,7 @@ export function App() {
                 setFlash({ relations: hidden, token: flashCount.current });
               }}
               hops={narrow ? 1 : 2}
+              hideEdgeLabels={edgeLabels === 'hidden'}
             />
             <DetailPanel graph={state.graph} selectedId={selectedId} onSelect={selectNode} flash={flash} />
           </>

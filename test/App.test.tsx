@@ -97,6 +97,42 @@ describe('App', () => {
     expect(screen.getByRole('dialog', { name: 'Weakness tree' })).toBeInTheDocument();
   });
 
+  describe('edge labels toggle', () => {
+    const related = {
+      ...sampleData,
+      nodes: {
+        ...sampleData.nodes,
+        '79': { id: '79', name: 'Cross-site Scripting', abstraction: 'Base', status: 'Stable', description: 'd', url: '' },
+      },
+      edges: [{ from: '79', to: '74', type: 'ChildOf' }],
+    };
+
+    beforeEach(() => {
+      localStorage.clear();
+      vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(related) })));
+      window.history.replaceState(null, '', '/?cwe=79');
+    });
+
+    it('hides the graph\'s labels, and shows them again', async () => {
+      const { container } = render(<App />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Hide edge labels' }));
+      expect(container.querySelector('.graph-edge__label')).toBeNull();
+      await userEvent.click(screen.getByRole('button', { name: 'Show edge labels' }));
+      expect(container.querySelector('.graph-edge__label')).not.toBeNull();
+    });
+
+    it('remembers the choice on the next visit', async () => {
+      const first = render(<App />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Hide edge labels' }));
+      first.unmount();
+
+      const { container } = render(<App />);
+      expect(await screen.findByRole('button', { name: 'Show edge labels' })).toBeInTheDocument();
+      expect(container.querySelector('.graph-edge')).not.toBeNull();
+      expect(container.querySelector('.graph-edge__label')).toBeNull();
+    });
+  });
+
   describe('?cwe= parameter', () => {
     it('selects the CWE it names', async () => {
       window.history.replaceState(null, '', '/?cwe=74');

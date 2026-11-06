@@ -86,6 +86,17 @@
   font-weight: 600;
 }
 
+.edge-labels-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+}
+
 .theme-toggle {
   background: none;
   border: 1px solid var(--border);
@@ -151,15 +162,21 @@
 @media (max-width: 900px) {
   .app-header {
     flex-wrap: wrap;
+    gap: var(--space-2);
   }
 
   .app-header__version {
     display: none;
   }
 
+  /* The repo link shares this row, so the rest fit one row on a phone. */
   .app-header__search {
     order: 1;
-    flex-basis: 100%;
+    flex-basis: calc(100% - 3rem);
     max-width: none;
+  }
+
+  .app-header__repo {
+    order: 2;
   }
 }
