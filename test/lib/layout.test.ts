@@ -11,7 +11,9 @@ import {
   LABEL_DEPTH,
   MIN_CHILD_SLOT,
 } from '../../src/lib/layout';
-import type { EgoGraph } from '../../src/lib/ego';
+import { relationLabel, type EgoGraph } from '../../src/lib/ego';
+import { HALO_GAP, NODE_RADIUS, SELECTED_NODE_RADIUS } from '../../src/lib/shapes';
+import crowded from '../fixtures/label-collisions.json';
 
 const size = { width: 1000, height: 800 };
 
@@ -594,5 +596,87 @@ describe('lateral arcs', () => {
     const layout = layoutEgoGraph(vertical, size);
     const [a, b] = layout.nodes;
     expect(layout.edges[0].label).toEqual({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+  });
+});
+
+describe('edge label placement', () => {
+  interface Box { left: number; right: number; top: number; bottom: number }
+
+  const overlap = (a: Box, b: Box) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+
+  // Measured from the rendered text at --text-xs, independently of the
+  // estimate the layout works from.
+  const labelBox = ({ label, labelAnchor, types }: ReturnType<typeof layoutEgoGraph>['edges'][number]): Box => {
+    const width = relationLabel({ types }).length * 6.7;
+    const left = labelAnchor === 'middle' ? label.x - width / 2 : labelAnchor === 'start' ? label.x : label.x - width;
+    return { left, right: left + width, top: label.y - 10, bottom: label.y + 3 };
+  };
+
+  type View = { cwe: string; problem: string; size: typeof size; ego: EgoGraph };
+  const views = crowded as View[];
+  const tooCrowded = views.find((view) => view.problem === 'more labels than room')!;
+
+  // The real views that had each problem, from CWE 5.0.
+  describe.each(views.filter((view) => view !== tooCrowded))(
+    'CWE-$cwe at $size.width px, which had $problem',
+    ({ size: stage, ego: view }) => {
+      const layout = layoutEgoGraph(view, stage);
+      const boxes = layout.edges.map(labelBox);
+
+      it('keeps the labels apart', () => {
+        const clashes = boxes.flatMap((a, i) => boxes.slice(i + 1).filter((b) => overlap(a, b)));
+        expect(clashes).toEqual([]);
+      });
+
+      it('keeps them off the glyphs', () => {
+        const glyphs = layout.nodes.map(({ id, x, y }) => {
+          const r = id === view.centerId ? SELECTED_NODE_RADIUS + HALO_GAP : NODE_RADIUS;
+          return { left: x - r, right: x + r, top: y - r, bottom: y + r };
+        });
+        expect(boxes.filter((box) => glyphs.some((glyph) => overlap(box, glyph)))).toEqual([]);
+      });
+
+      it('keeps them off the names', () => {
+        // Narrower than any name, so this needs no estimate of their widths.
+        const names = layout.nodes.map(({ id, x, y }) => {
+          const r = id === view.centerId ? SELECTED_NODE_RADIUS + HALO_GAP : NODE_RADIUS;
+          return { left: x - 12, right: x + 12, top: y + r + 6, bottom: y + r + 33 };
+        });
+        expect(boxes.filter((box) => names.some((name) => overlap(box, name)))).toEqual([]);
+      });
+
+      it('keeps them on the stage', () => {
+        expect(boxes.filter((b) => b.left < 0 || b.right > stage.width || b.top < 0)).toEqual([]);
+      });
+    },
+  );
+
+  it('still labels every edge when the stage has no room for them all', () => {
+    const { edges } = layoutEgoGraph(tooCrowded.ego, tooCrowded.size);
+    expect(edges).toHaveLength(tooCrowded.ego.edges.length);
+    expect(edges.every(({ label }) => Number.isFinite(label.x) && Number.isFinite(label.y))).toBe(true);
+  });
+
+  it('leaves a label at its usual place when nothing is in the way', () => {
+    const edge = layoutEgoGraph(ego, size).edges.find((e) => e.to === '2')!;
+    expect(edge.label).toEqual({ x: at('3').x, y: (at('3').y + at('2').y) / 2 });
+  });
+
+  it('keeps every label on its own edge', () => {
+    const { edges } = layoutEgoGraph(tooCrowded.ego, tooCrowded.size);
+    for (const { path, label } of edges) {
+      const [x0, y0, x1, y1, x2, y2, x3, y3] = path.match(/-?[\d.]+/g)!.map(Number);
+      const nearest = Math.min(...Array.from({ length: 201 }, (_, i) => {
+        const t = i / 200;
+        const u = 1 - t;
+        const along = (a: number, b: number, c: number, d: number) => u ** 3 * a + 3 * u ** 2 * t * b + 3 * u * t ** 2 * c + t ** 3 * d;
+        return Math.hypot(along(x0, x1, x2, x3) - label.x, along(y0, y1, y2, y3) - label.y);
+      }));
+      expect(nearest).toBeLessThan(2);
+    }
+  });
+
+  it('gives the same result for the same view', () => {
+    expect(layoutEgoGraph(tooCrowded.ego, tooCrowded.size).edges).toEqual(layoutEgoGraph(tooCrowded.ego, tooCrowded.size).edges);
   });
 });
