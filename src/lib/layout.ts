@@ -389,11 +389,14 @@ function crossing(p0: Point, p1: Point, q0: Point, q1: Point): Point | null {
   return t >= 0 && t <= 1 && u >= 0 && u <= 1 ? { x: p0.x + t * r.x, y: p0.y + t * r.y } : null;
 }
 
-/** How far the point p is from the segment a–b. */
+/**
+ * How far the point p is from the segment a–b. Segments here are steps along
+ * a traced curve between two nodes, so they're never empty.
+ */
 function distanceToSegment(p: Point, a: Point, b: Point): number {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
-  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy || 1)));
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy)));
   return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
 }
 
