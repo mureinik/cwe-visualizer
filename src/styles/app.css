@@ -137,6 +137,10 @@
   color: inherit;
 }
 
+.app-footer summary {
+  cursor: pointer;
+}
+
 .app-status {
   display: grid;
   place-items: center;

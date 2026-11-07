@@ -181,8 +181,11 @@
     inset-block-end: 0;
     inset-inline: 0;
     width: 100%;
-    /* Peek by default so the graph keeps the top two thirds. */
-    max-height: 32dvh;
+    /*
+     * Peek by default, low enough that the graph keeps room for its labels
+     * on a phone once the browser's own toolbars are taken off.
+     */
+    max-height: 22dvh;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     border-inline: none;
     border-block-end: none;
