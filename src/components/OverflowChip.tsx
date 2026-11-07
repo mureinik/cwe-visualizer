@@ -1,3 +1,5 @@
+import { compactChipWidth, OVERFLOW_CHIP_HEIGHT, OVERFLOW_CHIP_WIDTH } from '../lib/shapes';
+
 interface OverflowChipProps {
   x: number;
   y: number;
@@ -5,10 +7,13 @@ interface OverflowChipProps {
   count: number;
   label: string;
   onActivate: () => void;
+  /** Shows just "+N", for where the full chip has no room. */
+  compact?: boolean;
 }
 
 /** A "+N more" chip on the graph, standing in for items it doesn't draw. */
-export function OverflowChip({ x, y, count, label, onActivate }: OverflowChipProps) {
+export function OverflowChip({ x, y, count, label, onActivate, compact = false }: OverflowChipProps) {
+  const width = compact ? compactChipWidth(count) : OVERFLOW_CHIP_WIDTH;
   return (
     <g
       className="graph-overflow"
@@ -26,9 +31,15 @@ export function OverflowChip({ x, y, count, label, onActivate }: OverflowChipPro
         }
       }}
     >
-      <rect x={-34} y={-12} width={68} height={24} rx={12} />
+      <rect
+        x={-width / 2}
+        y={-OVERFLOW_CHIP_HEIGHT / 2}
+        width={width}
+        height={OVERFLOW_CHIP_HEIGHT}
+        rx={OVERFLOW_CHIP_HEIGHT / 2}
+      />
       <text textAnchor="middle" y={4}>
-        +{count} more
+        {compact ? `+${count}` : `+${count} more`}
       </text>
     </g>
   );

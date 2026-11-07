@@ -1,6 +1,13 @@
 import { relationLabel, type Band, type EgoEdge, type EgoGraph, type EgoNode, type EgoOverflow, type LateralRelation } from './ego';
 import { CHAR_PX, labelBudget } from './labels';
-import { HALO_GAP, NODE_RADIUS, SELECTED_NODE_RADIUS } from './shapes';
+import {
+  compactChipWidth,
+  HALO_GAP,
+  NODE_RADIUS,
+  OVERFLOW_CHIP_HEIGHT,
+  OVERFLOW_CHIP_WIDTH,
+  SELECTED_NODE_RADIUS,
+} from './shapes';
 
 export interface StageSize {
   width: number;
@@ -34,6 +41,11 @@ export interface PositionedLateralOverflow {
   hiddenCount: number;
   /** The relations the marker stands for. */
   hidden: LateralRelation[];
+  /**
+   * Where a slot in the row is narrower than the full chip, the marker shows
+   * only its count and sits in the margin at the stage's edge instead.
+   */
+  compact: boolean;
   x: number;
   y: number;
 }
@@ -191,9 +203,8 @@ const LABEL_DESCENT = 4;
 const NAME_TOP = 5;
 const NAME_BOTTOM = 34;
 
-/** Half the size of an overflow chip (see OverflowChip). */
-const CHIP_HALF_WIDTH = 34;
-const CHIP_HALF_HEIGHT = 12;
+/** How far a compact lateral marker sits from the stage's edge. */
+const MARKER_EDGE_GAP = 2;
 
 type Cubic = [Point, Point, Point, Point];
 
@@ -215,12 +226,17 @@ function labelBox({ x, y }: Point, anchor: PositionedEdge['labelAnchor'], text: 
 }
 
 /** What a label must stay off: every node's glyph and name, and the chips. */
-function labelObstacles(nodes: PositionedNode[], centerId: string, chips: Point[], usableWidth: number): Box[] {
-  const boxes = chips.map(({ x, y }) => ({
-    left: x - CHIP_HALF_WIDTH,
-    right: x + CHIP_HALF_WIDTH,
-    top: y - CHIP_HALF_HEIGHT,
-    bottom: y + CHIP_HALF_HEIGHT,
+function labelObstacles(
+  nodes: PositionedNode[],
+  centerId: string,
+  chips: (Point & { width: number })[],
+  usableWidth: number,
+): Box[] {
+  const boxes = chips.map(({ x, y, width }) => ({
+    left: x - width / 2,
+    right: x + width / 2,
+    top: y - OVERFLOW_CHIP_HEIGHT / 2,
+    bottom: y + OVERFLOW_CHIP_HEIGHT / 2,
   }));
   for (const node of nodes) {
     const radius = node.id === centerId ? SELECTED_NODE_RADIUS + HALO_GAP : NODE_RADIUS;
@@ -402,12 +418,23 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
         : [width / 2 + CENTER_CLEARANCE, width - margin];
 
     const hiddenCount = ego.lateralOverflow[side];
-    const slots = hiddenCount > 0 ? members.length + 1 : members.length;
+    // The full marker takes a slot of its own. Where that slot would be too
+    // narrow for it, it covered the lateral next to it (issue #291), so it
+    // shrinks to its count and moves into the margin, which only exists to
+    // keep names off the edge and the marker has none.
+    const compact = hiddenCount > 0 && (end - start) / (members.length + 1) < OVERFLOW_CHIP_WIDTH;
+    const slots = hiddenCount > 0 && !compact ? members.length + 1 : members.length;
 
     // The marker takes the slot furthest from the centre, so the relations
     // that are drawn stay nearest the node they belong to.
     const markerIndex = side === 'left' ? 0 : slots - 1;
-    const memberIndex = (i: number) => (side === 'left' && hiddenCount > 0 ? i + 1 : i);
+    const memberIndex = (i: number) => (side === 'left' && hiddenCount > 0 && !compact ? i + 1 : i);
+    const markerHalf = compactChipWidth(hiddenCount) / 2 + MARKER_EDGE_GAP;
+    const markerX = !compact
+      ? spread(markerIndex, slots, start, end)
+      : side === 'left'
+        ? markerHalf
+        : width - markerHalf;
 
     members.forEach((node, i) => {
       positioned.set(node.id, { ...node, x: spread(memberIndex(i), slots, start, end), y: centerY });
@@ -419,7 +446,8 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
         side,
         hiddenCount,
         hidden: ego.hiddenLaterals[side],
-        x: spread(markerIndex, slots, start, end),
+        compact,
+        x: markerX,
         y: centerY,
       });
     }
@@ -500,7 +528,10 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
     return [{ edge: { ...edge, path: pathOf(curve), label: pointOn(curve, labelAt), labelAnchor }, curve, labelAt }];
   });
 
-  const chips = [...lateralOverflow, ...(overflow ? [overflow] : [])];
+  const chips = [
+    ...lateralOverflow.map((m) => ({ ...m, width: m.compact ? compactChipWidth(m.hiddenCount) : OVERFLOW_CHIP_WIDTH })),
+    ...(overflow ? [{ ...overflow, width: OVERFLOW_CHIP_WIDTH }] : []),
+  ];
   const obstacles = labelObstacles(nodes, ego.centerId, chips, width - 2 * margin);
   // Labels go beside their lines only in a view that needs it, so a view
   // that fits them all on their lines keeps them exactly there.

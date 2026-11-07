@@ -12,7 +12,7 @@ import {
   MIN_CHILD_SLOT,
 } from '../../src/lib/layout';
 import { relationLabel, type EgoGraph } from '../../src/lib/ego';
-import { HALO_GAP, NODE_RADIUS, SELECTED_NODE_RADIUS } from '../../src/lib/shapes';
+import { compactChipWidth, HALO_GAP, NODE_RADIUS, SELECTED_NODE_RADIUS } from '../../src/lib/shapes';
 import crowded from '../fixtures/label-collisions.json';
 
 const size = { width: 1000, height: 800 };
@@ -296,6 +296,51 @@ describe('layoutEgoGraph lateral overflow marker', () => {
       hiddenLaterals: { left: hidden, right: [] },
     };
     expect(layoutEgoGraph(capped, size).lateralOverflow.map((m) => m.hidden)).toEqual([hidden]);
+  });
+
+  describe('on a stage too narrow for the full marker', () => {
+    // CWE-119 in CWE 5.0 on a 412px phone: eleven relations to its left, two
+    // drawn and a marker for the other nine (issue #291).
+    const view = (crowded as { cwe: string; size: typeof size; ego: EgoGraph }[]).find(
+      (v) => v.cwe === '119' && v.size.width === 390,
+    )!;
+    const phone = { width: 412, height: 404 };
+    const layout = layoutEgoGraph(view.ego, phone);
+    const marker = layout.lateralOverflow[0];
+    const laterals = layout.nodes.filter((n) => n.band === 0 && n.side === 'left');
+
+    it('shrinks the marker to its count', () => {
+      expect(marker.compact).toBe(true);
+    });
+
+    it('moves the marker into the margin, clear of every glyph and id in the row', () => {
+      const half = compactChipWidth(marker.hiddenCount) / 2;
+      expect(marker.x - half).toBeGreaterThanOrEqual(0);
+      for (const n of laterals) {
+        // A four-digit id at --text-xs is about 30px wide, centred on its node.
+        expect(n.x - 15).toBeGreaterThanOrEqual(marker.x + half);
+      }
+    });
+
+    it('leaves the laterals where they would be without a marker', () => {
+      const uncapped = { ...view.ego, lateralOverflow: { left: 0, right: 0 }, hiddenLaterals: { left: [], right: [] } };
+      const without = layoutEgoGraph(uncapped, phone).nodes.filter((n) => n.band === 0 && n.side === 'left');
+      expect(laterals.map((n) => n.x)).toEqual(without.map((n) => n.x));
+    });
+  });
+
+  it('keeps the full marker in the row where it fits', () => {
+    const capped: EgoGraph = {
+      centerId: 'c',
+      nodes: [{ id: 'c', band: 0, side: 'center' }, { id: 'l0', band: 0, side: 'left' }],
+      edges: [],
+      overflow: null,
+      lateralOverflow: { left: 3, right: 0 },
+      hiddenLaterals: { left: Array.from({ length: 3 }, (_, i) => ({ id: `h${i}`, type: 'CanFollow' })), right: [] },
+    };
+    const [marker] = layoutEgoGraph(capped, { width: 1170, height: 740 }).lateralOverflow;
+    expect(marker.compact).toBe(false);
+    expect(marker.x).toBeGreaterThan(edgeMargin(1170));
   });
 
   it('emits no marker when nothing was capped', () => {

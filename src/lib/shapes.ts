@@ -5,6 +5,18 @@ export const SELECTED_NODE_RADIUS = 13;
 /** How far the selection halo sits outside the selected glyph. */
 export const HALO_GAP = 7;
 
+/** The size of a "+N more" chip on the graph. */
+export const OVERFLOW_CHIP_WIDTH = 68;
+export const OVERFLOW_CHIP_HEIGHT = 24;
+
+/**
+ * The width of a chip that shows only its "+N", where the full one doesn't
+ * fit: room for each character at --text-xs, and padding either side.
+ */
+export function compactChipWidth(count: number): number {
+  return 12 + `+${count}`.length * 7;
+}
+
 export type ShapeName = 'diamond' | 'ringed-circle' | 'circle' | 'hollow-circle' | 'hexagon' | 'square';
 
 export interface Glyph {
