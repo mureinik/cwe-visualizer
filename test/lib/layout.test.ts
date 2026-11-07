@@ -14,6 +14,7 @@ import {
 import { relationLabel, type EgoGraph } from '../../src/lib/ego';
 import { compactChipWidth, HALO_GAP, NODE_RADIUS, SELECTED_NODE_RADIUS } from '../../src/lib/shapes';
 import crowded from '../fixtures/label-collisions.json';
+import crossed from '../fixtures/arc-crossings.json';
 
 const size = { width: 1000, height: 800 };
 
@@ -743,5 +744,61 @@ describe('edge label placement', () => {
 
   it('gives the same result for the same view', () => {
     expect(layoutEgoGraph(tooCrowded.ego, tooCrowded.size).edges).toEqual(layoutEgoGraph(tooCrowded.ego, tooCrowded.size).edges);
+  });
+});
+
+describe('lines to parents and lateral arcs', () => {
+  const curve = (path: string) => {
+    const [x0, y0, x1, y1, x2, y2, x3, y3] = path.match(/-?[\d.]+/g)!.map(Number);
+    return Array.from({ length: 81 }, (_, i) => {
+      const t = i / 80;
+      const u = 1 - t;
+      const along = (a: number, b: number, c: number, d: number) => u ** 3 * a + 3 * u ** 2 * t * b + 3 * u * t ** 2 * c + t ** 3 * d;
+      return { x: along(x0, x1, x2, x3), y: along(y0, y1, y2, y3) };
+    });
+  };
+  type Point = { x: number; y: number };
+  const side = (p: Point, q: Point, r: Point) => Math.sign((q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x));
+  const gap = (p: Point, a: Point, b: Point) => {
+    const [dx, dy] = [b.x - a.x, b.y - a.y];
+    const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy || 1)));
+    return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
+  };
+  /**
+   * Where two polylines cross, or pass within 3px so that they look as if
+   * they do, ignoring the selected node's halo, where they all meet.
+   */
+  const crossings = (a: Point[], b: Point[], centre: Point) =>
+    a.slice(1).flatMap((p, i) =>
+      b.slice(1).filter((q, j) => {
+        const [p0, q0] = [a[i], b[j]];
+        const hit = (side(q0, q, p0) !== side(q0, q, p) && side(p0, p, q0) !== side(p0, p, q)) || gap(p, q0, q) < 3;
+        return hit && Math.hypot(p.x - centre.x, p.y - centre.y) > 28;
+      }),
+    );
+
+  // Real views from CWE 5.0 whose arcs crossed a line to a parent, or passed
+  // close enough to look as if they did (issue #290). 864×693 is the stage on
+  // a 1280×800 desktop.
+  describe.each(crossed as { cwe: string; size: typeof size; ego: EgoGraph }[])('CWE-$cwe at $size.width×$size.height', ({ size: stage, ego: view }) => {
+    it('draws no arc across a line to a parent', () => {
+      const { nodes, edges } = layoutEgoGraph(view, stage);
+      const centre = nodes.find((n) => n.id === view.centerId)!;
+      const band = (id: string) => nodes.find((n) => n.id === id)!.band;
+      const other = (e: (typeof edges)[number]) => (e.from === view.centerId ? e.to : e.from);
+      const ofCentre = edges.filter((e) => e.from === view.centerId || e.to === view.centerId);
+      const parents = ofCentre.filter((e) => band(other(e)) === -1).map((e) => curve(e.path));
+      const arcs = ofCentre.filter((e) => band(other(e)) === 0).map((e) => curve(e.path));
+      expect(parents.flatMap((p) => arcs.flatMap((a) => crossings(p, a, centre)))).toEqual([]);
+    });
+  });
+
+  it('still runs a line to a parent straight up out of the selected node', () => {
+    const { nodes, edges } = layoutEgoGraph(ego, size);
+    const centre = nodes.find((n) => n.id === '3')!;
+    const [start, next] = curve(edges.find((e) => e.to === '2')!.path);
+    expect(start.x).toBeCloseTo(centre.x, 1);
+    expect(start.y).toBeCloseTo(centre.y, 1);
+    expect(next.x).toBeCloseTo(centre.x, 1);
   });
 });

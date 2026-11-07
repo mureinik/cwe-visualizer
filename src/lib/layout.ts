@@ -206,6 +206,22 @@ const NAME_BOTTOM = 34;
 /** How far a compact lateral marker sits from the stage's edge. */
 const MARKER_EDGE_GAP = 2;
 
+/**
+ * How far along a line to a parent its control points sit, as a fraction of
+ * the height between the two, from the selected node's end and from the
+ * parent's. Halfway at both, the line turned sideways in the space above the
+ * row and crossed the lateral arcs there (issue #290). This keeps it rising
+ * steeply through them first.
+ */
+const PARENT_RISE = 0.75;
+const PARENT_DROP = 0.4;
+
+/** How far beyond the selected node's halo a crossing counts. */
+const CROSSING_CLEARANCE = 8;
+
+/** How close two lines can come before they look as if they cross. */
+const LINE_GAP = 4;
+
 type Cubic = [Point, Point, Point, Point];
 
 interface Box {
@@ -332,15 +348,17 @@ function labelSpots(usual: number): number[] {
 /**
  * The curve from one node to another, with its midpoint moved `bend` pixels
  * along `normal`. A cubic's midpoint is (P0 + 3·P1 + 3·P2 + P3) / 8, so
- * moving both control points by d moves it by ¾d.
+ * moving both control points by d moves it by ¾d. `rising` names the end at
+ * the selected node of a line to one of its parents.
  */
-function cubic(from: Point, to: Point, normal: Point, bend: number): Cubic {
+function cubic(from: Point, to: Point, normal: Point, bend: number, rising: 'from' | 'to' | null): Cubic {
   const sameBand = Math.abs(from.y - to.y) < 1;
   // Inset equally from both ends, which leaves the midpoint where it was.
   const inset = Math.sign(to.x - from.x) * Math.min(LATERAL_FAN, Math.abs(to.x - from.x) / 2);
+  const [fromAt, toAt] = rising === 'from' ? [PARENT_RISE, PARENT_DROP] : rising === 'to' ? [PARENT_DROP, PARENT_RISE] : [0.5, 0.5];
   const [c1x, c1y, c2x, c2y] = sameBand
     ? [from.x + inset, from.y, to.x - inset, to.y]
-    : [from.x, (from.y + to.y) / 2, to.x, (from.y + to.y) / 2];
+    : [from.x, from.y + fromAt * (to.y - from.y), to.x, to.y - toAt * (to.y - from.y)];
   const dx = (normal.x * bend * 4) / 3;
   const dy = (normal.y * bend * 4) / 3;
   return [from, { x: c1x + dx, y: c1y + dy }, { x: c2x + dx, y: c2y + dy }, to];
@@ -349,6 +367,75 @@ function cubic(from: Point, to: Point, normal: Point, bend: number): Cubic {
 function pathOf([from, c1, c2, to]: Cubic): string {
   const n = (v: number) => Number(v.toFixed(2));
   return `M ${n(from.x)} ${n(from.y)} C ${n(c1.x)} ${n(c1.y)}, ${n(c2.x)} ${n(c2.y)}, ${n(to.x)} ${n(to.y)}`;
+}
+
+/** Enough points along a curve to tell where it crosses another. */
+const TRACE_POINTS = 40;
+
+function trace(curve: Cubic): Point[] {
+  return Array.from({ length: TRACE_POINTS + 1 }, (_, i) => pointOn(curve, i / TRACE_POINTS));
+}
+
+/** Where the segments p0–p1 and q0–q1 cross, if they do. */
+function crossing(p0: Point, p1: Point, q0: Point, q1: Point): Point | null {
+  const r = { x: p1.x - p0.x, y: p1.y - p0.y };
+  const q = { x: q1.x - q0.x, y: q1.y - q0.y };
+  const denominator = r.x * q.y - r.y * q.x;
+  if (denominator === 0) {
+    return null;
+  }
+  const t = ((q0.x - p0.x) * q.y - (q0.y - p0.y) * q.x) / denominator;
+  const u = ((q0.x - p0.x) * r.y - (q0.y - p0.y) * r.x) / denominator;
+  return t >= 0 && t <= 1 && u >= 0 && u <= 1 ? { x: p0.x + t * r.x, y: p0.y + t * r.y } : null;
+}
+
+/**
+ * How far the point p is from the segment a–b. Segments here are steps along
+ * a traced curve between two nodes, so they're never empty.
+ */
+function distanceToSegment(p: Point, a: Point, b: Point): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy)));
+  return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
+}
+
+/**
+ * Whether two traced curves cross, or come close enough to look as if they
+ * do, anywhere clear of the selected node's halo, where every line to it
+ * meets every other.
+ */
+function crossesAway(a: Point[], b: Point[], center: Point): boolean {
+  const clear = SELECTED_NODE_RADIUS + HALO_GAP + CROSSING_CLEARANCE;
+  const away = (p: Point) => Math.hypot(p.x - center.x, p.y - center.y) > clear;
+  for (let i = 1; i < a.length; i++) {
+    for (let j = 1; j < b.length; j++) {
+      const at = crossing(a[i - 1], a[i], b[j - 1], b[j]);
+      if ((at && away(at)) || (away(a[i]) && distanceToSegment(a[i], b[j - 1], b[j]) < LINE_GAP)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * How far along a curve that only climbs or only falls it reaches height `y`,
+ * found by halving: a line to a parent no longer passes halfway up at its
+ * halfway point, and its label belongs halfway up.
+ */
+function alongAtHeight(curve: Cubic, y: number): number {
+  const rising = curve[3].y < curve[0].y;
+  let [low, high] = [0, 1];
+  for (let i = 0; i < 30; i++) {
+    const mid = (low + high) / 2;
+    if ((pointOn(curve, mid).y > y) === rising) {
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+  return (low + high) / 2;
 }
 
 function pointOn([from, c1, c2, to]: Cubic, t: number): Point {
@@ -495,7 +582,7 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
     });
   }
 
-  const placed: LabelledEdge[] = bent.flatMap(({ edge, bend }) => {
+  const shaped = bent.flatMap(({ edge, bend }) => {
     const from = positioned.get(edge.from);
     const to = positioned.get(edge.to);
     if (!from || !to) {
@@ -517,15 +604,29 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
     if (steps > 0 && Math.abs(to.x - from.x) / 2 < LATERAL_LABEL_REACH) {
       labelAnchor = Math.min(from.x, to.x) < width / 2 ? 'end' : 'start';
     }
-    const curve = cubic(from, to, normal, arced);
+    const curve = cubic(from, to, normal, arced, null);
+    return [{ edge, bend, from, to, normal, arced, labelAnchor, steps, curve }];
+  });
+
+  // A line to a parent off to one side turns sideways halfway up, where a
+  // lateral's arc can be. One that would cross an arc there rises steeply
+  // through them first instead (issue #290). The rest keep their shape.
+  const arcs = shaped.filter((item) => item.steps > 0).map((item) => trace(item.curve));
+  const centerNode = positioned.get(ego.centerId);
+  const placed: LabelledEdge[] = shaped.map(({ edge, bend, from, to, normal, arced, labelAnchor, curve: usual }) => {
+    const rising =
+      from.id === ego.centerId && to.band === -1 ? 'from' : to.id === ego.centerId && from.band === -1 ? 'to' : null;
+    const crosses =
+      rising !== null && centerNode !== undefined && arcs.some((arc) => crossesAway(trace(usual), arc, centerNode));
+    const curve = crosses ? cubic(from, to, normal, arced, rising) : usual;
     // One that shares its pair stays level with the other edge's label, which
     // it is anchored away from.
-    let labelAt = 0.5;
+    let labelAt = crosses ? alongAtHeight(curve, (from.y + to.y) / 2) : 0.5;
     if (edge.group === 'hierarchy' && from.band === 1 && bend === 0) {
       const raised = staggered && children.findIndex((n) => n.id === from.id) % 2 === 1;
       labelAt = raised ? CHILD_LABEL_STAGGERED_AT : CHILD_LABEL_AT;
     }
-    return [{ edge: { ...edge, path: pathOf(curve), label: pointOn(curve, labelAt), labelAnchor }, curve, labelAt }];
+    return { edge: { ...edge, path: pathOf(curve), label: pointOn(curve, labelAt), labelAnchor }, curve, labelAt };
   });
 
   const chips = [

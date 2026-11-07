@@ -1,0 +1,1118 @@
+[
+  {
+    "cwe": "170",
+    "size": {
+      "width": 864,
+      "height": 693
+    },
+    "ego": {
+      "centerId": "170",
+      "nodes": [
+        {
+          "id": "170",
+          "band": 0,
+          "side": "center"
+        },
+        {
+          "id": "20",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "707",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "120",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "126",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "193",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "682",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "147",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "463",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "464",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "573",
+          "band": 0,
+          "side": "right"
+        }
+      ],
+      "edges": [
+        {
+          "from": "170",
+          "to": "20",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "170",
+          "to": "707",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "20",
+          "to": "707",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "170",
+          "to": "120",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "170",
+          "to": "126",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "193",
+          "to": "170",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "682",
+          "to": "170",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "170",
+          "to": "147",
+          "types": [
+            "CanAlsoBe"
+          ],
+          "group": "peer"
+        },
+        {
+          "from": "170",
+          "to": "463",
+          "types": [
+            "PeerOf"
+          ],
+          "group": "peer"
+        },
+        {
+          "from": "170",
+          "to": "464",
+          "types": [
+            "PeerOf"
+          ],
+          "group": "peer"
+        },
+        {
+          "from": "170",
+          "to": "573",
+          "types": [
+            "PeerOf"
+          ],
+          "group": "peer"
+        }
+      ],
+      "overflow": null,
+      "lateralOverflow": {
+        "left": 0,
+        "right": 0
+      },
+      "hiddenLaterals": {
+        "left": [],
+        "right": []
+      }
+    }
+  },
+  {
+    "cwe": "170",
+    "size": {
+      "width": 850,
+      "height": 640
+    },
+    "ego": {
+      "centerId": "170",
+      "nodes": [
+        {
+          "id": "170",
+          "band": 0,
+          "side": "center"
+        },
+        {
+          "id": "20",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "707",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "120",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "126",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "193",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "682",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "147",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "463",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "464",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "573",
+          "band": 0,
+          "side": "right"
+        }
+      ],
+      "edges": [
+        {
+          "from": "170",
+          "to": "20",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "170",
+          "to": "707",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "20",
+          "to": "707",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "170",
+          "to": "120",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "170",
+          "to": "126",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "193",
+          "to": "170",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "682",
+          "to": "170",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "170",
+          "to": "147",
+          "types": [
+            "CanAlsoBe"
+          ],
+          "group": "peer"
+        },
+        {
+          "from": "170",
+          "to": "463",
+          "types": [
+            "PeerOf"
+          ],
+          "group": "peer"
+        },
+        {
+          "from": "170",
+          "to": "464",
+          "types": [
+            "PeerOf"
+          ],
+          "group": "peer"
+        },
+        {
+          "from": "170",
+          "to": "573",
+          "types": [
+            "PeerOf"
+          ],
+          "group": "peer"
+        }
+      ],
+      "overflow": null,
+      "lateralOverflow": {
+        "left": 0,
+        "right": 0
+      },
+      "hiddenLaterals": {
+        "left": [],
+        "right": []
+      }
+    }
+  },
+  {
+    "cwe": "73",
+    "size": {
+      "width": 1170,
+      "height": 740
+    },
+    "ego": {
+      "centerId": "73",
+      "nodes": [
+        {
+          "id": "73",
+          "band": 0,
+          "side": "center"
+        },
+        {
+          "id": "20",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "610",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "642",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "707",
+          "band": -2,
+          "side": "center"
+        },
+        {
+          "id": "664",
+          "band": -2,
+          "side": "center"
+        },
+        {
+          "id": "668",
+          "band": -2,
+          "side": "center"
+        },
+        {
+          "id": "114",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "22",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "41",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "59",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "98",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "99",
+          "band": 0,
+          "side": "left"
+        }
+      ],
+      "edges": [
+        {
+          "from": "73",
+          "to": "20",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "73",
+          "to": "610",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "73",
+          "to": "642",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "20",
+          "to": "707",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "610",
+          "to": "664",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "642",
+          "to": "668",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "114",
+          "to": "73",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "73",
+          "to": "22",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "73",
+          "to": "41",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "73",
+          "to": "59",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "73",
+          "to": "98",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "73",
+          "to": "99",
+          "types": [
+            "CanAlsoBe (inverse)"
+          ],
+          "group": "peer"
+        }
+      ],
+      "overflow": null,
+      "lateralOverflow": {
+        "left": 0,
+        "right": 1
+      },
+      "hiddenLaterals": {
+        "left": [],
+        "right": [
+          {
+            "id": "434",
+            "type": "CanPrecede"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "cwe": "119",
+    "size": {
+      "width": 1170,
+      "height": 740
+    },
+    "ego": {
+      "centerId": "119",
+      "nodes": [
+        {
+          "id": "119",
+          "band": 0,
+          "side": "center"
+        },
+        {
+          "id": "20",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "118",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "707",
+          "band": -2,
+          "side": "center"
+        },
+        {
+          "id": "664",
+          "band": -2,
+          "side": "center"
+        },
+        {
+          "id": "787",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "788",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "125",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "786",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "825",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "805",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "120",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "123",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "130",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "466",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "128",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "129",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "131",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "190",
+          "band": 0,
+          "side": "left"
+        }
+      ],
+      "edges": [
+        {
+          "from": "119",
+          "to": "20",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "119",
+          "to": "118",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "20",
+          "to": "707",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "118",
+          "to": "664",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "787",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "788",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "125",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "786",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "825",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "805",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "120",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "123",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "130",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "466",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "20",
+          "to": "119",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "128",
+          "to": "119",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "129",
+          "to": "119",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "131",
+          "to": "119",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "190",
+          "to": "119",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        }
+      ],
+      "overflow": {
+        "parentId": "119",
+        "hiddenCount": 3
+      },
+      "lateralOverflow": {
+        "left": 7,
+        "right": 0
+      },
+      "hiddenLaterals": {
+        "left": [
+          {
+            "id": "193",
+            "type": "CanFollow"
+          },
+          {
+            "id": "195",
+            "type": "CanFollow"
+          },
+          {
+            "id": "839",
+            "type": "CanFollow"
+          },
+          {
+            "id": "843",
+            "type": "CanFollow"
+          },
+          {
+            "id": "1257",
+            "type": "CanFollow"
+          },
+          {
+            "id": "1260",
+            "type": "CanFollow"
+          },
+          {
+            "id": "1339",
+            "type": "CanFollow"
+          }
+        ],
+        "right": []
+      }
+    }
+  },
+  {
+    "cwe": "120",
+    "size": {
+      "width": 850,
+      "height": 640
+    },
+    "ego": {
+      "centerId": "120",
+      "nodes": [
+        {
+          "id": "120",
+          "band": 0,
+          "side": "center"
+        },
+        {
+          "id": "20",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "119",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "787",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "707",
+          "band": -2,
+          "side": "center"
+        },
+        {
+          "id": "118",
+          "band": -2,
+          "side": "center"
+        },
+        {
+          "id": "123",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "170",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "231",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "416",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "456",
+          "band": 0,
+          "side": "left"
+        }
+      ],
+      "edges": [
+        {
+          "from": "120",
+          "to": "20",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "120",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "120",
+          "to": "787",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "20",
+          "to": "707",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "119",
+          "to": "20",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "119",
+          "to": "118",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "787",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "120",
+          "to": "123",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "170",
+          "to": "120",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "231",
+          "to": "120",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "416",
+          "to": "120",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "456",
+          "to": "120",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        }
+      ],
+      "overflow": null,
+      "lateralOverflow": {
+        "left": 0,
+        "right": 0
+      },
+      "hiddenLaterals": {
+        "left": [],
+        "right": []
+      }
+    }
+  },
+  {
+    "cwe": "476",
+    "size": {
+      "width": 850,
+      "height": 640
+    },
+    "ego": {
+      "centerId": "476",
+      "nodes": [
+        {
+          "id": "476",
+          "band": 0,
+          "side": "center"
+        },
+        {
+          "id": "710",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "754",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "703",
+          "band": -2,
+          "side": "center"
+        },
+        {
+          "id": "252",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "362",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "789",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "1325",
+          "band": 0,
+          "side": "left"
+        }
+      ],
+      "edges": [
+        {
+          "from": "476",
+          "to": "710",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "476",
+          "to": "754",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "754",
+          "to": "703",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "252",
+          "to": "476",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "362",
+          "to": "476",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "789",
+          "to": "476",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "1325",
+          "to": "476",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        }
+      ],
+      "overflow": null,
+      "lateralOverflow": {
+        "left": 0,
+        "right": 0
+      },
+      "hiddenLaterals": {
+        "left": [],
+        "right": []
+      }
+    }
+  }
+]
