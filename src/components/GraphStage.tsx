@@ -296,6 +296,7 @@ export function GraphStage({
                 x={marker.x}
                 y={marker.y}
                 count={marker.hiddenCount}
+                compact={marker.compact}
                 label={`Show ${marker.hiddenCount} more related weaknesses`}
                 onActivate={() => onShowRelations(marker.hidden)}
               />

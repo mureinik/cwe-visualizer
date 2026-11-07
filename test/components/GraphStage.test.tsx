@@ -357,6 +357,20 @@ describe('GraphStage sizing', () => {
     expect(screen.getByRole('button', { name: 'Show 2 more related weaknesses' })).toBeInTheDocument();
   });
 
+  it('shows only the count on a phone\'s marker, which has no room for more', () => {
+    const crowded = buildGraph({
+      meta: data.meta,
+      nodes: Object.fromEntries(['119', '120', '121', '122', '123'].map((id) => [id, node(id, `Name ${id}`)])),
+      edges: ['120', '121', '122', '123'].map((from) => ({ from, to: '119', type: 'CanPrecede' })),
+    });
+    const stage = stubResizeObserver();
+    render(
+      <GraphStage graph={crowded} selectedId="119" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+    stage.resize(412, 404);
+    expect(screen.getByRole('button', { name: 'Show 2 more related weaknesses' })).toHaveTextContent(/^\+2$/);
+  });
+
   it('ignores a size of zero, as a hidden stage reports', () => {
     const stage = stubResizeObserver();
     const { container } = render(

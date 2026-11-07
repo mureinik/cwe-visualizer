@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { OverflowChip } from '../../src/components/OverflowChip';
+import { compactChipWidth } from '../../src/lib/shapes';
 
 function renderChip() {
   const onActivate = vi.fn();
@@ -32,5 +33,18 @@ describe('OverflowChip', () => {
     screen.getByRole('button').focus();
     await userEvent.keyboard('a{Tab}');
     expect(onActivate).not.toHaveBeenCalled();
+  });
+});
+
+describe('OverflowChip compact', () => {
+  it('shows just the count, and keeps its full name', () => {
+    render(
+      <svg>
+        <OverflowChip x={10} y={20} count={12} label="Show 12 more related weaknesses" onActivate={() => {}} compact />
+      </svg>,
+    );
+    const chip = screen.getByRole('button', { name: 'Show 12 more related weaknesses' });
+    expect(chip).toHaveTextContent(/^\+12$/);
+    expect(chip.querySelector('rect')).toHaveAttribute('width', String(compactChipWidth(12)));
   });
 });
