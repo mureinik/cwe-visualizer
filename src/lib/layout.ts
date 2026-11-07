@@ -122,12 +122,12 @@ const MIN_LATERAL_SLOT = 28;
 
 /**
  * How many laterals fit on each side of a stage this wide, never more than
- * `max`. A phone's stage is too short for more than two arcs under the parent
- * row, so two always fit and the "+N more" marker offers the rest.
+ * `max`, and at least one. On a 360px phone that's one: two would leave their
+ * ids running together (issue #301). The "+N more" marker offers the rest.
  */
 export function lateralCapFor(width: number, max: number): number {
   const half = width / 2 - CENTER_CLEARANCE - edgeMargin(width);
-  return Math.max(2, Math.min(max, Math.floor(half / MIN_LATERAL_SLOT)));
+  return Math.max(1, Math.min(max, Math.floor(half / MIN_LATERAL_SLOT)));
 }
 
 /** Spreads n items evenly across [start, end], centred. */

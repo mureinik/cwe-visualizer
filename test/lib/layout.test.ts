@@ -392,13 +392,19 @@ describe('narrow stages', () => {
   });
 
   it.each([
-    [360, 2],
+    [360, 1],
+    [375, 1],
+    [390, 2],
     [412, 2],
     [480, 3],
     [600, 4],
     [1000, 4],
   ])('caps laterals per side on a %ipx stage at %i', (width, cap) => {
     expect(lateralCapFor(width, 4)).toBe(cap);
+  });
+
+  it('never caps below one lateral a side', () => {
+    expect(lateralCapFor(200, 4)).toBe(1);
   });
 
   it('caps children so each, and the overflow chip, gets a legible slot', () => {
