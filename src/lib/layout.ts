@@ -1,4 +1,6 @@
-import type { Band, EgoEdge, EgoGraph, EgoNode, EgoOverflow, LateralRelation } from './ego';
+import { relationLabel, type Band, type EgoEdge, type EgoGraph, type EgoNode, type EgoOverflow, type LateralRelation } from './ego';
+import { CHAR_PX, labelBudget } from './labels';
+import { HALO_GAP, NODE_RADIUS, SELECTED_NODE_RADIUS } from './shapes';
 
 export interface StageSize {
   width: number;
@@ -172,7 +174,116 @@ const MIN_CHILD_LABEL_SLOT = 56;
  */
 const LATERAL_LABEL_REACH = 64;
 
+/** How far apart along its curve the spots tried for a label are. */
+const LABEL_STEP = 0.025;
+
+/** How many more times the labels pick spots, when one is left without. */
+const LABEL_ATTEMPTS = 3;
+
+/** The nearest a label gets to either end of its curve. */
+const LABEL_END = 0.1;
+
+/** How far an edge label's text rises above its baseline, and hangs below it. */
+const LABEL_ASCENT = 11;
+const LABEL_DESCENT = 4;
+
+/** Where a node's id and name start and end, below its glyph (see GraphNode). */
+const NAME_TOP = 5;
+const NAME_BOTTOM = 34;
+
+/** Half the size of an overflow chip (see OverflowChip). */
+const CHIP_HALF_WIDTH = 34;
+const CHIP_HALF_HEIGHT = 12;
+
 type Cubic = [Point, Point, Point, Point];
+
+interface Box {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+function overlaps(a: Box, b: Box): boolean {
+  return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+}
+
+function labelBox({ x, y }: Point, anchor: PositionedEdge['labelAnchor'], text: string): Box {
+  const width = text.length * CHAR_PX;
+  const left = anchor === 'middle' ? x - width / 2 : anchor === 'start' ? x : x - width;
+  return { left, right: left + width, top: y - LABEL_ASCENT, bottom: y + LABEL_DESCENT };
+}
+
+/** What a label must stay off: every node's glyph and name, and the chips. */
+function labelObstacles(nodes: PositionedNode[], centerId: string, chips: Point[], usableWidth: number): Box[] {
+  const boxes = chips.map(({ x, y }) => ({
+    left: x - CHIP_HALF_WIDTH,
+    right: x + CHIP_HALF_WIDTH,
+    top: y - CHIP_HALF_HEIGHT,
+    bottom: y + CHIP_HALF_HEIGHT,
+  }));
+  for (const node of nodes) {
+    const radius = node.id === centerId ? SELECTED_NODE_RADIUS + HALO_GAP : NODE_RADIUS;
+    boxes.push({ left: node.x - radius, right: node.x + radius, top: node.y - radius, bottom: node.y + radius });
+    // The stage fits each name to the gap to its nearest neighbour, so this
+    // is the widest it can be.
+    const gaps = nodes.filter((n) => n.band === node.band && n !== node).map((n) => Math.abs(n.x - node.x));
+    const half = (labelBudget(gaps.length > 0 ? Math.min(...gaps) : usableWidth) * CHAR_PX) / 2;
+    boxes.push({ left: node.x - half, right: node.x + half, top: node.y + radius + NAME_TOP, bottom: node.y + radius + NAME_BOTTOM });
+  }
+  return boxes;
+}
+
+interface LabelledEdge {
+  edge: PositionedEdge;
+  curve: Cubic;
+  /** How far along its curve the label usually goes. */
+  labelAt: number;
+}
+
+/**
+ * Gives each label, in turn, its usual spot unless something's there, and
+ * otherwise the nearest free one along its own curve, so that it still reads
+ * as that line's. A label with no free spot takes the one with the fewest
+ * clashes.
+ */
+function seatLabels(order: LabelledEdge[], obstacles: Box[], size: StageSize) {
+  const taken = [...obstacles];
+  const spots = new Map<LabelledEdge, Point>();
+  const stuck: LabelledEdge[] = [];
+  for (const item of order) {
+    const { edge, curve, labelAt } = item;
+    const text = relationLabel(edge);
+    let best = { point: edge.label, box: labelBox(edge.label, edge.labelAnchor, text), clashes: Infinity };
+    for (const t of labelSpots(labelAt)) {
+      const point = pointOn(curve, t);
+      const box = labelBox(point, edge.labelAnchor, text);
+      const offStage = box.left < 0 || box.right > size.width || box.top < 0;
+      const count = taken.filter((other) => overlaps(box, other)).length + (offStage ? 1 : 0);
+      if (count < best.clashes) {
+        best = { point, box, clashes: count };
+      }
+      if (count === 0) {
+        break;
+      }
+    }
+    spots.set(item, best.point);
+    taken.push(best.box);
+    if (best.clashes > 0) {
+      stuck.push(item);
+    }
+  }
+  return { spots, stuck };
+}
+
+/** The spots to try on a curve, nearest the usual one first. */
+function labelSpots(usual: number): number[] {
+  const spots = [usual];
+  for (let step = LABEL_STEP; step < 1; step += LABEL_STEP) {
+    spots.push(usual + step, usual - step);
+  }
+  return spots.filter((t) => t >= LABEL_END && t <= 1 - LABEL_END);
+}
 
 /**
  * The curve from one node to another, with its midpoint moved `bend` pixels
@@ -328,7 +439,7 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
     });
   }
 
-  const edges: PositionedEdge[] = bent.flatMap(({ edge, bend }) => {
+  const placed: LabelledEdge[] = bent.flatMap(({ edge, bend }) => {
     const from = positioned.get(edge.from);
     const to = positioned.get(edge.to);
     if (!from || !to) {
@@ -358,8 +469,27 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
       const raised = staggered && children.findIndex((n) => n.id === from.id) % 2 === 1;
       labelAt = raised ? CHILD_LABEL_STAGGERED_AT : CHILD_LABEL_AT;
     }
-    return [{ ...edge, path: pathOf(curve), label: pointOn(curve, labelAt), labelAnchor }];
+    return [{ edge: { ...edge, path: pathOf(curve), label: pointOn(curve, labelAt), labelAnchor }, curve, labelAt }];
   });
 
-  return { nodes, edges, overflow, lateralOverflow };
+  const chips = [...lateralOverflow, ...(overflow ? [overflow] : [])];
+  const obstacles = labelObstacles(nodes, ego.centerId, chips, width - 2 * margin);
+  // Relations go first, as an arc has the fewest spots to offer. Who picks
+  // first decides who ends up with no free spot, so a label left stuck moves
+  // to the front and everyone picks again.
+  let order = [...placed].sort((a, b) => Number(a.edge.group === 'hierarchy') - Number(b.edge.group === 'hierarchy'));
+  let seating = seatLabels(order, obstacles, size);
+  for (let attempt = 0; attempt < LABEL_ATTEMPTS && seating.stuck.length > 0; attempt++) {
+    const { stuck } = seating;
+    order = [...stuck, ...order.filter((item) => !stuck.includes(item))];
+    const next = seatLabels(order, obstacles, size);
+    if (next.stuck.length < seating.stuck.length) {
+      seating = next;
+    }
+  }
+  for (const [item, point] of seating.spots) {
+    item.edge.label = point;
+  }
+
+  return { nodes, edges: placed.map((item) => item.edge), overflow, lateralOverflow };
 }
