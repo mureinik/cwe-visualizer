@@ -241,39 +241,67 @@ interface LabelledEdge {
   labelAt: number;
 }
 
+interface Seat {
+  point: Point;
+  anchor: PositionedEdge['labelAnchor'];
+}
+
 /**
  * Gives each label, in turn, its usual spot unless something's there, and
  * otherwise the nearest free one along its own curve, so that it still reads
- * as that line's. A label with no free spot takes the one with the fewest
- * clashes.
+ * as that line's. With `beside`, a label may also start or end at each spot
+ * rather than be centred on it. A label with no free spot at all takes the
+ * one with the fewest clashes.
  */
-function seatLabels(order: LabelledEdge[], obstacles: Box[], size: StageSize) {
+function seatLabels(order: LabelledEdge[], obstacles: Box[], size: StageSize, beside: boolean) {
   const taken = [...obstacles];
-  const spots = new Map<LabelledEdge, Point>();
+  const seats = new Map<LabelledEdge, Seat>();
   const stuck: LabelledEdge[] = [];
   for (const item of order) {
     const { edge, curve, labelAt } = item;
     const text = relationLabel(edge);
-    let best = { point: edge.label, box: labelBox(edge.label, edge.labelAnchor, text), clashes: Infinity };
-    for (const t of labelSpots(labelAt)) {
+    const anchors = beside
+      ? [edge.labelAnchor, ...(['start', 'end'] as const).filter((anchor) => anchor !== edge.labelAnchor)]
+      : [edge.labelAnchor];
+    let best = { point: edge.label, anchor: edge.labelAnchor, box: labelBox(edge.label, edge.labelAnchor, text), clashes: Infinity };
+    for (const [t, anchor] of labelSpots(labelAt).flatMap((t) => anchors.map((anchor) => [t, anchor] as const))) {
       const point = pointOn(curve, t);
-      const box = labelBox(point, edge.labelAnchor, text);
+      const box = labelBox(point, anchor, text);
       const offStage = box.left < 0 || box.right > size.width || box.top < 0;
       const count = taken.filter((other) => overlaps(box, other)).length + (offStage ? 1 : 0);
       if (count < best.clashes) {
-        best = { point, box, clashes: count };
+        best = { point, anchor, box, clashes: count };
       }
       if (count === 0) {
         break;
       }
     }
-    spots.set(item, best.point);
+    seats.set(item, { point: best.point, anchor: best.anchor });
     taken.push(best.box);
     if (best.clashes > 0) {
       stuck.push(item);
     }
   }
-  return { spots, stuck };
+  return { seats, stuck };
+}
+
+/**
+ * Relations pick first, as an arc has the fewest spots to offer. Who picks
+ * first decides who ends up with no free spot, so a label left stuck moves
+ * to the front and everyone picks again.
+ */
+function seatAllLabels(placed: LabelledEdge[], obstacles: Box[], size: StageSize, beside: boolean) {
+  let order = [...placed].sort((a, b) => Number(a.edge.group === 'hierarchy') - Number(b.edge.group === 'hierarchy'));
+  let seating = seatLabels(order, obstacles, size, beside);
+  for (let attempt = 0; attempt < LABEL_ATTEMPTS && seating.stuck.length > 0; attempt++) {
+    const { stuck } = seating;
+    order = [...stuck, ...order.filter((item) => !stuck.includes(item))];
+    const next = seatLabels(order, obstacles, size, beside);
+    if (next.stuck.length < seating.stuck.length) {
+      seating = next;
+    }
+  }
+  return seating;
 }
 
 /** The spots to try on a curve, nearest the usual one first. */
@@ -474,21 +502,18 @@ export function layoutEgoGraph(ego: EgoGraph, size: StageSize): Layout {
 
   const chips = [...lateralOverflow, ...(overflow ? [overflow] : [])];
   const obstacles = labelObstacles(nodes, ego.centerId, chips, width - 2 * margin);
-  // Relations go first, as an arc has the fewest spots to offer. Who picks
-  // first decides who ends up with no free spot, so a label left stuck moves
-  // to the front and everyone picks again.
-  let order = [...placed].sort((a, b) => Number(a.edge.group === 'hierarchy') - Number(b.edge.group === 'hierarchy'));
-  let seating = seatLabels(order, obstacles, size);
-  for (let attempt = 0; attempt < LABEL_ATTEMPTS && seating.stuck.length > 0; attempt++) {
-    const { stuck } = seating;
-    order = [...stuck, ...order.filter((item) => !stuck.includes(item))];
-    const next = seatLabels(order, obstacles, size);
-    if (next.stuck.length < seating.stuck.length) {
-      seating = next;
+  // Labels go beside their lines only in a view that needs it, so a view
+  // that fits them all on their lines keeps them exactly there.
+  let seating = seatAllLabels(placed, obstacles, size, false);
+  if (seating.stuck.length > 0) {
+    const beside = seatAllLabels(placed, obstacles, size, true);
+    if (beside.stuck.length < seating.stuck.length) {
+      seating = beside;
     }
   }
-  for (const [item, point] of seating.spots) {
+  for (const [item, { point, anchor }] of seating.seats) {
     item.edge.label = point;
+    item.edge.labelAnchor = anchor;
   }
 
   return { nodes, edges: placed.map((item) => item.edge), overflow, lateralOverflow };

@@ -657,6 +657,20 @@ describe('edge label placement', () => {
     expect(edges.every(({ label }) => Number.isFinite(label.x) && Number.isFinite(label.y))).toBe(true);
   });
 
+  it('keeps every label centred on its line where they all fit that way', () => {
+    const view = views.find((v) => v.cwe === '425' && v.size.width === 1170)!;
+    const { edges } = layoutEgoGraph(view.ego, view.size);
+    expect(edges.filter((e) => e.labelAnchor !== 'middle')).toEqual([]);
+  });
+
+  it('puts a label beside its line where no spot on the line is free', () => {
+    // CWE-425 on a phone: CanPrecede to CWE-471 is centred on its arc
+    // wherever there's room for it, and there isn't.
+    const view = views.find((v) => v.cwe === '425' && v.size.width === 390)!;
+    const { edges } = layoutEgoGraph(view.ego, view.size);
+    expect(edges.find((e) => e.to === '471')!.labelAnchor).not.toBe('middle');
+  });
+
   it('leaves a label at its usual place when nothing is in the way', () => {
     const edge = layoutEgoGraph(ego, size).edges.find((e) => e.to === '2')!;
     expect(edge.label).toEqual({ x: at('3').x, y: (at('3').y + at('2').y) / 2 });

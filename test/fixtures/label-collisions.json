@@ -1281,6 +1281,1097 @@
     }
   },
   {
+    "cwe": "73",
+    "problem": "labels with no free spot on their lines",
+    "size": {
+      "width": 390,
+      "height": 330
+    },
+    "ego": {
+      "centerId": "73",
+      "nodes": [
+        {
+          "id": "73",
+          "band": 0,
+          "side": "center"
+        },
+        {
+          "id": "20",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "610",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "642",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "114",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "22",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "41",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "99",
+          "band": 0,
+          "side": "left"
+        }
+      ],
+      "edges": [
+        {
+          "from": "73",
+          "to": "20",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "73",
+          "to": "610",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "73",
+          "to": "642",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "114",
+          "to": "73",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "73",
+          "to": "22",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "73",
+          "to": "41",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "73",
+          "to": "99",
+          "types": [
+            "CanAlsoBe (inverse)"
+          ],
+          "group": "peer"
+        }
+      ],
+      "overflow": null,
+      "lateralOverflow": {
+        "left": 0,
+        "right": 3
+      },
+      "hiddenLaterals": {
+        "left": [],
+        "right": [
+          {
+            "id": "59",
+            "type": "CanPrecede"
+          },
+          {
+            "id": "98",
+            "type": "CanPrecede"
+          },
+          {
+            "id": "434",
+            "type": "CanPrecede"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "cwe": "119",
+    "problem": "labels with no free spot on their lines",
+    "size": {
+      "width": 390,
+      "height": 330
+    },
+    "ego": {
+      "centerId": "119",
+      "nodes": [
+        {
+          "id": "119",
+          "band": 0,
+          "side": "center"
+        },
+        {
+          "id": "20",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "118",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "787",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "788",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "125",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "786",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "825",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "805",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "128",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "129",
+          "band": 0,
+          "side": "left"
+        }
+      ],
+      "edges": [
+        {
+          "from": "119",
+          "to": "20",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "119",
+          "to": "118",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "787",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "788",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "125",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "786",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "825",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "805",
+          "to": "119",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "20",
+          "to": "119",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "128",
+          "to": "119",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "129",
+          "to": "119",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        }
+      ],
+      "overflow": {
+        "parentId": "119",
+        "hiddenCount": 7
+      },
+      "lateralOverflow": {
+        "left": 9,
+        "right": 0
+      },
+      "hiddenLaterals": {
+        "left": [
+          {
+            "id": "131",
+            "type": "CanFollow"
+          },
+          {
+            "id": "190",
+            "type": "CanFollow"
+          },
+          {
+            "id": "193",
+            "type": "CanFollow"
+          },
+          {
+            "id": "195",
+            "type": "CanFollow"
+          },
+          {
+            "id": "839",
+            "type": "CanFollow"
+          },
+          {
+            "id": "843",
+            "type": "CanFollow"
+          },
+          {
+            "id": "1257",
+            "type": "CanFollow"
+          },
+          {
+            "id": "1260",
+            "type": "CanFollow"
+          },
+          {
+            "id": "1339",
+            "type": "CanFollow"
+          }
+        ],
+        "right": []
+      }
+    }
+  },
+  {
+    "cwe": "170",
+    "problem": "labels with no free spot on their lines",
+    "size": {
+      "width": 390,
+      "height": 330
+    },
+    "ego": {
+      "centerId": "170",
+      "nodes": [
+        {
+          "id": "170",
+          "band": 0,
+          "side": "center"
+        },
+        {
+          "id": "20",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "707",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "120",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "126",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "193",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "682",
+          "band": 0,
+          "side": "left"
+        }
+      ],
+      "edges": [
+        {
+          "from": "170",
+          "to": "20",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "170",
+          "to": "707",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "170",
+          "to": "120",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "170",
+          "to": "126",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "193",
+          "to": "170",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "682",
+          "to": "170",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        }
+      ],
+      "overflow": null,
+      "lateralOverflow": {
+        "left": 4,
+        "right": 0
+      },
+      "hiddenLaterals": {
+        "left": [
+          {
+            "id": "147",
+            "type": "CanAlsoBe"
+          },
+          {
+            "id": "463",
+            "type": "PeerOf"
+          },
+          {
+            "id": "464",
+            "type": "PeerOf"
+          },
+          {
+            "id": "573",
+            "type": "PeerOf"
+          }
+        ],
+        "right": []
+      }
+    }
+  },
+  {
+    "cwe": "184",
+    "problem": "labels with no free spot on their lines",
+    "size": {
+      "width": 390,
+      "height": 330
+    },
+    "ego": {
+      "centerId": "184",
+      "nodes": [
+        {
+          "id": "184",
+          "band": 0,
+          "side": "center"
+        },
+        {
+          "id": "693",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "1023",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "692",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "78",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "79",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "86",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "186",
+          "band": 0,
+          "side": "left"
+        }
+      ],
+      "edges": [
+        {
+          "from": "184",
+          "to": "693",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "184",
+          "to": "1023",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "692",
+          "to": "184",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "184",
+          "to": "78",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "184",
+          "to": "79",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "692",
+          "to": "184",
+          "types": [
+            "StartsWith (inverse)"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "184",
+          "to": "86",
+          "types": [
+            "PeerOf"
+          ],
+          "group": "peer"
+        },
+        {
+          "from": "184",
+          "to": "186",
+          "types": [
+            "CanAlsoBe (inverse)"
+          ],
+          "group": "peer"
+        }
+      ],
+      "overflow": null,
+      "lateralOverflow": {
+        "left": 1,
+        "right": 2
+      },
+      "hiddenLaterals": {
+        "left": [
+          {
+            "id": "625",
+            "type": "PeerOf"
+          }
+        ],
+        "right": [
+          {
+            "id": "98",
+            "type": "CanPrecede"
+          },
+          {
+            "id": "434",
+            "type": "CanPrecede"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "cwe": "209",
+    "problem": "labels with no free spot on their lines",
+    "size": {
+      "width": 390,
+      "height": 330
+    },
+    "ego": {
+      "centerId": "209",
+      "nodes": [
+        {
+          "id": "209",
+          "band": 0,
+          "side": "center"
+        },
+        {
+          "id": "200",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "755",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "211",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "210",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "550",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "600",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "756",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "81",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "201",
+          "band": 0,
+          "side": "right"
+        }
+      ],
+      "edges": [
+        {
+          "from": "209",
+          "to": "200",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "209",
+          "to": "755",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "211",
+          "to": "209",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "210",
+          "to": "209",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "550",
+          "to": "209",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "600",
+          "to": "209",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "756",
+          "to": "209",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "209",
+          "to": "81",
+          "types": [
+            "CanAlsoBe (inverse)"
+          ],
+          "group": "peer"
+        },
+        {
+          "from": "209",
+          "to": "201",
+          "types": [
+            "CanAlsoBe (inverse)"
+          ],
+          "group": "peer"
+        }
+      ],
+      "overflow": null,
+      "lateralOverflow": {
+        "left": 1,
+        "right": 0
+      },
+      "hiddenLaterals": {
+        "left": [
+          {
+            "id": "1295",
+            "type": "PeerOf"
+          }
+        ],
+        "right": []
+      }
+    }
+  },
+  {
+    "cwe": "416",
+    "problem": "labels with no free spot on their lines",
+    "size": {
+      "width": 390,
+      "height": 330
+    },
+    "ego": {
+      "centerId": "416",
+      "nodes": [
+        {
+          "id": "416",
+          "band": 0,
+          "side": "center"
+        },
+        {
+          "id": "672",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "825",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "120",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "123",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "362",
+          "band": 0,
+          "side": "left"
+        },
+        {
+          "id": "364",
+          "band": 0,
+          "side": "left"
+        }
+      ],
+      "edges": [
+        {
+          "from": "416",
+          "to": "672",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "416",
+          "to": "825",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "416",
+          "to": "120",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "416",
+          "to": "123",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "362",
+          "to": "416",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "364",
+          "to": "416",
+          "types": [
+            "CanFollow"
+          ],
+          "group": "sequence"
+        }
+      ],
+      "overflow": null,
+      "lateralOverflow": {
+        "left": 3,
+        "right": 0
+      },
+      "hiddenLaterals": {
+        "left": [
+          {
+            "id": "754",
+            "type": "CanFollow"
+          },
+          {
+            "id": "1265",
+            "type": "CanFollow"
+          },
+          {
+            "id": "415",
+            "type": "PeerOf"
+          }
+        ],
+        "right": []
+      }
+    }
+  },
+  {
+    "cwe": "425",
+    "problem": "labels with no free spot on their lines",
+    "size": {
+      "width": 390,
+      "height": 330
+    },
+    "ego": {
+      "centerId": "425",
+      "nodes": [
+        {
+          "id": "425",
+          "band": 0,
+          "side": "center"
+        },
+        {
+          "id": "288",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "424",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "862",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "98",
+          "band": 0,
+          "side": "right"
+        },
+        {
+          "id": "471",
+          "band": 0,
+          "side": "right"
+        }
+      ],
+      "edges": [
+        {
+          "from": "425",
+          "to": "288",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "425",
+          "to": "424",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "425",
+          "to": "862",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "425",
+          "to": "98",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        },
+        {
+          "from": "425",
+          "to": "471",
+          "types": [
+            "CanPrecede"
+          ],
+          "group": "sequence"
+        }
+      ],
+      "overflow": null,
+      "lateralOverflow": {
+        "left": 0,
+        "right": 0
+      },
+      "hiddenLaterals": {
+        "left": [],
+        "right": []
+      }
+    }
+  },
+  {
+    "cwe": "798",
+    "problem": "labels with no free spot on their lines",
+    "size": {
+      "width": 390,
+      "height": 330
+    },
+    "ego": {
+      "centerId": "798",
+      "nodes": [
+        {
+          "id": "798",
+          "band": 0,
+          "side": "center"
+        },
+        {
+          "id": "287",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "344",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "671",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "1391",
+          "band": -1,
+          "side": "center"
+        },
+        {
+          "id": "259",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "321",
+          "band": 1,
+          "side": "center"
+        },
+        {
+          "id": "257",
+          "band": 0,
+          "side": "left"
+        }
+      ],
+      "edges": [
+        {
+          "from": "798",
+          "to": "287",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "798",
+          "to": "344",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "798",
+          "to": "671",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "798",
+          "to": "1391",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "259",
+          "to": "798",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "321",
+          "to": "798",
+          "types": [
+            "ChildOf"
+          ],
+          "group": "hierarchy"
+        },
+        {
+          "from": "798",
+          "to": "257",
+          "types": [
+            "PeerOf"
+          ],
+          "group": "peer"
+        }
+      ],
+      "overflow": null,
+      "lateralOverflow": {
+        "left": 0,
+        "right": 0
+      },
+      "hiddenLaterals": {
+        "left": [],
+        "right": []
+      }
+    }
+  },
+  {
     "cwe": "415",
     "problem": "more labels than room",
     "size": {
