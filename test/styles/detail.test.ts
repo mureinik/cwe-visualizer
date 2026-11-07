@@ -46,3 +46,26 @@ describe('relation flash under reduced motion', () => {
     expect(block).not.toContain('relation-chip-pulse');
   });
 });
+
+// On a real phone the header, footer and resting sheet left the graph about
+// 250px, too short for its labels (issue #298).
+describe('phone sheet at rest', () => {
+  const narrow = (file: string, selector: string, property: string) => {
+    const sheet = file === 'detail.css' ? css : readFileSync(path.join(__dirname, '..', '..', 'src', 'styles', file), 'utf-8');
+    const block = sheet.slice(sheet.indexOf('@media (max-width: 900px)'));
+    const rule = new RegExp(`\\n  ${selector.replace('.', '\\.')} \\{[^}]*?${property}: ([\\d.]+)dvh;`).exec(block);
+    if (!rule) {
+      throw new Error(`No ${property} for ${selector} in ${file}`);
+    }
+    return Number(rule[1]);
+  };
+
+  it('takes at most 22% of the screen', () => {
+    expect(narrow('detail.css', '.detail-panel', 'max-height')).toBeLessThanOrEqual(22);
+  });
+
+  it('is cleared by the graph, a little more than it covers', () => {
+    const peek = narrow('detail.css', '.detail-panel', 'max-height');
+    expect(narrow('graph.css', '.graph-stage', 'padding-block-end')).toBe(peek + 2);
+  });
+});
