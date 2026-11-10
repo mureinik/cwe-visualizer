@@ -35,7 +35,7 @@ match it.
   build that layout locally
 - `npm run lint` — ESLint, which also checks formatting (see below)
 - `npm run lint:md` — markdownlint
-- `npm run lint:css` — Stylelint, which checks CSS formatting
+- `npm run lint:css` — Stylelint, which checks CSS formatting and values
 - `npm test` — Vitest
 - `npm run test:coverage` — Vitest with coverage; fails below the thresholds
   in `vite.config.ts` (CI runs this one)
@@ -47,10 +47,17 @@ Formatting is enforced by linters, not by a separate formatter. ESLint
 checks it for JavaScript and TypeScript ([ESLint
 Stylistic](https://eslint.style/)), JSON, YAML and HTML, and Stylelint, with
 ESLint Stylistic's Stylelint config, checks it for CSS, which ESLint can't
-format. markdownlint covers Markdown. All of them run with `--fix` on the
-files a commit stages, so most formatting is corrected for you, and CI
-fails on anything left. The options in `eslint.config.js` follow the style
-the code already had; change them there, not file by file.
+format. `.stylelintrc.json` also turns on two of Stylelint's own rules
+that validate values: `value-no-invalid` (syntax errors, and math such as
+`calc(1px + 2)` that mixes numbers with dimensions) and
+`declaration-property-value-no-unknown` (values a property doesn't accept,
+such as `display: flexx` or `width: 10pz`). The second skips any value
+that uses `var()`, and neither knows which custom properties exist, so a
+misspelt token name in `var()` still gets through. markdownlint covers
+Markdown. All of them run with `--fix` on the files a commit stages, so
+most formatting is corrected for you, and CI fails on anything left. The
+options in `eslint.config.js` follow the style the code already had;
+change them there, not file by file.
 
 `scripts/` holds only what the build runs, which today is
 `prepare-data.ts` and `build-site.ts`. Helpers that only serve CI,
