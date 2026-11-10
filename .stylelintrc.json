@@ -1,4 +1,7 @@
 {
   "extends": ["@stylistic/stylelint-config"],
+  "rules": {
+    "@stylistic/no-multiple-whitespaces": true
+  },
   "ignoreFiles": ["dist/**", "coverage/**", ".*/**"]
 }
