@@ -28,7 +28,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version: 26
       # Reads the lockfile only; nothing needs installing. No --audit-level:
       # any advisory, whatever its severity, fails the run. --omit=dev keeps
       # it to what ships in the app. Updating the CWE data is a build phase,
