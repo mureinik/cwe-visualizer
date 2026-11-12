@@ -1,5 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+// node:zlib's ZipBuffer (Node 26.8) could replace adm-zip once it leaves
+// early development, the engines floor reaches it and @types/node has it.
 import AdmZip from 'adm-zip';
 import { XMLParser } from 'fast-xml-parser';
 import type { CweData, CweEdge, CweMeta, CweNode } from '../src/lib/cwe-data.ts';
@@ -185,9 +187,8 @@ export async function run({
   return { updated: true, meta: data.meta };
 }
 
-// import.meta.main works unflagged on Node >=22.18 / >=24.2 (this project
-// requires >=24.2, and pins @types/node to match) and is what actually
-// reflects whether this file is the CLI entrypoint, unlike comparing the
+// import.meta.main works unflagged on every Node this project supports and
+// is what actually reflects whether this file is the CLI entrypoint, unlike comparing the
 // percent-encoded import.meta.url against the raw process.argv[1] path.
 // eslint-plugin-n's builtin-support data still classifies it as experimental
 // (Node hasn't graduated its stability index yet), so the

@@ -2,13 +2,14 @@
 
 ## Running locally
 
-Requires Node.js `>=24.2` (see the `engines` field in `package.json`). This
-project relies on Node 24's stable, unflagged TypeScript type-stripping to
-run `scripts/prepare-data.ts` directly with no build step — on an older
-Node version, `predev`/`prebuild` will fail. The script also detects that it
-is the entry point with `import.meta.main`, which Node added in 24.2.
+Requires Node.js `>=26.0` (see the `engines` field in `package.json`), the
+version Vercel builds the site on. Vercel's setting picks only the major
+version, so the floor is 26.0 and nothing may rely on a later 26.x minor.
+The project relies on Node's stable, unflagged TypeScript type-stripping
+to run `scripts/prepare-data.ts` directly with no build step, and the
+scripts detect that they are the entry point with `import.meta.main`.
 
-`@types/node` is pinned to exactly the `engines` minimum (24.2.0), and
+`@types/node` is pinned to exactly the `engines` minimum (26.0.0), and
 Dependabot ignores it, so the types never offer an API the oldest supported
 Node lacks. Raise both together when the minimum Node version changes.
 
@@ -302,7 +303,19 @@ To cut a release:
    rebuilds.
 5. Fix a release later with a PR into its branch, with an issue, as for
    `main`. Merging it republishes that release in place. The same applies
-   to the issue: close it by hand after the merge.
+   to the issue: close it by hand after the merge. Keep the fix within the
+   branch's own Node floor, as described below.
+
+A release branch keeps the `engines` and `@types/node` it was cut with
+(`v1` and `v1.1` declare `>=24.2`), but CI and Vercel build every branch
+on the Node `main` uses, currently 26. So a fix to a release branch,
+whether written by hand, copied from `main` or opened by the security
+backport below, must not bring in syntax, Node APIs or a dependency
+version that needs a newer Node than the branch declares. CI can't catch
+it, since the code runs fine on the newer Node. The branch's pinned
+`@types/node` rejects most newer Node APIs in `tsc`, but nothing checks
+syntax or a dependency's `engines`, so check those by hand before
+merging.
 
 The `vX.Y-base` tag only records where the release diverged from `main`,
 so `git log vX.Y-base..vX.Y` lists what the release changed since, and
@@ -563,6 +576,13 @@ branch (every branch named `vN` or `vN.M`):
    CI's checks fail on the result, it opens only the issue, with the
    reason, and you fix the branch by hand with a PR, as in step 5 of the
    steps to cut a release.
+
+The checks run on `main`'s Node, not the branch's floor, so they pass
+even if the updated package dropped support for the Node the branch
+declares. Before merging a backport PR, check the `engines` of each
+package it updates (`npm view <package>@<version> engines`) against the
+branch's `engines`; if one excludes it, close the PR and fix the branch by
+hand.
 
 There is one issue and one PR per advisory per branch, and a rerun never
 opens a second one. Merging the PR republishes the release, like any fix to
