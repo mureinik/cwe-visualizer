@@ -57,7 +57,9 @@ that uses `var()`, and neither knows which custom properties exist, so a
 misspelt token name in `var()` gets past Stylelint. A test,
 `test/styles/token-references.test.ts`, catches it instead: it fails on
 any `var()` in `src/`, and any token in the glyph and edge maps, that names
-a custom property no stylesheet defines. markdownlint covers
+a custom property no stylesheet defines. It also rejects a fallback, as in
+`var(--x, 4px)`, since every name must be defined and the fallback could
+never apply. markdownlint covers
 Markdown. All of them run with `--fix` on the files a commit stages, so
 most formatting is corrected for you, and CI fails on anything left. The
 options in `eslint.config.js` follow the style the code already had;

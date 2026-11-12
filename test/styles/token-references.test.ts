@@ -48,6 +48,19 @@ function referencedIn(source: string): string[] {
 const stylesheets = filesUnder(STYLES, ['.css']);
 const defined = new Set(stylesheets.flatMap((file) => definedIn(read(file))));
 
+/** The var() references in `source` that give a fallback, as `var(--name,`. */
+function fallbacksIn(source: string): string[] {
+  return [...source.matchAll(/var\(\s*(--[\w-]+)\s*,/g)].map((m) => m[1]);
+}
+
+/** Every stylesheet (without comments) and every TS module, with its text. */
+function sources(): { file: string; text: string }[] {
+  return [
+    ...stylesheets.map((file) => ({ file, text: stripComments(read(file)) })),
+    ...filesUnder(SRC, ['.ts', '.tsx']).map((file) => ({ file, text: read(file) })),
+  ];
+}
+
 /** The references in `refs` to names nothing defines, as `file: --name`. */
 function undefinedReferences(refs: { file: string; name: string }[]): string[] {
   return refs
@@ -74,6 +87,17 @@ describe('custom property references', () => {
       referencedIn(read(file)).map((name) => ({ file, name })));
     expect(refs.length).toBeGreaterThan(0);
     expect(undefinedReferences(refs)).toEqual([]);
+  });
+
+  // The tests above require every name to be defined, so a fallback could
+  // never apply: it would be dead code that suggests a case needing it, and
+  // without those tests it would hide a typo again. A property left
+  // undefined on purpose, as a hook some elements set, needs these tests
+  // changed first.
+  it('no var() gives a fallback', () => {
+    const withFallback = sources().flatMap(({ file, text }) =>
+      fallbacksIn(text).map((name) => `${path.relative(SRC, file)}: ${name}`));
+    expect(withFallback).toEqual([]);
   });
 
   // These names reach var() only at runtime, as `var(${glyph.token})`, so
