@@ -127,6 +127,31 @@ describe('parseNuance', () => {
     ]);
   });
 
+  // Real-world: MITRE's serializer writes non-ASCII as numeric character
+  // references elsewhere in this file (e.g. <Author>Adam Doup&#233;</Author>),
+  // which is outside our control.
+  it('decodes numeric character references once', () => {
+    expect(parseNuance('<xhtml:p>caf&#233; &#x2014; &amp;lt;</xhtml:p>', '1')).toEqual([
+      { kind: 'paragraph', lines: [[{ text: 'café — &lt;' }]] },
+    ]);
+  });
+
+  // Real-world: the design collapses spaces, tabs and newlines only.
+  it('keeps a non-breaking space inside a line', () => {
+    expect(parseNuance('<xhtml:p>a&#160;b</xhtml:p>', '1')).toEqual([
+      { kind: 'paragraph', lines: [[{ text: 'a\u00a0b' }]] },
+    ]);
+  });
+
+  // Real-world: empty markup is allowed by the schema and shows nothing.
+  it('drops empty lists, items and bold runs', () => {
+    expect(parseNuance('<xhtml:ul><xhtml:li> </xhtml:li></xhtml:ul>', '1')).toEqual([]);
+    expect(parseNuance('<xhtml:ul/>', '1')).toEqual([]);
+    expect(parseNuance('<xhtml:p><xhtml:b></xhtml:b>x</xhtml:p>', '1')).toEqual([
+      { kind: 'paragraph', lines: [[{ text: 'x' }]] },
+    ]);
+  });
+
   it('drops empty elements', () => {
     expect(parseNuance('<xhtml:p/><xhtml:p>  </xhtml:p>', '1')).toEqual([]);
     expect(parseNuance('', '1')).toEqual([]);

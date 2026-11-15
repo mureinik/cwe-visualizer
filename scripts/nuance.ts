@@ -18,6 +18,7 @@ const parser = new XMLParser({
   preserveOrder: true,
   trimValues: false,
   parseTagValue: false,
+  htmlEntities: true,
 });
 
 function tagOf(node: XmlNode): string {
@@ -29,7 +30,7 @@ function childrenOf(node: XmlNode): XmlNode[] {
 }
 
 function isBlank(text: string): boolean {
-  return text.trim() === '';
+  return /^[ \t\r\n]*$/.test(text);
 }
 
 function bare(tag: string): string {
@@ -65,7 +66,7 @@ function unexpectedText(cweId: string, path: string[]): Error {
 function tidyLine(runs: NuanceRun[]): NuanceLine {
   const kept: NuanceRun[] = [];
   for (const run of runs) {
-    let text = run.text.replace(/\s+/g, ' ');
+    let text = run.text.replace(/[ \t\r\n]+/g, ' ');
     if (text.startsWith(' ') && kept.at(-1)?.text.endsWith(' ')) {
       text = text.slice(1);
     }
@@ -74,8 +75,8 @@ function tidyLine(runs: NuanceRun[]): NuanceLine {
     }
   }
   if (kept.length > 0) {
-    kept[0].text = kept[0].text.trimStart();
-    kept[kept.length - 1].text = kept.at(-1)!.text.trimEnd();
+    kept[0].text = kept[0].text.replace(/^ /, '');
+    kept[kept.length - 1].text = kept.at(-1)!.text.replace(/ $/, '');
   }
   return kept.filter((run) => run.text !== '');
 }
