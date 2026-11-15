@@ -61,6 +61,23 @@ describe('parseCatalog', () => {
     });
   });
 
+  it("converts a weakness's Technical_Nuance into blocks", () => {
+    expect(data.nodes['79'].technicalNuance).toEqual([
+      { kind: 'paragraph', lines: [[{ text: 'Targets include:' }]] },
+      { kind: 'list', items: [[[{ text: 'stored input' }]], [[{ text: 'reflected input' }]]] },
+    ]);
+  });
+
+  it('omits technicalNuance when a weakness has none or an empty one', () => {
+    expect('technicalNuance' in data.nodes['74']).toBe(false);
+    expect('technicalNuance' in data.nodes['80']).toBe(false);
+  });
+
+  it('fails the parse on unsupported nuance markup, naming the CWE', () => {
+    const bad = xmlText.replaceAll('xhtml:p>', 'xhtml:ol>');
+    expect(() => parseCatalog(bad, '"x"')).toThrow(/^CWE-79: unsupported <xhtml:ol>/);
+  });
+
   it('builds an edge per Related_Weakness with its nature as the type', () => {
     const edgesFrom79 = data.edges.filter((e) => e.from === '79');
     expect(edgesFrom79).toEqual([

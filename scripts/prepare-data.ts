@@ -4,6 +4,7 @@ import path from 'node:path';
 // early development, the engines floor reaches it and @types/node has it.
 import AdmZip from 'adm-zip';
 import { XMLParser } from 'fast-xml-parser';
+import { parseNuance } from './nuance.ts';
 import type { CweData, CweEdge, CweMeta, CweNode } from '../src/lib/cwe-data.ts';
 
 interface RawRelatedWeakness {
@@ -18,6 +19,8 @@ interface RawWeakness {
   '@_Abstraction'?: string;
   '@_Status'?: string;
   Description?: unknown;
+  // A stop node, so this is the element's inner XML as a string ('' when empty).
+  Technical_Nuance?: string;
   Related_Weaknesses?: { Related_Weakness?: RawRelatedWeakness | RawRelatedWeakness[] };
 }
 
@@ -48,7 +51,11 @@ export function extractXmlFromZip(buffer: Buffer): string {
 }
 
 export function parseCatalog(xmlText: string, lastModified: string | null): CweData {
-  const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: '@_',
+    stopNodes: ['Weakness_Catalog.Weaknesses.Weakness.Technical_Nuance'],
+  });
   const doc = parser.parse(xmlText) as RawDocument;
   const catalog = doc.Weakness_Catalog;
   if (!catalog?.['@_Version']) {
@@ -75,6 +82,12 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
       description: typeof w.Description === 'string' ? w.Description.trim() : '',
       url: `https://cwe.mitre.org/data/definitions/${id}.html`,
     };
+
+    // Assigned conditionally so the key is absent, not empty, without nuance.
+    const nuance = parseNuance(w.Technical_Nuance ?? '', id);
+    if (nuance.length > 0) {
+      nodes[id].technicalNuance = nuance;
+    }
 
     for (const rel of toArray(w.Related_Weaknesses?.Related_Weakness)) {
       const edge: CweEdge = {
