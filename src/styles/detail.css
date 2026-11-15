@@ -72,6 +72,27 @@
   font-size: var(--text-sm);
 }
 
+.technical-nuance {
+  margin: 0 0 var(--space-3);
+  max-width: 60ch;
+}
+
+.technical-nuance__summary {
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.technical-nuance__paragraph,
+.technical-nuance__list {
+  margin: var(--space-2) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--text-md);
+}
+
+.technical-nuance__line {
+  display: block;
+}
+
 .relation-section {
   margin-top: var(--space-4);
 }
