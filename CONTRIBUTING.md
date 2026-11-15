@@ -66,10 +66,11 @@ options in `eslint.config.js` follow the style the code already had;
 change them there, not file by file.
 
 `scripts/` holds only what the build runs, which today is
-`prepare-data.ts` and `build-site.ts`. Helpers that only serve CI,
+`prepare-data.ts`, `build-site.ts` and `nuance.ts` (which `prepare-data.ts`
+uses to convert Technical_Nuance). Helpers that only serve CI,
 deployment config or maintainers live in `.github/scripts/` instead.
-Coverage measures the app, `src/`, only: both scripts have tests, but
-neither kind of script ships.
+Coverage measures the app, `src/`, only: the scripts in both places
+have tests, but neither kind ships.
 
 The coverage thresholds in `vite.config.ts` apply to the total and to every
 file on its own. An entry in `COVERAGE_EXCEPTIONS` can hold a file under

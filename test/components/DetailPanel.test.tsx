@@ -8,9 +8,9 @@ const data: CweData = {
   meta: { cweVersion: '4.20', catalogDate: '2025-12-01', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
   nodes: {
     '74': { id: '74', name: 'Injection', abstraction: 'Class', status: 'Incomplete', description: 'Base description', url: 'https://cwe.mitre.org/data/definitions/74.html' },
-    '79': { id: '79', name: 'Cross-site Scripting', abstraction: 'Base', status: 'Stable', description: 'XSS description', url: 'https://cwe.mitre.org/data/definitions/79.html' },
+    '79': { id: '79', name: 'Cross-site Scripting', abstraction: 'Base', status: 'Stable', description: 'XSS description', url: 'https://cwe.mitre.org/data/definitions/79.html', technicalNuance: [{ kind: 'paragraph', lines: [[{ text: 'Nuance for 79' }]] }] },
     '80': { id: '80', name: 'HTML Tag Neutralization', abstraction: 'Base', status: 'Stable', description: '', url: '' },
-    '20': { id: '20', name: 'Improper Input Validation', abstraction: 'Class', status: 'Stable', description: '', url: '' },
+    '20': { id: '20', name: 'Improper Input Validation', abstraction: 'Class', status: 'Stable', description: '', url: '', technicalNuance: [{ kind: 'paragraph', lines: [[{ text: 'Nuance for 20' }]] }] },
     '71': { id: '71', name: 'DEPRECATED: DS_Store', abstraction: 'Variant', status: 'Deprecated', description: '', url: '' },
     // No entry in today's data is Obsolete or Usable, but the schema allows both.
     '72': { id: '72', name: 'Superseded entry', abstraction: 'Variant', status: 'Obsolete', description: '', url: '' },
@@ -51,6 +51,28 @@ describe('DetailPanel', () => {
       'href',
       'https://cwe.mitre.org/data/definitions/79.html',
     );
+  });
+
+  it('shows Technical nuance between the description and the MITRE link', () => {
+    render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} />);
+    const nuance = screen.getByText('Technical nuance').closest('details') as HTMLElement;
+    const description = screen.getByText('XSS description');
+    const link = screen.getByRole('link', { name: 'View on cwe.mitre.org' });
+    expect(description.compareDocumentPosition(nuance) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(nuance.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('shows no Technical nuance for a CWE without one', () => {
+    render(<DetailPanel graph={graph} selectedId="74" onSelect={() => {}} />);
+    expect(screen.queryByText('Technical nuance')).toBeNull();
+  });
+
+  it("starts the next CWE's nuance closed", async () => {
+    const { rerender } = render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} />);
+    await userEvent.click(screen.getByText('Technical nuance'));
+    expect(screen.getByText('Technical nuance').closest('details')).toHaveAttribute('open');
+    rerender(<DetailPanel graph={graph} selectedId="20" onSelect={() => {}} />);
+    expect(screen.getByText('Technical nuance').closest('details')).not.toHaveAttribute('open');
   });
 
   it('groups relations into labelled sections with counts', () => {

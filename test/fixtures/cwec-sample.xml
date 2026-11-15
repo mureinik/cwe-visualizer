@@ -1,11 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Weakness_Catalog Name="CWE" Version="4.15" Date="2024-11-19">
+<Weakness_Catalog xmlns:xhtml="http://www.w3.org/1999/xhtml" Name="CWE" Version="4.15" Date="2024-11-19">
   <Weaknesses>
     <Weakness ID="74" Name="Injection" Abstraction="Class" Status="Incomplete">
       <Description>The product constructs all or part of a command using externally-influenced input.</Description>
     </Weakness>
     <Weakness ID="79" Name="Cross-site Scripting" Abstraction="Base" Status="Stable">
       <Description>The product does not neutralize user-controllable input before it is placed in output.</Description>
+      <Technical_Nuance>
+        <xhtml:p>Targets include:</xhtml:p>
+        <xhtml:ul>
+          <xhtml:li>stored input</xhtml:li>
+          <xhtml:li>reflected input</xhtml:li>
+        </xhtml:ul>
+      </Technical_Nuance>
       <Related_Weaknesses>
         <Related_Weakness Nature="ChildOf" CWE_ID="74" View_ID="1000"/>
         <Related_Weakness Nature="PeerOf" CWE_ID="80" View_ID="1000"/>
@@ -13,6 +20,7 @@
     </Weakness>
     <Weakness ID="80" Name="Improper Neutralization of Script-Related HTML Tags" Abstraction="Base" Status="Stable">
       <Description>The product receives input and neutralizes special characters, but the neutralization is incomplete.</Description>
+      <Technical_Nuance/>
       <Related_Weaknesses>
         <Related_Weakness Nature="ChildOf" CWE_ID="74" View_ID="1000"/>
         <Related_Weakness Nature="PeerOf" CWE_ID="79" View_ID="1000"/>
