@@ -2,6 +2,18 @@
 // build time and read by the app at runtime. Both sides import these types
 // from here, so the file's producer and consumer can't drift apart.
 
+/** A stretch of text in a nuance line, bold when `bold` is set. */
+export interface NuanceRun {
+  text: string;
+  bold?: true;
+}
+
+export type NuanceLine = NuanceRun[];
+
+export type NuanceBlock =
+  | { kind: 'paragraph'; lines: NuanceLine[] }
+  | { kind: 'list'; items: NuanceLine[][] };
+
 export interface CweNode {
   id: string;
   name: string;
@@ -9,6 +21,11 @@ export interface CweNode {
   status: string;
   description: string;
   url: string;
+  /**
+   * MITRE's Technical_Nuance, converted to blocks. Present only when the
+   * weakness has a non-empty nuance; built by scripts/nuance.ts.
+   */
+  technicalNuance?: NuanceBlock[];
 }
 
 export interface CweEdge {
