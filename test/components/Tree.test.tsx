@@ -221,6 +221,15 @@ describe('Tree under a filter', () => {
     expect(screen.queryByRole('button', { name: /^CWE-/ })).not.toBeInTheDocument();
   });
 
+  it('shows the selected CWE and its path beside the message when nothing matches', () => {
+    render(<Tree graph={graph} selectedId="79" onSelect={() => {}} matches={new Set()} />);
+    expect(screen.getByText('No CWEs match the filter.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'CWE-284: Improper Access Control, outside the filter' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'CWE-285: Improper Authorization, outside the filter' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'CWE-79: Cross-site Scripting, outside the filter' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^CWE-707/ })).not.toBeInTheDocument();
+  });
+
   it('lets the user collapse an auto-opened row', async () => {
     render(<Tree graph={graph} selectedId={null} onSelect={() => {}} matches={new Set(['79'])} />);
     await userEvent.click(screen.getByRole('button', { name: 'Collapse CWE-285' }));
