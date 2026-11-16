@@ -29,8 +29,8 @@ Measured on the CWE 5.0 archive (`cwec_v5.0.xml`):
     out of scope here and tracked in
     [#326](https://github.com/mureinik/cwe-visualizer/issues/326).
 - **View 1000**, "Complete Weakness Hierarchy", is a Graph view whose members
-  are just the 10 pillars. The rest of it is the `ChildOf` hierarchy the app
-  already draws.
+  are the 10 pillars, the same 10 the landing panel lists today. The rest of
+  it is the `ChildOf` hierarchy the app already draws. It has no groupings.
 - **Groupings:** 431, 310 of them live.
   - A grouping lists its members under `Relationships/Has_Member`, each
     with a `CWE_ID` and a `View_ID`.
@@ -43,7 +43,7 @@ Measured on the CWE 5.0 archive (`cwec_v5.0.xml`):
     view slots. Some reach a live view only through a dead one.
   - Some live views reach groupings that MITRE has deprecated (11).
   - 5 live groupings belong to no view at all.
-- Following groupings from each live Graph or Explicit view (other than 1000)
+- Following groupings from each other live Graph or Explicit view
   through `Has_Member` links with that view's `View_ID` covers every member.
   No link points at an ID missing from the catalog. Examples:
   - 699: 40 groupings, 405 weaknesses (2 deprecated).
@@ -208,9 +208,12 @@ traversal.
 
 ### Which views and groupings
 
-- A view is included when it is live, its type is Graph or Explicit, and it
-  isn't view 1000.
-- A view's members are found by starting from its `Members/Has_Member`
+- A view is included when it is live and its type is Graph or Explicit.
+- **View 1000 is the default view.** It is what the app shows today: the
+  whole hierarchy, every CWE in it, with deprecated ones shown as they are
+  now. Its members are every weakness in the data, not just the 10 pillars it
+  lists, so choosing it filters nothing. It has no groupings.
+- Any other view's members are found by starting from its `Members/Has_Member`
   links and following groupings through `Has_Member` links whose `View_ID`
   is that view's. A weakness reached this way is a member, deprecated or
   not. A grouping reached this way belongs to the view.
@@ -248,12 +251,12 @@ likewise taken as written, so a new domain appears under its own name.
 
 A weakness matches when both hold:
 
-- **View:** no view is chosen; or, with no group chosen, it is in the view's
-  `memberIds`; or, with a group chosen, it is in that group's
+- **View:** with no group chosen, it is in the view's `memberIds` (every
+  weakness, for view 1000); with a group chosen, it is in that group's
   `membersByView` for the chosen view.
 - **Phase:** no phase is chosen, or one of its phases is the chosen one.
 
-With no filter set, everything behaves as it does today.
+On view 1000 with no phase, the default, everything behaves as it does today.
 
 ### Landing panel
 
@@ -294,20 +297,23 @@ With no filter set, everything behaves as it does today.
 ### Controls
 
 - **Filter button:** next to search, labelled "Filter". It shows how many
-  filters are set when any are.
+  filters are set when any are. View 1000 is the default, so it doesn't count.
 - **Panel:** the button opens a panel. On desktop it drops down like the
   release switcher; on the phone it is a bottom sheet like the detail panel.
   It holds:
   - **View:** a list you can type into to narrow it, like CWE search, showing
-    each view's name and ID;
-  - **Group:** the same kind of list, enabled once a view is chosen, offering
-    only that view's groupings;
+    each view's name and ID. It always has a view chosen, starting on
+    "Complete Weakness Hierarchy (1000)", which is listed first;
+  - **Group:** the same kind of list, offering only the chosen view's
+    groupings. It is disabled for a view with none, such as 1000 or a Top 25;
   - **Phase:** a plain list in the order above;
-  - a way to clear each picker, and a "Clear all".
-- **Filter bar:** while any filter is set, a bar under the header shows one
-  chip per setting, each removable on its own, e.g.
+  - a way to clear the group and the phase, a way to return the view to
+    1000, and a "Clear all" that does all three.
+- **Filter bar:** while anything other than the default is set, a bar under
+  the header shows one chip per setting, each removable on its own, e.g.
   `Top 25 (2025) ×` `Implementation ×`, followed by the number of matching
-  CWEs.
+  CWEs. Removing the view chip returns the view to 1000. View 1000 itself
+  gets no chip, so with only a phase set the bar shows just the phase.
 - Changing the view clears the group.
 - All of this is reachable by keyboard and has accessible names, like the
   existing pickers.
@@ -323,6 +329,8 @@ With no filter set, everything behaves as it does today.
 - `?view=<id>`, `&group=<id>` and `&phase=<name>` sit next to `?cwe=`, all
   updated in place with `replaceState`, the way `?cwe=` is today. A custom
   phase is written as `<domain>:<name>`, e.g. `phase=AI:Training`.
+- The default view is left out of the URL: no `view` means view 1000, and
+  `view=1000` is accepted and dropped.
 - The filter is read once on load.
 - A value this release doesn't have, a group outside the chosen view, or a
   group with no view, is dropped from the URL. The filter bar says what was
@@ -333,8 +341,10 @@ With no filter set, everything behaves as it does today.
 
 ## Calls made in design (not the maintainer's; correct if wrong)
 
-- View 1000 is left out. It is the hierarchy the app already shows, and as a
-  filter it would list only its 10 pillars.
+- View 1000 counts every weakness as a member, not only the 10 pillars MITRE
+  lists. As a view of the hierarchy it holds everything in it, and this keeps
+  the default identical to today. Deprecated CWEs, which have left the
+  hierarchy, count too, so the tree's Deprecated section stays as it is.
 - Deprecated groupings in a live view are offered, marked, rather than left
   out. This goes further than "leave out deprecated views and groups" from
   the discussion, because their members are in the view either way.
