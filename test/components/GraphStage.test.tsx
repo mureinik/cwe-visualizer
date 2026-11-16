@@ -599,6 +599,17 @@ describe('GraphStage filter fade', () => {
     expect(groups.filter((g) => g?.classList.contains('graph-edge-group--unmatched'))).toHaveLength(1);
   });
 
+  // graph.css fades these parts, and not the labels; see test/styles/graph.test.ts.
+  it('marks the glyph, line and labels the fade rules target', () => {
+    const { container } = renderFiltered(new Set(['80']));
+    const node = container.querySelector('[data-node-id="74"]')!;
+    expect(node.querySelector('.graph-node__glyph')).not.toBeNull();
+    expect(node.querySelector('.graph-node__id')).not.toBeNull();
+    expect(node.querySelector('.graph-node__name')).not.toBeNull();
+    expect(container.querySelector('.graph-edge-group--unmatched .graph-edge')).not.toBeNull();
+    expect(container.querySelector('.graph-edge-group--unmatched .graph-edge__label')).not.toBeNull();
+  });
+
   it('fades nothing when not filtering', () => {
     const { container } = renderFiltered(null);
     expect(container.querySelector('.graph-node--unmatched, .graph-edge-group--unmatched')).toBeNull();

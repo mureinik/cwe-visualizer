@@ -57,7 +57,7 @@ export function GraphNode({
       onBlur={() => onHover(null)}
     >
       {selected && <circle className="graph-node__halo" r={r + HALO_GAP} />}
-      <GlyphShape abstraction={cweNode.abstraction} r={r} deprecated={deprecated} />
+      <GlyphShape className="graph-node__glyph" abstraction={cweNode.abstraction} r={r} deprecated={deprecated} />
       <text className="graph-node__id" y={labelTop} textAnchor="middle">
         {compactId ? node.id : `CWE-${node.id}`}
       </text>
