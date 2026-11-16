@@ -5,7 +5,9 @@ import path from 'node:path';
 import AdmZip from 'adm-zip';
 import { XMLParser } from 'fast-xml-parser';
 import { parseNuance } from './nuance.ts';
-import type { CweData, CweEdge, CweMeta, CweNode } from '../src/lib/cwe-data.ts';
+import { orderPhases, readPhases } from './phases.ts';
+import type { RawIntroduction } from './phases.ts';
+import type { CweData, CweEdge, CweMeta, CweNode, CwePhase } from '../src/lib/cwe-data.ts';
 
 interface RawRelatedWeakness {
   '@_Nature': string;
@@ -21,6 +23,7 @@ interface RawWeakness {
   Description?: unknown;
   // A stop node, so this is the element's inner XML as a string ('' when empty).
   Technical_Nuance?: string;
+  Modes_Of_Introduction?: { Introduction?: RawIntroduction | RawIntroduction[] };
   Related_Weaknesses?: { Related_Weakness?: RawRelatedWeakness | RawRelatedWeakness[] };
 }
 
@@ -71,6 +74,7 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
 
   const nodes: Record<string, CweNode> = {};
   const edges: CweEdge[] = [];
+  const allPhases: CwePhase[] = [];
 
   for (const w of weaknessList) {
     const id = String(w['@_ID']);
@@ -87,6 +91,12 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
     const nuance = parseNuance(w.Technical_Nuance ?? '', id);
     if (nuance.length > 0) {
       nodes[id].technicalNuance = nuance;
+    }
+
+    const phases = readPhases(toArray(w.Modes_Of_Introduction?.Introduction), id);
+    if (phases.length > 0) {
+      nodes[id].phases = phases;
+      allPhases.push(...phases);
     }
 
     for (const rel of toArray(w.Related_Weaknesses?.Related_Weakness)) {
@@ -113,6 +123,7 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
     },
     nodes,
     edges,
+    phases: orderPhases(allPhases),
   };
 }
 

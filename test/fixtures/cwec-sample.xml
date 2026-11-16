@@ -13,6 +13,14 @@
           <xhtml:li>reflected input</xhtml:li>
         </xhtml:ul>
       </Technical_Nuance>
+      <Modes_Of_Introduction>
+        <Introduction>
+          <Phase>Implementation</Phase>
+        </Introduction>
+        <Introduction>
+          <Phase>Architecture and Design</Phase>
+        </Introduction>
+      </Modes_Of_Introduction>
       <Related_Weaknesses>
         <Related_Weakness Nature="ChildOf" CWE_ID="74" View_ID="1000"/>
         <Related_Weakness Nature="PeerOf" CWE_ID="80" View_ID="1000"/>
@@ -21,6 +29,14 @@
     <Weakness ID="80" Name="Improper Neutralization of Script-Related HTML Tags" Abstraction="Base" Status="Stable">
       <Description>The product receives input and neutralizes special characters, but the neutralization is incomplete.</Description>
       <Technical_Nuance/>
+      <Modes_Of_Introduction>
+        <Introduction>
+          <Custom_Phase Domain="Hardware">Implementation &amp; Physical Design</Custom_Phase>
+        </Introduction>
+        <Introduction>
+          <Custom_Phase Domain="Hardware">Implementation &amp; Physical Design</Custom_Phase>
+        </Introduction>
+      </Modes_Of_Introduction>
       <Related_Weaknesses>
         <Related_Weakness Nature="ChildOf" CWE_ID="74" View_ID="1000"/>
         <Related_Weakness Nature="PeerOf" CWE_ID="79" View_ID="1000"/>
@@ -28,6 +44,11 @@
     </Weakness>
     <Weakness ID="89" Name="SQL Injection" Abstraction="Base" Status="Stable">
       <Description>The product constructs SQL commands using externally-influenced input.</Description>
+      <Modes_Of_Introduction>
+        <Introduction>
+          <Phase>Implementation</Phase>
+        </Introduction>
+      </Modes_Of_Introduction>
       <Related_Weaknesses>
         <Related_Weakness Nature="ChildOf" CWE_ID="74" View_ID="1000"/>
         <Related_Weakness Nature="CanFollow" CWE_ID="20" View_ID="1000"/>

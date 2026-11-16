@@ -73,6 +73,26 @@ describe('parseCatalog', () => {
     expect('technicalNuance' in data.nodes['80']).toBe(false);
   });
 
+  it("reads each weakness's introduction phases", () => {
+    expect(data.nodes['79'].phases).toEqual([{ name: 'Implementation' }, { name: 'Architecture and Design' }]);
+  });
+
+  it('decodes an entity in a custom phase', () => {
+    expect(data.nodes['80'].phases).toEqual([{ name: 'Implementation & Physical Design', domain: 'Hardware' }]);
+  });
+
+  it('lists every phase in use, in picker order', () => {
+    expect(data.phases).toEqual([
+      { name: 'Architecture and Design' },
+      { name: 'Implementation' },
+      { name: 'Implementation & Physical Design', domain: 'Hardware' },
+    ]);
+  });
+
+  it('leaves phases off a weakness with none', () => {
+    expect('phases' in data.nodes['74']).toBe(false);
+  });
+
   it('fails the parse on unsupported nuance markup, naming the CWE', () => {
     const bad = xmlText.replaceAll('xhtml:p>', 'xhtml:ol>');
     expect(() => parseCatalog(bad, '"x"')).toThrow(/^CWE-79: unsupported <xhtml:ol>/);
