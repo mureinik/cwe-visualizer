@@ -174,6 +174,8 @@ export function App() {
             }
           }}
           revealId={revealId}
+          matches={matches}
+          filterKey={`${filter.viewId}|${filter.groupId}|${filter.phase}`}
         />
       </main>
       <Attribution catalogDate={state.graph.meta.catalogDate} />

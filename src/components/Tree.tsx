@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Graph } from '../lib/graph';
 import { ancestorsOf, isDeprecated } from '../lib/graph';
+import { withMatchPaths } from '../lib/filter';
 import { Glyph } from './Glyph';
 
 interface TreeProps {
@@ -9,9 +10,11 @@ interface TreeProps {
   onSelect: (id: string) => void;
   /** Opened to this node and its ancestors, so its children are on screen. */
   revealId?: string | null;
+  /** The filter's matches; null when not filtering. Give the Tree a new key when the filter changes. */
+  matches?: Set<string> | null;
 }
 
-export function Tree({ graph, selectedId, onSelect, revealId = null }: TreeProps) {
+export function Tree({ graph, selectedId, onSelect, revealId = null, matches = null }: TreeProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   // Nodes the user has explicitly collapsed. This is what lets a manual
   // toggle override the auto-expand-ancestors behavior below: without it, an
@@ -19,7 +22,25 @@ export function Tree({ graph, selectedId, onSelect, revealId = null }: TreeProps
   // since effectiveExpanded would keep re-adding it via ancestorsOf on every
   // render regardless of what `expanded` said.
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [showDeprecated, setShowDeprecated] = useState(false);
+  // A filter opens the Deprecated section, since its rows are matches.
+  const [showDeprecated, setShowDeprecated] = useState(matches !== null);
+
+  // Rows on screen under a filter: the matches, their paths, and the selected
+  // CWE with its path (so the selection never vanishes). Null shows everything.
+  let visible: Set<string> | null = null;
+  if (matches !== null) {
+    visible = withMatchPaths(graph, matches);
+    if (selectedId && selectedId in graph.nodes) {
+      visible.add(selectedId);
+      for (const ancestor of ancestorsOf(graph, selectedId)) {
+        visible.add(ancestor);
+      }
+    }
+  }
+  const roots = visible ? graph.roots.filter((id) => visible.has(id)) : graph.roots;
+  const deprecatedRoots = visible
+    ? graph.deprecatedRoots.filter((id) => visible.has(id))
+    : graph.deprecatedRoots;
 
   // Ancestors of the current selection are always treated as expanded, in
   // addition to whatever the user has manually toggled open — unless the
@@ -31,7 +52,7 @@ export function Tree({ graph, selectedId, onSelect, revealId = null }: TreeProps
   // expanding the node as well as the path down to it.
   const revealed = revealId ? [revealId, ...ancestorsOf(graph, revealId)] : [];
   const effectiveExpanded = new Set(
-    [...expanded, ...ancestors, ...revealed].filter((id) => !collapsed.has(id)),
+    [...expanded, ...ancestors, ...revealed, ...(visible ?? [])].filter((id) => !collapsed.has(id)),
   );
 
   function toggle(id: string) {
@@ -56,50 +77,57 @@ export function Tree({ graph, selectedId, onSelect, revealId = null }: TreeProps
   }
 
   return (
-    <ul className="tree" role="tree">
-      {graph.roots.map((id) => (
-        <TreeNode
-          key={id}
-          id={id}
-          graph={graph}
-          expanded={effectiveExpanded}
-          selectedId={selectedId}
-          onToggle={toggle}
-          onSelect={onSelect}
-          ancestry={new Set()}
-        />
-      ))}
-      {graph.deprecatedRoots.length > 0 && (
-        <li role="treeitem" aria-expanded={showDeprecated} aria-selected={false}>
-          <div className="tree-row tree-row--group">
-            <button
-              type="button"
-              className="tree-toggle"
-              onClick={() => setShowDeprecated((open) => !open)}
-              aria-label={`Deprecated (${graph.deprecatedRoots.length})`}
-            >
-              {showDeprecated ? '▾' : '▸'} Deprecated ({graph.deprecatedRoots.length})
-            </button>
-          </div>
-          {showDeprecated && (
-            <ul role="group">
-              {graph.deprecatedRoots.map((id) => (
-                <TreeNode
-                  key={id}
-                  id={id}
-                  graph={graph}
-                  expanded={effectiveExpanded}
-                  selectedId={selectedId}
-                  onToggle={toggle}
-                  onSelect={onSelect}
-                  ancestry={new Set()}
-                />
-              ))}
-            </ul>
-          )}
-        </li>
-      )}
-    </ul>
+    <>
+      {matches !== null && matches.size === 0 && <p className="tree-empty">No CWEs match the filter.</p>}
+      <ul className="tree" role="tree">
+        {roots.map((id) => (
+          <TreeNode
+            key={id}
+            id={id}
+            graph={graph}
+            expanded={effectiveExpanded}
+            selectedId={selectedId}
+            onToggle={toggle}
+            onSelect={onSelect}
+            ancestry={new Set()}
+            visible={visible}
+            matches={matches}
+          />
+        ))}
+        {deprecatedRoots.length > 0 && (
+          <li role="treeitem" aria-expanded={showDeprecated} aria-selected={false}>
+            <div className="tree-row tree-row--group">
+              <button
+                type="button"
+                className="tree-toggle"
+                onClick={() => setShowDeprecated((open) => !open)}
+                aria-label={`Deprecated (${deprecatedRoots.length})`}
+              >
+                {showDeprecated ? '▾' : '▸'} Deprecated ({deprecatedRoots.length})
+              </button>
+            </div>
+            {showDeprecated && (
+              <ul role="group">
+                {deprecatedRoots.map((id) => (
+                  <TreeNode
+                    key={id}
+                    id={id}
+                    graph={graph}
+                    expanded={effectiveExpanded}
+                    selectedId={selectedId}
+                    onToggle={toggle}
+                    onSelect={onSelect}
+                    ancestry={new Set()}
+                    visible={visible}
+                    matches={matches}
+                  />
+                ))}
+              </ul>
+            )}
+          </li>
+        )}
+      </ul>
+    </>
   );
 }
 
@@ -111,9 +139,12 @@ interface TreeNodeProps {
   onToggle: (id: string) => void;
   onSelect: (id: string) => void;
   ancestry: Set<string>;
+  /** Ids shown under a filter; null shows every child. */
+  visible: Set<string> | null;
+  matches: Set<string> | null;
 }
 
-function TreeNode({ id, graph, expanded, selectedId, onToggle, onSelect, ancestry }: TreeNodeProps) {
+function TreeNode({ id, graph, expanded, selectedId, onToggle, onSelect, ancestry, visible, matches }: TreeNodeProps) {
   const rowRef = useRef<HTMLDivElement>(null);
   const isSelected = selectedId === id;
 
@@ -136,15 +167,17 @@ function TreeNode({ id, graph, expanded, selectedId, onToggle, onSelect, ancestr
   // Hierarchy edges can name an id outside the corpus, which buildGraph keeps
   // indexed, so only ids with a node to render count as children or parents.
   const known = (ids: string[] | undefined) => (ids ?? []).filter((other) => other in graph.nodes);
+  const shown = (ids: string[] | undefined) => known(ids).filter((other) => visible === null || visible.has(other));
 
   const node = graph.nodes[id];
-  const children = known(graph.childrenOf.get(id));
+  const children = shown(graph.childrenOf.get(id));
   const isExpanded = expanded.has(id);
   const childAncestry = new Set(ancestry);
   childAncestry.add(id);
 
   const parentCount = known(graph.parentsOf.get(id)).length;
   const deprecated = isDeprecated(node);
+  const outside = matches !== null && !matches.has(id);
 
   return (
     <li
@@ -167,9 +200,9 @@ function TreeNode({ id, graph, expanded, selectedId, onToggle, onSelect, ancestr
         )}
         <button
           type="button"
-          className={`tree-label${deprecated ? ' tree-label--deprecated' : ''}`}
+          className={`tree-label${deprecated ? ' tree-label--deprecated' : ''}${outside ? ' tree-label--context' : ''}`}
           onClick={() => onSelect(id)}
-          aria-label={`CWE-${id}: ${node.name}`}
+          aria-label={`CWE-${id}: ${node.name}${outside ? ', outside the filter' : ''}`}
         >
           <Glyph abstraction={node.abstraction} size={14} deprecated={deprecated} />
           <span className="tree-label__id">CWE-{id}</span>
@@ -196,6 +229,8 @@ function TreeNode({ id, graph, expanded, selectedId, onToggle, onSelect, ancestr
               onToggle={onToggle}
               onSelect={onSelect}
               ancestry={childAncestry}
+              visible={visible}
+              matches={matches}
             />
           ))}
         </ul>

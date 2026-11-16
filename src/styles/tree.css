@@ -126,3 +126,17 @@
     width: 100%;
   }
 }
+
+/*
+ * A row shown only because a filter match sits beneath it. Subdued with
+ * colour rather than opacity, so its text keeps the theme's contrast floor.
+ */
+.tree-label--context {
+  color: var(--text-muted);
+}
+
+.tree-empty {
+  margin: 0;
+  padding: var(--space-2);
+  color: var(--text-muted);
+}

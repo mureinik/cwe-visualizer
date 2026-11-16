@@ -9,9 +9,12 @@ interface TreeDrawerProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   revealId?: string | null;
+  matches?: Set<string> | null;
+  /** Changes with the filter, so the tree starts afresh. */
+  filterKey?: string;
 }
 
-export function TreeDrawer({ open, onClose, graph, selectedId, onSelect, revealId = null }: TreeDrawerProps) {
+export function TreeDrawer({ open, onClose, graph, selectedId, onSelect, revealId = null, matches = null, filterKey }: TreeDrawerProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -64,7 +67,14 @@ export function TreeDrawer({ open, onClose, graph, selectedId, onSelect, revealI
           </button>
         </div>
         <div className="drawer__body">
-          <Tree graph={graph} selectedId={selectedId} onSelect={onSelect} revealId={revealId} />
+          <Tree
+            key={filterKey}
+            graph={graph}
+            selectedId={selectedId}
+            onSelect={onSelect}
+            revealId={revealId}
+            matches={matches}
+          />
         </div>
       </div>
     </>
