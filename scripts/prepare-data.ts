@@ -7,6 +7,8 @@ import { XMLParser } from 'fast-xml-parser';
 import { parseNuance } from './nuance.ts';
 import { orderPhases, readPhases } from './phases.ts';
 import type { RawIntroduction } from './phases.ts';
+import { readViews } from './views.ts';
+import type { RawGrouping, RawView } from './views.ts';
 import type { CweData, CweEdge, CweMeta, CweNode, CwePhase } from '../src/lib/cwe-data.ts';
 
 interface RawRelatedWeakness {
@@ -32,6 +34,8 @@ interface RawDocument {
     '@_Version'?: string;
     '@_Date'?: string;
     Weaknesses?: { Weakness?: RawWeakness | RawWeakness[] };
+    Groupings?: { Grouping?: RawGrouping | RawGrouping[] };
+    Views?: { View?: RawView | RawView[] };
   };
 }
 
@@ -114,6 +118,12 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
     }
   }
 
+  const { views, groups } = readViews(
+    toArray(catalog.Views?.View),
+    toArray(catalog.Groupings?.Grouping),
+    new Set(Object.keys(nodes)),
+  );
+
   return {
     meta: {
       cweVersion: String(catalog['@_Version']),
@@ -124,6 +134,8 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
     nodes,
     edges,
     phases: orderPhases(allPhases),
+    views,
+    groups,
   };
 }
 

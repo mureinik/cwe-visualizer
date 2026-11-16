@@ -93,6 +93,21 @@ describe('parseCatalog', () => {
     expect('phases' in data.nodes['74']).toBe(false);
   });
 
+  it('lists the included views, 1000 first and the rest by name', () => {
+    expect(data.views!.map((v) => v.id)).toEqual(['1000', '884', '699', '1435']);
+  });
+
+  it("resolves a grouping's weaknesses within a view", () => {
+    expect(data.groups!['100'].membersByView['699']).toEqual(['79', '80']);
+  });
+
+  it('leaves out an implicit view and an obsolete one', () => {
+    const ids = data.views!.map((v) => v.id);
+    expect(ids).not.toContain('658');
+    expect(ids).not.toContain('635');
+    expect(data.groups!['102']).toBeUndefined();
+  });
+
   it('fails the parse on unsupported nuance markup, naming the CWE', () => {
     const bad = xmlText.replaceAll('xhtml:p>', 'xhtml:ol>');
     expect(() => parseCatalog(bad, '"x"')).toThrow(/^CWE-79: unsupported <xhtml:ol>/);

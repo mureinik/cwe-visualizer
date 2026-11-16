@@ -20,6 +20,22 @@ export interface CwePhase {
   domain?: string;
 }
 
+/** A MITRE view the filter offers; view 1000 lists no members, as it constrains nothing. */
+export interface CweView {
+  id: string;
+  name: string;
+  groupIds: string[];
+  memberIds: string[];
+}
+
+/** A grouping (category) and the weaknesses beneath it, within each view that reaches it. */
+export interface CweGroup {
+  id: string;
+  name: string;
+  status: string;
+  membersByView: Record<string, string[]>;
+}
+
 export interface CweNode {
   id: string;
   name: string;
@@ -72,4 +88,11 @@ export interface CweData {
    * hand-built test data stays valid; prepare-data always writes it.
    */
   phases?: CwePhase[];
+  /**
+   * The views the filter offers, view 1000 first. Optional so hand-built test
+   * data stays valid; prepare-data always writes it. Built by scripts/views.ts.
+   */
+  views?: CweView[];
+  /** The groupings some view in `views` reaches, by ID. Written with `views`. */
+  groups?: Record<string, CweGroup>;
 }
