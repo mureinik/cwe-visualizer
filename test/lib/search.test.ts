@@ -65,4 +65,12 @@ describe('searchNodes', () => {
   it('breaks ties by ascending id, so results are stable', () => {
     expect(ids('incorrect')).toEqual(['179', '279']);
   });
+
+  it('returns only the filter matches when given a set', () => {
+    expect(searchNodes(graph, '9', new Set(['89'])).map((n) => n.id)).toEqual(['89']);
+  });
+
+  it('is unchanged by a null filter', () => {
+    expect(searchNodes(graph, '9', null)).toEqual(searchNodes(graph, '9'));
+  });
 });

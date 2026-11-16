@@ -360,4 +360,41 @@ describe('buildEgoGraph edge direction', () => {
     expect(lateral(buildEgoGraph(both, '119'))).toBe('20->119');
     expect(lateral(buildEgoGraph(both, '20'))).toBe('20->119');
   });
+
+  describe('with preferred CWEs', () => {
+    const star = (children: number, laterals: number): CweData => ({
+      ...data,
+      nodes: {
+        ...data.nodes,
+        ...Object.fromEntries(
+          [...Array.from({ length: children }, (_, i) => `${200 + i}`), ...Array.from({ length: laterals }, (_, i) => `${i + 301}`)].map(
+            (id) => [id, node(id)],
+          ),
+        ),
+      },
+      edges: [
+        ...Array.from({ length: children }, (_, i) => ({ from: `${200 + i}`, to: '500', type: 'ChildOf' })),
+        ...Array.from({ length: laterals }, (_, i) => ({ from: '500', to: `${i + 301}`, type: 'PeerOf' })),
+      ],
+    });
+    const withCentre = (children: number, laterals: number) => {
+      const d = star(children, laterals);
+      return buildGraph({ ...d, nodes: { ...d.nodes, '500': node('500') } });
+    };
+
+    it('keeps preferred children through the child cap', () => {
+      // 210 and 211 sort last by id, so only preference can save them.
+      const ego = buildEgoGraph(withCentre(12, 0), '500', { childCap: 10, preferred: new Set(['210', '211']) });
+      const kids = ego.nodes.filter((n) => n.band === 1).map((n) => n.id);
+      expect(kids).toHaveLength(10);
+      expect(kids).toEqual(expect.arrayContaining(['210', '211']));
+      expect(ego.overflow).toEqual({ parentId: '500', hiddenCount: 2 });
+    });
+
+    it('places a preferred lateral through the lateral cap', () => {
+      const ego = buildEgoGraph(withCentre(0, 6), '500', { lateralCap: 2, preferred: new Set(['306']) });
+      expect(bandOf(ego, '306')).toBe(0);
+      expect(ego.nodes.filter((n) => n.band === 0 && n.id !== '500')).toHaveLength(4);
+    });
+  });
 });
