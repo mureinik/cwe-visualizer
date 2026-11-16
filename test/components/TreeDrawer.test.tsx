@@ -36,6 +36,15 @@ describe('TreeDrawer', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('leaves an Escape that something inside it already handled', () => {
+    const onClose = vi.fn();
+    render(<TreeDrawer open onClose={onClose} graph={graph} selectedId={null} onSelect={() => {}} />);
+    const handled = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    handled.preventDefault();
+    screen.getByRole('button', { name: 'Close the weakness tree' }).dispatchEvent(handled);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('closes when the backdrop is clicked', async () => {
     const onClose = vi.fn();
     render(<TreeDrawer open onClose={onClose} graph={graph} selectedId={null} onSelect={() => {}} />);
@@ -107,5 +116,19 @@ describe('TreeDrawer reveal and focus', () => {
     expect(screen.getByRole('button', { name: 'Close the weakness tree' })).toHaveFocus();
     await userEvent.keyboard('{Escape}');
     expect(trigger).toHaveFocus();
+  });
+
+  it('resets manual collapses when the filter key changes', async () => {
+    const matches = new Set(['285']);
+    const { rerender } = render(
+      <TreeDrawer open onClose={() => {}} graph={graph} selectedId={null} onSelect={() => {}} matches={matches} filterKey="a" />,
+    );
+    expect(screen.getByRole('button', { name: 'CWE-285: Improper Authorization' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse CWE-284' }));
+    expect(screen.queryByRole('button', { name: 'CWE-285: Improper Authorization' })).not.toBeInTheDocument();
+    rerender(
+      <TreeDrawer open onClose={() => {}} graph={graph} selectedId={null} onSelect={() => {}} matches={new Set(['285'])} filterKey="b" />,
+    );
+    expect(screen.getByRole('button', { name: 'CWE-285: Improper Authorization' })).toBeInTheDocument();
   });
 });

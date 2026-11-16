@@ -1,7 +1,7 @@
-import type { CweData, CweEdge, CweMeta, CweNode } from './cwe-data';
+import type { CweData, CweEdge, CweGroup, CweMeta, CweNode, CwePhase, CweView } from './cwe-data';
 import { INVERSE_SUFFIX, isInverse } from './relations';
 
-export type { CweData, CweEdge, CweMeta, CweNode } from './cwe-data';
+export type { CweData, CweEdge, CweGroup, CweMeta, CweNode, CwePhase, CweView } from './cwe-data';
 
 export interface Graph {
   meta: CweMeta;
@@ -23,6 +23,12 @@ export interface Graph {
    */
   deprecatedRoots: string[];
   all: CweNode[];
+  /** The catalog's views; empty when the data has none. */
+  views: CweView[];
+  /** Keyed by group id, with a null prototype like `nodes`. */
+  groups: Record<string, CweGroup>;
+  /** Every introduction phase in the catalog; empty when the data has none. */
+  phases: CwePhase[];
 }
 
 export interface BuildGraphOptions {
@@ -58,9 +64,9 @@ function inverseNature(type: string): string {
 /**
  * Whether MITRE has retired the entry. Obsolete entries are "still valid but
  * no longer relevant", usually superseded, so they get the same treatment as
- * Deprecated ones.
+ * Deprecated ones. Groupings carry the same statuses.
  */
-export function isDeprecated(node: CweNode | undefined): boolean {
+export function isDeprecated(node: Pick<CweNode, 'status'> | undefined): boolean {
   return node?.status === 'Deprecated' || node?.status === 'Obsolete';
 }
 
@@ -156,7 +162,11 @@ export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
 
   const all = Object.values(nodes).sort((a, b) => compareIds(a.id, b.id));
 
-  return { meta: data.meta, nodes, childrenOf, parentsOf, relatedTo, roots, deprecatedRoots, all };
+  const views = data.views ?? [];
+  const groups = Object.assign(Object.create(null) as Record<string, CweGroup>, data.groups);
+  const phases = data.phases ?? [];
+
+  return { meta: data.meta, nodes, childrenOf, parentsOf, relatedTo, roots, deprecatedRoots, all, views, groups, phases };
 }
 
 export function ancestorsOf(graph: Graph, id: string): Set<string> {
@@ -175,11 +185,11 @@ export function ancestorsOf(graph: Graph, id: string): Set<string> {
 }
 
 /**
- * How many distinct weaknesses sit beneath `id`, at any depth. The hierarchy
- * is a DAG rather than a tree — 200 entries have more than one parent — so
- * this counts each descendant once however many paths reach it.
+ * The distinct weaknesses beneath `id`, at any depth, excluding `id`. The
+ * hierarchy is a DAG rather than a tree — 200 entries have more than one
+ * parent — so each descendant is listed once however many paths reach it.
  */
-export function countDescendants(graph: Graph, id: string): number {
+export function descendantsOf(graph: Graph, id: string): Set<string> {
   const seen = new Set<string>();
   const queue = [...(graph.childrenOf.get(id) ?? [])];
   // Walk by index rather than shift(), which is O(n) per call.
@@ -192,5 +202,10 @@ export function countDescendants(graph: Graph, id: string): number {
     queue.push(...(graph.childrenOf.get(next) ?? []));
   }
   seen.delete(id);
-  return seen.size;
+  return seen;
+}
+
+/** How many distinct weaknesses sit beneath `id`, at any depth. */
+export function countDescendants(graph: Graph, id: string): number {
+  return descendantsOf(graph, id).size;
 }

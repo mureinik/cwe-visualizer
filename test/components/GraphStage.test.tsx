@@ -579,3 +579,39 @@ describe('GraphStage relation labels', () => {
     expect(dimmed.map((l) => l.textContent).sort()).toEqual(['CanFollow', 'CanPrecede']);
   });
 });
+
+describe('GraphStage filter fade', () => {
+  function renderFiltered(matches: Set<string> | null) {
+    return render(
+      <GraphStage graph={graph} selectedId="79" matches={matches} onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+  }
+
+  it('fades the nodes and edges outside the filter, but never the selected one', () => {
+    const { container } = renderFiltered(new Set(['80']));
+    expect(container.querySelector('[data-node-id="80"]')).not.toHaveClass('graph-node--unmatched');
+    expect(container.querySelector('[data-node-id="79"]')).not.toHaveClass('graph-node--unmatched');
+    expect(container.querySelector('[data-node-id="74"]')).toHaveClass('graph-node--unmatched');
+    expect(screen.getByRole('button', { name: /Injection.*, outside the filter$/ })).toBeInTheDocument();
+    // Two edges: 79-74 touches the unmatched 74, 80-79 touches only matches and the centre.
+    const groups = [...container.querySelectorAll('path.graph-edge')].map((p) => p.closest('g'));
+    expect(groups).toHaveLength(2);
+    expect(groups.filter((g) => g?.classList.contains('graph-edge-group--unmatched'))).toHaveLength(1);
+  });
+
+  // graph.css fades these parts, and not the labels; see test/styles/graph.test.ts.
+  it('marks the glyph, line and labels the fade rules target', () => {
+    const { container } = renderFiltered(new Set(['80']));
+    const node = container.querySelector('[data-node-id="74"]')!;
+    expect(node.querySelector('.graph-node__glyph')).not.toBeNull();
+    expect(node.querySelector('.graph-node__id')).not.toBeNull();
+    expect(node.querySelector('.graph-node__name')).not.toBeNull();
+    expect(container.querySelector('.graph-edge-group--unmatched .graph-edge')).not.toBeNull();
+    expect(container.querySelector('.graph-edge-group--unmatched .graph-edge__label')).not.toBeNull();
+  });
+
+  it('fades nothing when not filtering', () => {
+    const { container } = renderFiltered(null);
+    expect(container.querySelector('.graph-node--unmatched, .graph-edge-group--unmatched')).toBeNull();
+  });
+});

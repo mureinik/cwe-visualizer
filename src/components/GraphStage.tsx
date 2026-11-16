@@ -39,6 +39,8 @@ interface GraphStageProps {
    *  for, which the detail card already lists in full. */
   onShowRelations: (hidden: LateralRelation[]) => void;
   hops: AncestorHops;
+  /** Ids the filter keeps; null when not filtering. The rest fade. */
+  matches?: Set<string> | null;
   /** Leaves only the labels of a hovered or focused node's edges. */
   hideEdgeLabels?: boolean;
 }
@@ -85,6 +87,7 @@ export function GraphStage({
   onShowChildren,
   onShowRelations,
   hops,
+  matches = null,
   hideEdgeLabels = false,
 }: GraphStageProps) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -96,9 +99,11 @@ export function GraphStage({
   const childCap = childCapFor(size.width, CHILD_CAP);
   const lateralCap = lateralCapFor(size.width, LATERAL_CAP);
   const ego = useMemo(
-    () => (selectedId ? buildEgoGraph(graph, selectedId, { ancestorHops: hops, childCap, lateralCap }) : null),
-    [graph, selectedId, hops, childCap, lateralCap],
+    () => (selectedId ? buildEgoGraph(graph, selectedId, { ancestorHops: hops, childCap, lateralCap, preferred: matches ?? undefined }) : null),
+    [graph, selectedId, hops, childCap, lateralCap, matches],
   );
+  // The selected CWE stays at full strength even when the filter excludes it.
+  const isUnmatched = (id: string) => matches !== null && !matches.has(id) && id !== ego?.centerId;
   const layout = useMemo(() => (ego ? layoutEgoGraph(ego, size) : null), [ego, size]);
   // A local const, so the chip's click handler keeps the narrowing to non-null.
   const childOverflow = layout?.overflow;
@@ -265,7 +270,15 @@ export function GraphStage({
             {layout.edges.map((edge) => {
               const key = edgeKey(edge);
               const dimmed = incident !== null && !incident.edges.has(key);
-              return <GraphEdge key={key} edge={edge} dimmed={dimmed} intoCenter={edge.to === ego?.centerId} />;
+              return (
+                <GraphEdge
+                  key={key}
+                  edge={edge}
+                  dimmed={dimmed}
+                  unmatched={isUnmatched(edge.from) || isUnmatched(edge.to)}
+                  intoCenter={edge.to === ego?.centerId}
+                />
+              );
             })}
             {layout.edges.map((edge) => {
               const key = edgeKey(edge);
@@ -273,7 +286,14 @@ export function GraphStage({
               if (hideEdgeLabels && !lit) {
                 return null;
               }
-              return <GraphEdgeLabel key={key} edge={edge} dimmed={incident !== null && !lit} />;
+              return (
+                <GraphEdgeLabel
+                  key={key}
+                  edge={edge}
+                  dimmed={incident !== null && !lit}
+                  unmatched={isUnmatched(edge.from) || isUnmatched(edge.to)}
+                />
+              );
             })}
             {layout.nodes.map((node) => (
               <GraphNode
@@ -284,6 +304,7 @@ export function GraphStage({
                 displayName={displayNames.names.get(node.id) ?? ''}
                 compactId={displayNames.compact.get(node.id) ?? false}
                 selected={node.id === ego?.centerId}
+                unmatched={isUnmatched(node.id)}
                 dimmed={!!incident && !incident.nodes.has(node.id)}
                 onSelect={selectNode}
                 onKeyDown={(event) => onNodeKeyDown(event, node, layout.nodes)}

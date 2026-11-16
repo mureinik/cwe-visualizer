@@ -43,14 +43,16 @@ export function GlyphShape({
   abstraction,
   r,
   deprecated = false,
+  className,
 }: {
   abstraction: string;
   r: number;
   deprecated?: boolean;
+  className?: string;
 }) {
   const glyph = glyphFor(abstraction);
   return (
-    <g style={{ color: deprecated ? 'var(--status-deprecated)' : `var(${glyph.token})` }}>
+    <g className={className} style={{ color: deprecated ? 'var(--status-deprecated)' : `var(${glyph.token})` }}>
       {shapeElements(glyph.shape, r)}
     </g>
   );

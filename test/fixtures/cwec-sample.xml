@@ -13,6 +13,14 @@
           <xhtml:li>reflected input</xhtml:li>
         </xhtml:ul>
       </Technical_Nuance>
+      <Modes_Of_Introduction>
+        <Introduction>
+          <Phase>Implementation</Phase>
+        </Introduction>
+        <Introduction>
+          <Phase>Architecture and Design</Phase>
+        </Introduction>
+      </Modes_Of_Introduction>
       <Related_Weaknesses>
         <Related_Weakness Nature="ChildOf" CWE_ID="74" View_ID="1000"/>
         <Related_Weakness Nature="PeerOf" CWE_ID="80" View_ID="1000"/>
@@ -21,6 +29,14 @@
     <Weakness ID="80" Name="Improper Neutralization of Script-Related HTML Tags" Abstraction="Base" Status="Stable">
       <Description>The product receives input and neutralizes special characters, but the neutralization is incomplete.</Description>
       <Technical_Nuance/>
+      <Modes_Of_Introduction>
+        <Introduction>
+          <Custom_Phase Domain="Hardware">Implementation &amp; Physical Design</Custom_Phase>
+        </Introduction>
+        <Introduction>
+          <Custom_Phase Domain="Hardware">Implementation &amp; Physical Design</Custom_Phase>
+        </Introduction>
+      </Modes_Of_Introduction>
       <Related_Weaknesses>
         <Related_Weakness Nature="ChildOf" CWE_ID="74" View_ID="1000"/>
         <Related_Weakness Nature="PeerOf" CWE_ID="79" View_ID="1000"/>
@@ -28,10 +44,65 @@
     </Weakness>
     <Weakness ID="89" Name="SQL Injection" Abstraction="Base" Status="Stable">
       <Description>The product constructs SQL commands using externally-influenced input.</Description>
+      <Modes_Of_Introduction>
+        <Introduction>
+          <Phase>Implementation</Phase>
+        </Introduction>
+      </Modes_Of_Introduction>
       <Related_Weaknesses>
         <Related_Weakness Nature="ChildOf" CWE_ID="74" View_ID="1000"/>
         <Related_Weakness Nature="CanFollow" CWE_ID="20" View_ID="1000"/>
       </Related_Weaknesses>
     </Weakness>
   </Weaknesses>
+  <Groupings>
+    <Grouping ID="100" Name="Input Handling" Status="Draft">
+      <Relationships>
+        <Has_Member CWE_ID="79" View_ID="699"/>
+        <Has_Member CWE_ID="101" View_ID="699"/>
+        <Has_Member CWE_ID="89" View_ID="888"/>
+      </Relationships>
+    </Grouping>
+    <Grouping ID="101" Name="Legacy Input Handling" Status="Deprecated">
+      <Relationships>
+        <Has_Member CWE_ID="80" View_ID="699"/>
+      </Relationships>
+    </Grouping>
+    <Grouping ID="102" Name="Database Handling" Status="Draft">
+      <Relationships>
+        <Has_Member CWE_ID="89" View_ID="635"/>
+      </Relationships>
+    </Grouping>
+  </Groupings>
+  <Views>
+    <View ID="1000" Name="Research Concepts" Type="Graph" Status="Draft">
+      <Members>
+        <Has_Member CWE_ID="74" View_ID="1000"/>
+      </Members>
+    </View>
+    <View ID="699" Name="Software Development" Type="Graph" Status="Draft">
+      <Members>
+        <Has_Member CWE_ID="100" View_ID="699"/>
+      </Members>
+    </View>
+    <View ID="1435" Name="Weaknesses in the 2025 CWE Top 25 Most Dangerous Software Weaknesses" Type="Graph" Status="Draft">
+      <Members>
+        <Has_Member CWE_ID="79" View_ID="1435"/>
+        <Has_Member CWE_ID="89" View_ID="1435"/>
+      </Members>
+    </View>
+    <View ID="884" Name="CWE Cross-section" Type="Explicit" Status="Draft">
+      <Members>
+        <Has_Member CWE_ID="74" View_ID="884"/>
+      </Members>
+    </View>
+    <View ID="658" Name="Weaknesses in Software Written in C" Type="Implicit" Status="Draft">
+      <Filter>/Weakness[Applicable_Platforms/Language/@Name='C']</Filter>
+    </View>
+    <View ID="635" Name="Weaknesses Originally Used by NVD from CWE 1.0" Type="Graph" Status="Obsolete">
+      <Members>
+        <Has_Member CWE_ID="102" View_ID="635"/>
+      </Members>
+    </View>
+  </Views>
 </Weakness_Catalog>

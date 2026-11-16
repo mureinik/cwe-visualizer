@@ -169,6 +169,20 @@
 }
 
 /*
+ * Outside the filter: as in the tree and graph, text is subdued with the
+ * muted colour, not opacity, which would drop it below 4.5:1 contrast; only
+ * the glyph is faded.
+ */
+.relation-chip--outside .relation-chip__name,
+.relation-chip--outside .relation-chip__id {
+  color: var(--text-muted);
+}
+
+.relation-chip--outside svg {
+  opacity: 0.5;
+}
+
+/*
  * The grabber only means anything where the card is a sheet; on a wide
  * screen the card is just a card.
  */

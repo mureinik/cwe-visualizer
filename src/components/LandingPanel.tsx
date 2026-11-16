@@ -1,3 +1,4 @@
+import { countMatchesBeneath } from '../lib/filter';
 import { countDescendants, type Graph } from '../lib/graph';
 import { Glyph } from './Glyph';
 
@@ -5,10 +6,23 @@ interface LandingPanelProps {
   graph: Graph;
   onSelect: (id: string) => void;
   onOpenTree: () => void;
+  /** The filter's matches (see `matchingIds`), or null with no filter. */
+  matches?: Set<string> | null;
+  onClearFilter?: () => void;
 }
 
-export function LandingPanel({ graph, onSelect, onOpenTree }: LandingPanelProps) {
+export function LandingPanel({ graph, onSelect, onOpenTree, matches = null, onClearFilter }: LandingPanelProps) {
   const total = graph.all.length;
+  const pillars = graph.roots.map((id) => ({
+    id,
+    beneath: countDescendants(graph, id),
+    // Only read while a filter is on.
+    matched: matches === null ? 0 : countMatchesBeneath(graph, id, matches),
+  }));
+  // A pillar stays when it matches, or leads to one that does.
+  const listed = matches === null
+    ? pillars
+    : pillars.filter(({ id, matched }) => matches.has(id) || matched > 0);
 
   return (
     <div className="landing">
@@ -18,28 +32,45 @@ export function LandingPanel({ graph, onSelect, onOpenTree }: LandingPanelProps)
           {graph.meta.cweVersion} corpus — their hierarchy, and how they lead to one another.
         </p>
 
-        <h2 className="landing__heading">Start from a pillar</h2>
-        <ul className="landing__pillars">
-          {graph.roots.map((id) => {
-            const node = graph.nodes[id];
-            const beneath = countDescendants(graph, id);
-            return (
-              <li key={id}>
-                <button
-                  type="button"
-                  className="pillar-card"
-                  onClick={() => onSelect(id)}
-                  aria-label={`CWE-${id}: ${node.name}, ${beneath} weaknesses beneath it`}
-                >
-                  <Glyph abstraction={node.abstraction} size={16} />
-                  <span className="pillar-card__id">CWE-{id}</span>
-                  <span className="pillar-card__name">{node.name}</span>
-                  <span className="pillar-card__count">{beneath}</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        {matches?.size === 0 ? (
+          <div className="landing__empty">
+            <p className="landing__empty-text">No CWEs match the filter.</p>
+            <button type="button" className="landing__clear" onClick={onClearFilter}>
+              Clear filter
+            </button>
+          </div>
+        ) : (
+          <>
+            <h2 className="landing__heading">Start from a pillar</h2>
+            <ul className="landing__pillars">
+              {listed.map(({ id, beneath, matched }) => {
+                const node = graph.nodes[id];
+                const context = matches !== null && !matches.has(id);
+                return (
+                  <li key={id}>
+                    <button
+                      type="button"
+                      className={`pillar-card${context ? ' pillar-card--context' : ''}`}
+                      onClick={() => onSelect(id)}
+                      aria-label={
+                        matches === null
+                          ? `CWE-${id}: ${node.name}, ${beneath} weaknesses beneath it`
+                          : `CWE-${id}: ${node.name}, ${matched} of ${beneath} weaknesses beneath it match the filter`
+                      }
+                    >
+                      <Glyph abstraction={node.abstraction} size={16} />
+                      <span className="pillar-card__id">CWE-{id}</span>
+                      <span className="pillar-card__name">{node.name}</span>
+                      <span className="pillar-card__count">
+                        {matches === null ? beneath : `${matched} of ${beneath}`}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        )}
 
         <p className="landing__hint">
           …or search by ID or name above, or browse the full tree from{' '}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildGraph, type CweData, type Graph } from './lib/graph';
 import { TreeDrawer } from './components/TreeDrawer';
 import { GraphStage } from './components/GraphStage';
@@ -8,11 +8,24 @@ import { DetailPanel, type RelationFlash } from './components/DetailPanel';
 import { AppHeader } from './components/AppHeader';
 import { readStoredEdgeLabels } from './lib/edge-labels';
 import { Attribution } from './components/Attribution';
+import { DEFAULT_FILTER, matchingIds, type Filter } from './lib/filter';
+import { readFilter, writeFilter } from './lib/filter-url';
 
 type LoadState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'ready'; graph: Graph };
+
+// Both this and selectNode change only their own keys in the current query
+// string, so neither undoes the other.
+function writeFilterToUrl(filter: Filter) {
+  const params = new URLSearchParams(window.location.search);
+  writeFilter(params, filter);
+  const query = params.toString();
+  // This runs on every load, so keep the rest of the address as it was.
+  const { pathname, hash } = window.location;
+  window.history.replaceState(null, '', `${pathname}${query === '' ? '' : `?${query}`}${hash}`);
+}
 
 // CWE ids are numeric. Anything else would be echoed back as "not found"
 // text, so treat it as no selection. (`graph.nodes` has no prototype, so a
@@ -34,6 +47,10 @@ export function App() {
   // the detail card.
   const flashCount = useRef(0);
   const narrow = useMediaQuery(NARROW_QUERY);
+  const [filter, setFilterState] = useState<Filter>(DEFAULT_FILTER);
+  // What the address asked for that this release lacks. Kept until the
+  // filter next changes, so a stale link doesn't fail silently.
+  const [dropped, setDropped] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,7 +65,14 @@ export function App() {
       })
       .then((data) => {
         if (!cancelled) {
-          setState({ status: 'ready', graph: buildGraph(data) });
+          const graph = buildGraph(data);
+          // Read once on load; rewriting the address takes the dropped
+          // values out of it.
+          const read = readFilter(window.location.search, graph);
+          writeFilterToUrl(read.filter);
+          setFilterState(read.filter);
+          setDropped(read.dropped);
+          setState({ status: 'ready', graph });
         }
       })
       .catch((err: unknown) => {
@@ -70,6 +94,15 @@ export function App() {
     window.history.replaceState(null, '', `?${params.toString()}`);
   }, []);
 
+  const setFilter = useCallback((next: Filter) => {
+    setFilterState(next);
+    setDropped([]);
+    writeFilterToUrl(next);
+  }, []);
+
+  const graph = state.status === 'ready' ? state.graph : null;
+  const matches = useMemo(() => (graph === null ? null : matchingIds(graph, filter)), [graph, filter]);
+
   if (state.status === 'loading') {
     return <div className="app-status">Loading CWE data…</div>;
   }
@@ -86,12 +119,19 @@ export function App() {
         onToggleDrawer={() => setDrawerOpen((open) => !open)}
         edgeLabels={edgeLabels}
         onEdgeLabelsChange={setEdgeLabels}
+        filter={filter}
+        matches={matches}
+        dropped={dropped}
+        onFilterChange={setFilter}
+        narrow={narrow}
       />
       <main className="app-stage">
         {selectedId === null ? (
           <LandingPanel
             graph={state.graph}
             onSelect={selectNode}
+            matches={matches}
+            onClearFilter={() => setFilter(DEFAULT_FILTER)}
             onOpenTree={() => {
               setRevealId(null);
               setDrawerOpen(true);
@@ -102,6 +142,7 @@ export function App() {
             <GraphStage
               graph={state.graph}
               selectedId={selectedId}
+              matches={matches}
               onSelect={selectNode}
               onShowChildren={(parentId) => {
                 setRevealId(parentId);
@@ -117,7 +158,7 @@ export function App() {
               hops={narrow ? 1 : 2}
               hideEdgeLabels={edgeLabels === 'hidden'}
             />
-            <DetailPanel graph={state.graph} selectedId={selectedId} onSelect={selectNode} flash={flash} />
+            <DetailPanel graph={state.graph} selectedId={selectedId} onSelect={selectNode} flash={flash} matches={matches} />
           </>
         )}
         <TreeDrawer
@@ -135,6 +176,8 @@ export function App() {
             }
           }}
           revealId={revealId}
+          matches={matches}
+          filterKey={`${filter.viewId}|${filter.groupId}|${filter.phase}`}
         />
       </main>
       <Attribution catalogDate={state.graph.meta.catalogDate} />

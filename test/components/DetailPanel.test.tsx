@@ -253,3 +253,34 @@ describe('DetailPanel with two relations to one CWE in a section', () => {
     }
   });
 });
+
+describe('DetailPanel with a filter', () => {
+  // 79 has parent 74, child 80 (also a peer), and follows 20.
+  const chips = () => screen.getAllByRole('button').filter((b) => b.classList.contains('relation-chip'));
+
+  it('subdues relations outside the filter and leaves matching ones alone', () => {
+    render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} matches={new Set(['74', '80'])} />);
+    const outside = screen.getByRole('button', { name: /CWE-20: Improper Input Validation, outside the filter$/ });
+    expect(outside).toHaveClass('relation-chip--outside');
+    const inside = screen.getByRole('button', { name: 'CWE-74: Injection' });
+    expect(inside).not.toHaveClass('relation-chip--outside');
+    expect(inside.getAttribute('aria-label')).not.toContain('outside the filter');
+  });
+
+  it('subdues nothing without a filter', () => {
+    const { unmount } = render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} matches={null} />);
+    expect(chips().some((b) => b.classList.contains('relation-chip--outside'))).toBe(false);
+    unmount();
+    render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} />);
+    expect(chips().some((b) => b.classList.contains('relation-chip--outside'))).toBe(false);
+  });
+
+  it('still lists every relation', () => {
+    const { unmount } = render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} />);
+    const all = chips().length;
+    unmount();
+    render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} matches={new Set()} />);
+    expect(chips()).toHaveLength(all);
+    expect(chips().every((b) => b.classList.contains('relation-chip--outside'))).toBe(true);
+  });
+});

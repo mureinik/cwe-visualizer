@@ -14,6 +14,28 @@ export type NuanceBlock =
   | { kind: 'paragraph'; lines: NuanceLine[] }
   | { kind: 'list'; items: NuanceLine[][] };
 
+/** A phase of the software lifecycle; `domain` is set for a custom phase (AI, Hardware). */
+export interface CwePhase {
+  name: string;
+  domain?: string;
+}
+
+/** A MITRE view the filter offers; view 1000 lists no members, as it constrains nothing. */
+export interface CweView {
+  id: string;
+  name: string;
+  groupIds: string[];
+  memberIds: string[];
+}
+
+/** A grouping (category) and the weaknesses beneath it, within each view that reaches it. */
+export interface CweGroup {
+  id: string;
+  name: string;
+  status: string;
+  membersByView: Record<string, string[]>;
+}
+
 export interface CweNode {
   id: string;
   name: string;
@@ -26,6 +48,12 @@ export interface CweNode {
    * weakness has a non-empty nuance; built by scripts/nuance.ts.
    */
   technicalNuance?: NuanceBlock[];
+  /**
+   * The phases the weakness can be introduced in, from MITRE's
+   * Modes_Of_Introduction. Present only when non-empty; built by
+   * scripts/phases.ts.
+   */
+  phases?: CwePhase[];
 }
 
 export interface CweEdge {
@@ -55,4 +83,16 @@ export interface CweData {
   meta: CweMeta;
   nodes: Record<string, CweNode>;
   edges: CweEdge[];
+  /**
+   * Every phase some weakness is introduced in, in picker order. Optional so
+   * hand-built test data stays valid; prepare-data always writes it.
+   */
+  phases?: CwePhase[];
+  /**
+   * The views the filter offers, view 1000 first. Optional so hand-built test
+   * data stays valid; prepare-data always writes it. Built by scripts/views.ts.
+   */
+  views?: CweView[];
+  /** The groupings some view in `views` reaches, by ID. Written with `views`. */
+  groups?: Record<string, CweGroup>;
 }

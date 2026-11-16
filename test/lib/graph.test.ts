@@ -456,3 +456,13 @@ describe('hierarchy edges with an end outside the corpus', { tags: ['theoretical
     expect(countDescendants(graph, '99999')).toBe(1);
   });
 });
+
+describe('buildGraph catalog fields', () => {
+  it('defaults views, groups and phases when the data has none', () => {
+    const graph = buildGraph(sampleData);
+    expect(graph.views).toEqual([]);
+    expect(graph.phases).toEqual([]);
+    expect(graph.groups).toEqual({});
+    expect(Object.getPrototypeOf(graph.groups)).toBeNull();
+  });
+});

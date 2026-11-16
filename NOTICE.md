@@ -4,9 +4,10 @@
 
 This project is a *visualizer*. The CWE corpus it displays — weakness
 identifiers, names, descriptions, abstractions, statuses, technical
-nuance notes, and the relationships between them — is **not original work
-of this project**. It is downloaded verbatim from The MITRE Corporation at
-build time by `scripts/prepare-data.ts` and rendered as-is.
+nuance notes, introduction phases, views, groupings, and the relationships
+between them — is **not original work of this project**. It is downloaded
+verbatim from The MITRE Corporation at build time by
+`scripts/prepare-data.ts` and rendered as-is.
 
     Copyright © The MITRE Corporation. CWE and the CWE logo are trademarks
     of The MITRE Corporation.

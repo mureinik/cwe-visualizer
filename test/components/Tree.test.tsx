@@ -148,6 +148,13 @@ describe('Tree with a graph that has no hierarchy lists', { tags: ['theoretical'
     expect(screen.queryByRole('button', { name: 'Expand CWE-74' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/^CWE-74 also appears under/)).not.toBeInTheDocument();
   });
+
+  it('reveals a node with no childrenOf entry under a filter as a lone leaf', () => {
+    const graph = { ...buildGraph(data), childrenOf: new Map<string, string[]>(), parentsOf: new Map<string, string[]>() };
+    render(<Tree graph={graph} selectedId={null} onSelect={() => {}} revealId="74" matches={new Set(['79'])} />);
+    expect(screen.getByRole('button', { name: 'CWE-74: Injection, outside the filter' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Expand CWE-74' })).not.toBeInTheDocument();
+  });
 });
 
 describe('Tree with a cycle in the hierarchy', { tags: ['theoretical'] }, () => {
@@ -173,5 +180,75 @@ describe('Tree with a cycle in the hierarchy', { tags: ['theoretical'] }, () => 
     render(<Tree graph={graph} selectedId="80" onSelect={() => {}} />);
     expect(screen.getAllByRole('button', { name: 'CWE-79: Cross-site Scripting' })).toHaveLength(1);
     expect(screen.getAllByRole('button', { name: 'CWE-80: Improper Neutralization' })).toHaveLength(1);
+  });
+});
+
+describe('Tree under a filter', () => {
+  const filtered: CweData = {
+    meta: data.meta,
+    nodes: {
+      '284': { id: '284', name: 'Improper Access Control', abstraction: 'Pillar', status: 'Draft', description: '', url: '' },
+      '285': { id: '285', name: 'Improper Authorization', abstraction: 'Class', status: 'Draft', description: '', url: '' },
+      '79': { id: '79', name: 'Cross-site Scripting', abstraction: 'Base', status: 'Stable', description: '', url: '' },
+      '707': { id: '707', name: 'Improper Neutralization', abstraction: 'Pillar', status: 'Incomplete', description: '', url: '' },
+      '71': { id: '71', name: 'DEPRECATED: DS_Store', abstraction: 'Variant', status: 'Deprecated', description: '', url: '' },
+    },
+    edges: [
+      { from: '285', to: '284', type: 'ChildOf' },
+      { from: '79', to: '285', type: 'ChildOf' },
+    ],
+  };
+  const graph = buildGraph(filtered);
+
+  it('opens the path to a match and subdues the rows outside the filter', () => {
+    render(<Tree graph={graph} selectedId={null} onSelect={() => {}} matches={new Set(['79'])} />);
+    expect(screen.getByRole('button', { name: 'CWE-79: Cross-site Scripting' })).not.toHaveClass('tree-label--context');
+    expect(screen.getByRole('button', { name: 'CWE-284: Improper Access Control, outside the filter' })).toHaveClass('tree-label--context');
+    expect(screen.getByRole('button', { name: 'CWE-285: Improper Authorization, outside the filter' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^CWE-707/ })).not.toBeInTheDocument();
+  });
+
+  it('keeps the selected CWE on screen even when it is outside the filter', () => {
+    render(<Tree graph={graph} selectedId="707" onSelect={() => {}} matches={new Set(['79'])} />);
+    expect(screen.getByRole('button', { name: 'CWE-707: Improper Neutralization, outside the filter' })).toBeInTheDocument();
+  });
+
+  it('opens the Deprecated section for a deprecated match, and hides it otherwise', () => {
+    const { unmount } = render(<Tree graph={graph} selectedId={null} onSelect={() => {}} matches={new Set(['71'])} />);
+    expect(screen.getByRole('button', { name: 'Deprecated (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'CWE-71: DEPRECATED: DS_Store' })).toBeInTheDocument();
+    unmount();
+    render(<Tree graph={graph} selectedId={null} onSelect={() => {}} matches={new Set(['79'])} />);
+    expect(screen.queryByRole('button', { name: /^Deprecated/ })).not.toBeInTheDocument();
+  });
+
+  it('says so when nothing matches', () => {
+    render(<Tree graph={graph} selectedId={null} onSelect={() => {}} matches={new Set()} />);
+    expect(screen.getByText('No CWEs match the filter.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^CWE-/ })).not.toBeInTheDocument();
+  });
+
+  it('shows the selected CWE and its path beside the message when nothing matches', () => {
+    render(<Tree graph={graph} selectedId="79" onSelect={() => {}} matches={new Set()} />);
+    expect(screen.getByText('No CWEs match the filter.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'CWE-284: Improper Access Control, outside the filter' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'CWE-285: Improper Authorization, outside the filter' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'CWE-79: Cross-site Scripting, outside the filter' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^CWE-707/ })).not.toBeInTheDocument();
+  });
+
+  // The graph's "+N more children" chip opens the drawer at a CWE to show
+  // its children, which the filter would otherwise hide.
+  it("opens a revealed CWE's children, as context rows unless they match", () => {
+    render(<Tree graph={graph} selectedId={null} onSelect={() => {}} revealId="284" matches={new Set(['284'])} />);
+    expect(screen.getByRole('button', { name: 'Collapse CWE-284' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'CWE-285: Improper Authorization, outside the filter' })).toHaveClass('tree-label--context');
+    expect(screen.queryByRole('button', { name: /^CWE-79/ })).not.toBeInTheDocument();
+  });
+
+  it('lets the user collapse an auto-opened row', async () => {
+    render(<Tree graph={graph} selectedId={null} onSelect={() => {}} matches={new Set(['79'])} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse CWE-285' }));
+    expect(screen.queryByRole('button', { name: 'CWE-79: Cross-site Scripting' })).not.toBeInTheDocument();
   });
 });

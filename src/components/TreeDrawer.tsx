@@ -9,9 +9,12 @@ interface TreeDrawerProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   revealId?: string | null;
+  matches?: Set<string> | null;
+  /** Changes with the filter, so the tree starts afresh. */
+  filterKey?: string;
 }
 
-export function TreeDrawer({ open, onClose, graph, selectedId, onSelect, revealId = null }: TreeDrawerProps) {
+export function TreeDrawer({ open, onClose, graph, selectedId, onSelect, revealId = null, matches = null, filterKey }: TreeDrawerProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -30,12 +33,17 @@ export function TreeDrawer({ open, onClose, graph, selectedId, onSelect, revealI
       return;
     }
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
+      // A picker or the filter panel that took this Escape marks it handled,
+      // so one Escape closes only the innermost thing.
+      if (event.key === 'Escape' && !event.defaultPrevented) {
         onClose();
       }
     }
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+    // On window, not document: the drawer sits under everything else that
+    // closes on Escape, so it hears the key last, after the filter panel's
+    // document listener whichever was added first.
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [open, onClose]);
 
   if (!open) {
@@ -64,7 +72,14 @@ export function TreeDrawer({ open, onClose, graph, selectedId, onSelect, revealI
           </button>
         </div>
         <div className="drawer__body">
-          <Tree graph={graph} selectedId={selectedId} onSelect={onSelect} revealId={revealId} />
+          <Tree
+            key={filterKey}
+            graph={graph}
+            selectedId={selectedId}
+            onSelect={onSelect}
+            revealId={revealId}
+            matches={matches}
+          />
         </div>
       </div>
     </>

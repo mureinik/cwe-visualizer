@@ -23,13 +23,18 @@ function rank(node: CweNode, query: string): number {
   return Number.POSITIVE_INFINITY;
 }
 
-export function searchNodes(graph: Graph, query: string): CweNode[] {
+/**
+ * `matches` is the filter's set of CWEs (see `matchingIds`): when given, only
+ * those can be found. `null` or no set means no filter.
+ */
+export function searchNodes(graph: Graph, query: string, matches?: Set<string> | null): CweNode[] {
   const trimmed = query.trim().toLowerCase();
   if (trimmed === '') {
     return [];
   }
 
   return graph.all
+    .filter((node) => !matches || matches.has(node.id))
     .map((node) => ({ node, rank: rank(node, trimmed) }))
     .filter((scored) => scored.rank !== Number.POSITIVE_INFINITY)
     .sort((a, b) => {

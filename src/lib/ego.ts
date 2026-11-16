@@ -74,6 +74,11 @@ export interface EgoOptions {
    * roughly 250px on a 1280px viewport, and five slots is all that fits.
    */
   lateralCap?: number;
+  /**
+   * CWEs the filter matches. They sort ahead of the rest before the child
+   * and lateral caps cut, so a match isn't hidden behind one that isn't.
+   */
+  preferred?: Set<string>;
 }
 
 /** Types whose direction means "this can lead to X" — X belongs on the right. */
@@ -91,6 +96,9 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
   const ancestorHops = options?.ancestorHops ?? 2;
   const childCap = options?.childCap ?? 10;
   const lateralCap = options?.lateralCap ?? 4;
+  const preferred = options?.preferred;
+  // 0 for a CWE the filter matches, 1 for the rest; always 0 without a filter.
+  const preferredRank = (id: string) => (preferred && !preferred.has(id) ? 1 : 0);
 
   // buildGraph gives every node a relatedTo list, so a missing one is an
   // unknown centre.
@@ -139,10 +147,15 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
   }
 
   // Children, one hop down, ranked so the structurally significant ones
-  // survive the cap: most direct children first, ties by ascending id.
+  // survive the cap: filter matches first, then most direct children, ties
+  // by ascending id.
   const allChildren = [...(graph.childrenOf.get(centerId) ?? [])]
     .filter((id) => id in graph.nodes)
     .sort((a, b) => {
+      const byPreferred = preferredRank(a) - preferredRank(b);
+      if (byPreferred !== 0) {
+        return byPreferred;
+      }
       const byFanout = (graph.childrenOf.get(b) ?? []).length - (graph.childrenOf.get(a) ?? []).length;
       return byFanout !== 0 ? byFanout : compareIds(a, b);
     });
@@ -157,14 +170,19 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
 
   // Lateral relations stay on band 0. Direction carries meaning where the
   // relation has one; everything else is placed to balance the row. The
-  // directional ones go first: they have no choice of side, so a relation
-  // that does mustn't take a slot one of them needs.
+  // filter matches go first, so the cap never hides one behind a CWE that
+  // doesn't match. Within each, the directional ones go first: they have no
+  // choice of side, so a relation that does mustn't take a slot one of them
+  // needs.
   const hasDirection = (type: string) => {
     const base = baseRelationType(type);
     return LEADS_TO.has(base) || LEADS_FROM.has(base);
   };
   const sorted = [...related].sort(
-    (a, b) => Number(hasDirection(b.type)) - Number(hasDirection(a.type)) || compareIds(a.to, b.to),
+    (a, b) =>
+      preferredRank(a.to) - preferredRank(b.to) ||
+      Number(hasDirection(b.type)) - Number(hasDirection(a.type)) ||
+      compareIds(a.to, b.to),
   );
   // One lateral per CWE and group: the first relation in that order places
   // it, and the rest join its edge.

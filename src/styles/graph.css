@@ -102,6 +102,22 @@
   opacity: 0.25;
 }
 
+/*
+ * Outside the filter. Milder than hover dimming, and multiplies with it when
+ * both apply. Only the glyph and the line fade: text at half opacity falls
+ * under 4.5:1, so the labels are subdued with a colour instead.
+ */
+.graph-node--unmatched .graph-node__glyph,
+.graph-edge-group--unmatched .graph-edge {
+  opacity: 0.5;
+}
+
+.graph-node--unmatched .graph-node__id,
+.graph-node--unmatched .graph-node__name,
+.graph-edge-group--unmatched .graph-edge__label {
+  fill: var(--text-muted);
+}
+
 .graph-edge__label {
   font-size: var(--text-xs);
   paint-order: stroke;

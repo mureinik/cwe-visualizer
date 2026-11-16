@@ -17,6 +17,8 @@ interface DetailPanelProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   flash?: RelationFlash | null;
+  /** Ids the filter keeps; null when not filtering. Relations outside it are subdued, not hidden. */
+  matches?: Set<string> | null;
 }
 
 const flashKey = (id: string, type: string) => `${id} ${type}`;
@@ -77,24 +79,27 @@ function RelationChip({
   graph,
   entry,
   flashed,
+  outside,
   onSelect,
 }: {
   graph: Graph;
   entry: Entry;
   flashed: boolean;
+  outside: boolean;
   onSelect: (id: string) => void;
 }) {
   const { id, types } = entry;
   const type = types?.join(', ');
   const node = graph.nodes[id];
   const name = node ? `CWE-${id}: ${node.name}` : `CWE-${id}`;
+  const label = type ? `${type} ${name}` : name;
   return (
     <li>
       <button
         type="button"
-        className={`relation-chip${flashed ? ' relation-chip--flash' : ''}`}
+        className={`relation-chip${flashed ? ' relation-chip--flash' : ''}${outside ? ' relation-chip--outside' : ''}`}
         onClick={() => onSelect(id)}
-        aria-label={type ? `${type} ${name}` : name}
+        aria-label={outside ? `${label}, outside the filter` : label}
       >
         <Glyph abstraction={node?.abstraction ?? ''} size={12} deprecated={isDeprecated(node)} />
         {type && <span className="relation-chip__type">{type}</span>}
@@ -105,7 +110,7 @@ function RelationChip({
   );
 }
 
-export function DetailPanel({ graph, selectedId, onSelect, flash = null }: DetailPanelProps) {
+export function DetailPanel({ graph, selectedId, onSelect, flash = null, matches = null }: DetailPanelProps) {
   // Narrow screens show this as a bottom sheet with two heights: a peek
   // showing the title and badges, and an expanded read. The grabber is
   // hidden by CSS on wide screens, where the card is simply a card.
@@ -194,7 +199,16 @@ export function DetailPanel({ graph, selectedId, onSelect, flash = null }: Detai
                 // A new key per flash remounts the chip, which restarts its
                 // animation when the same relations are flashed again.
                 const key = `${section.label}-${entry.id}${isFlashed ? `-flash${flash?.token}` : ''}`;
-                return <RelationChip key={key} graph={graph} entry={entry} flashed={isFlashed} onSelect={onSelect} />;
+                return (
+                  <RelationChip
+                    key={key}
+                    graph={graph}
+                    entry={entry}
+                    flashed={isFlashed}
+                    outside={matches !== null && !matches.has(entry.id)}
+                    onSelect={onSelect}
+                  />
+                );
               })}
             </ul>
           </section>
