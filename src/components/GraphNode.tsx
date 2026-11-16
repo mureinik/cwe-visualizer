@@ -14,6 +14,8 @@ interface GraphNodeProps {
   compactId: boolean;
   selected: boolean;
   dimmed: boolean;
+  /** Outside the filter: drawn faded, and said so. */
+  unmatched: boolean;
   onSelect: (id: string) => void;
   onKeyDown: (event: React.KeyboardEvent<SVGGElement>) => void;
   onHover: (id: string | null) => void;
@@ -27,6 +29,7 @@ export function GraphNode({
   compactId,
   selected,
   dimmed,
+  unmatched,
   onSelect,
   onKeyDown,
   onHover,
@@ -39,12 +42,12 @@ export function GraphNode({
 
   return (
     <g
-      className={`graph-node${selected ? ' graph-node--selected' : ''}${dimmed ? ' graph-node--dimmed' : ''}`}
+      className={`graph-node${selected ? ' graph-node--selected' : ''}${dimmed ? ' graph-node--dimmed' : ''}${unmatched ? ' graph-node--unmatched' : ''}`}
       data-node-id={node.id}
       transform={`translate(${node.x} ${node.y})`}
       role="button"
       tabIndex={0}
-      aria-label={label}
+      aria-label={unmatched ? `${label}, outside the filter` : label}
       aria-current={selected ? 'true' : undefined}
       onClick={() => onSelect(node.id)}
       onKeyDown={onKeyDown}

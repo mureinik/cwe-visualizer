@@ -5,19 +5,20 @@ import type { PositionedEdge } from '../lib/layout';
 interface GraphEdgeProps {
   edge: PositionedEdge;
   dimmed: boolean;
+  unmatched?: boolean;
   /** Whether the edge ends at the selected node, whose halo is the larger. */
   intoCenter?: boolean;
 }
 
-function groupClass(dimmed: boolean) {
-  return `graph-edge-group${dimmed ? ' graph-edge-group--dimmed' : ''}`;
+function groupClass(dimmed: boolean, unmatched: boolean) {
+  return `graph-edge-group${dimmed ? ' graph-edge-group--dimmed' : ''}${unmatched ? ' graph-edge-group--unmatched' : ''}`;
 }
 
-export function GraphEdge({ edge, dimmed, intoCenter = false }: GraphEdgeProps) {
+export function GraphEdge({ edge, dimmed, unmatched = false, intoCenter = false }: GraphEdgeProps) {
   const { line } = EDGE_GROUPS[edge.group];
 
   return (
-    <g className={groupClass(dimmed)}>
+    <g className={groupClass(dimmed, unmatched)}>
       <path
         className={`graph-edge graph-edge--${edge.group}`}
         d={edge.path}
@@ -36,12 +37,13 @@ export function GraphEdge({ edge, dimmed, intoCenter = false }: GraphEdgeProps) 
 interface GraphEdgeLabelProps {
   edge: PositionedEdge;
   dimmed: boolean;
+  unmatched?: boolean;
 }
 
 /** Apart from its edge, so that it can be drawn over all of them. */
-export function GraphEdgeLabel({ edge, dimmed }: GraphEdgeLabelProps) {
+export function GraphEdgeLabel({ edge, dimmed, unmatched = false }: GraphEdgeLabelProps) {
   return (
-    <g className={groupClass(dimmed)}>
+    <g className={groupClass(dimmed, unmatched)}>
       <text
         className="graph-edge__label"
         x={edge.label.x}

@@ -141,6 +141,7 @@ export function App() {
             <GraphStage
               graph={state.graph}
               selectedId={selectedId}
+              matches={matches}
               onSelect={selectNode}
               onShowChildren={(parentId) => {
                 setRevealId(parentId);

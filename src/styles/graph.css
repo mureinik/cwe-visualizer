@@ -102,6 +102,12 @@
   opacity: 0.25;
 }
 
+/* Outside the filter. Milder than hover dimming, and multiplies with it when both apply. */
+.graph-node--unmatched,
+.graph-edge-group--unmatched {
+  opacity: 0.5;
+}
+
 .graph-edge__label {
   font-size: var(--text-xs);
   paint-order: stroke;
