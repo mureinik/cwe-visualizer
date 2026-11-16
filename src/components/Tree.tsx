@@ -25,15 +25,24 @@ export function Tree({ graph, selectedId, onSelect, revealId = null, matches = n
   // A filter opens the Deprecated section, since its rows are matches.
   const [showDeprecated, setShowDeprecated] = useState(matches !== null);
 
-  // Rows on screen under a filter: the matches, their paths, and the selected
-  // CWE with its path (so the selection never vanishes). Null shows everything.
+  // Rows on screen under a filter: the matches, their paths, the selected
+  // CWE with its path (so the selection never vanishes), and the revealed CWE
+  // with its path and children (so the graph's "+N more" chip shows what it
+  // promised). Null shows everything.
   let visible: Set<string> | null = null;
   if (matches !== null) {
     visible = withMatchPaths(graph, matches);
-    if (selectedId && selectedId in graph.nodes) {
-      visible.add(selectedId);
-      for (const ancestor of ancestorsOf(graph, selectedId)) {
-        visible.add(ancestor);
+    for (const id of [selectedId, revealId]) {
+      if (id && id in graph.nodes) {
+        visible.add(id);
+        for (const ancestor of ancestorsOf(graph, id)) {
+          visible.add(ancestor);
+        }
+      }
+    }
+    if (revealId && revealId in graph.nodes) {
+      for (const child of graph.childrenOf.get(revealId) ?? []) {
+        visible.add(child);
       }
     }
   }

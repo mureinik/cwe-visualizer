@@ -148,6 +148,13 @@ describe('Tree with a graph that has no hierarchy lists', { tags: ['theoretical'
     expect(screen.queryByRole('button', { name: 'Expand CWE-74' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/^CWE-74 also appears under/)).not.toBeInTheDocument();
   });
+
+  it('reveals a node with no childrenOf entry under a filter as a lone leaf', () => {
+    const graph = { ...buildGraph(data), childrenOf: new Map<string, string[]>(), parentsOf: new Map<string, string[]>() };
+    render(<Tree graph={graph} selectedId={null} onSelect={() => {}} revealId="74" matches={new Set(['79'])} />);
+    expect(screen.getByRole('button', { name: 'CWE-74: Injection, outside the filter' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Expand CWE-74' })).not.toBeInTheDocument();
+  });
 });
 
 describe('Tree with a cycle in the hierarchy', { tags: ['theoretical'] }, () => {
@@ -228,6 +235,15 @@ describe('Tree under a filter', () => {
     expect(screen.getByRole('button', { name: 'CWE-285: Improper Authorization, outside the filter' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'CWE-79: Cross-site Scripting, outside the filter' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^CWE-707/ })).not.toBeInTheDocument();
+  });
+
+  // The graph's "+N more children" chip opens the drawer at a CWE to show
+  // its children, which the filter would otherwise hide.
+  it("opens a revealed CWE's children, as context rows unless they match", () => {
+    render(<Tree graph={graph} selectedId={null} onSelect={() => {}} revealId="284" matches={new Set(['284'])} />);
+    expect(screen.getByRole('button', { name: 'Collapse CWE-284' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'CWE-285: Improper Authorization, outside the filter' })).toHaveClass('tree-label--context');
+    expect(screen.queryByRole('button', { name: /^CWE-79/ })).not.toBeInTheDocument();
   });
 
   it('lets the user collapse an auto-opened row', async () => {
