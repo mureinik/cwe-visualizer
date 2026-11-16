@@ -138,7 +138,14 @@ export function readViews(
       }
     }
 
+    // A grouping with no weaknesses under it in this view would filter to
+    // nothing, so the view doesn't offer it (CWE 5.0 has dozens).
+    const offered: string[] = [];
     for (const groupId of reached) {
+      const weaknesses = [...beneath(groupId, new Set())].sort(numerically);
+      if (weaknesses.length === 0) {
+        continue;
+      }
       const rawGroup = rawGroups.get(groupId)!;
       groups[groupId] ??= {
         id: groupId,
@@ -146,10 +153,11 @@ export function readViews(
         status: rawGroup['@_Status'] ?? '',
         membersByView: {},
       };
-      groups[groupId].membersByView[id] = [...beneath(groupId, new Set())].sort(numerically);
+      groups[groupId].membersByView[id] = weaknesses;
+      offered.push(groupId);
     }
     view.memberIds = [...members].sort(numerically);
-    view.groupIds = [...reached].sort((a, b) => {
+    view.groupIds = offered.sort((a, b) => {
       const retired = Number(RETIRED_STATUSES.has(groups[a].status)) - Number(RETIRED_STATUSES.has(groups[b].status));
       return retired !== 0 ? retired : byName(groups[a], groups[b]);
     });
