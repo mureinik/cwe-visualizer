@@ -57,6 +57,14 @@ describe('writeFilter', () => {
     expect(readFilter(`?${params.toString()}`, graph)).toEqual({ filter, dropped: [] });
   });
 
+  it('round-trips a view with a group', () => {
+    const filter = { viewId: '10', groupId: '20', phase: 'Testing' };
+    const params = new URLSearchParams('cwe=79');
+    writeFilter(params, filter);
+    expect(params.get('group')).toBe('20');
+    expect(readFilter(`?${params.toString()}`, graph)).toEqual({ filter, dropped: [] });
+  });
+
   it('removes all three parameters for the default filter and keeps cwe', () => {
     const params = new URLSearchParams('cwe=79&view=10&group=20&phase=Testing');
     writeFilter(params, DEFAULT_FILTER);

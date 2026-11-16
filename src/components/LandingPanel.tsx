@@ -16,12 +16,13 @@ export function LandingPanel({ graph, onSelect, onOpenTree, matches = null, onCl
   const pillars = graph.roots.map((id) => ({
     id,
     beneath: countDescendants(graph, id),
-    matched: matches === null ? null : countMatchesBeneath(graph, id, matches),
+    // Only read while a filter is on.
+    matched: matches === null ? 0 : countMatchesBeneath(graph, id, matches),
   }));
   // A pillar stays when it matches, or leads to one that does.
   const listed = matches === null
     ? pillars
-    : pillars.filter(({ id, matched }) => matches.has(id) || (matched ?? 0) > 0);
+    : pillars.filter(({ id, matched }) => matches.has(id) || matched > 0);
 
   return (
     <div className="landing">
@@ -52,7 +53,7 @@ export function LandingPanel({ graph, onSelect, onOpenTree, matches = null, onCl
                       className={`pillar-card${context ? ' pillar-card--context' : ''}`}
                       onClick={() => onSelect(id)}
                       aria-label={
-                        matched === null
+                        matches === null
                           ? `CWE-${id}: ${node.name}, ${beneath} weaknesses beneath it`
                           : `CWE-${id}: ${node.name}, ${matched} of ${beneath} weaknesses beneath it match the filter`
                       }
@@ -61,7 +62,7 @@ export function LandingPanel({ graph, onSelect, onOpenTree, matches = null, onCl
                       <span className="pillar-card__id">CWE-{id}</span>
                       <span className="pillar-card__name">{node.name}</span>
                       <span className="pillar-card__count">
-                        {matched === null ? beneath : `${matched} of ${beneath}`}
+                        {matches === null ? beneath : `${matched} of ${beneath}`}
                       </span>
                     </button>
                   </li>

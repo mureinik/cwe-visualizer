@@ -28,6 +28,15 @@ describe('matchingIds', () => {
   it('applies a phase with the default view', () => {
     expect(matchingIds(graph, { ...DEFAULT_FILTER, phase: 'Implementation' })).toEqual(new Set(['2']));
   });
+
+  // readFilter drops a view or group the graph doesn't have, and the panel
+  // offers only the graph's own, so App never passes one.
+  describe('a view or group the graph does not have', { tags: ['theoretical'] }, () => {
+    it('matches nothing', () => {
+      expect(matchingIds(graph, { ...DEFAULT_FILTER, viewId: '9999' })).toEqual(new Set());
+      expect(matchingIds(graph, { ...view10, groupId: '9999' })).toEqual(new Set());
+    });
+  });
 });
 
 describe('filterCount', () => {

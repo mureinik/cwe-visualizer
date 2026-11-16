@@ -132,4 +132,23 @@ describe('FilterBar', () => {
     );
     expect(screen.getByText('Not in CWE 4.15, so ignored: view 9999, phase Nope')).toBeInTheDocument();
   });
+
+  // readFilter drops values the graph doesn't have, and the panel offers only
+  // the graph's own, so App never passes one.
+  describe('a value the graph does not have', { tags: ['theoretical'] }, () => {
+    it('labels its chip with the raw value', () => {
+      render(
+        <FilterBar
+          graph={graph}
+          filter={{ viewId: '9998', groupId: '9999', phase: 'Nope' }}
+          matchCount={0}
+          dropped={[]}
+          onChange={() => {}}
+        />,
+      );
+      for (const value of ['9998', '9999', 'Nope']) {
+        expect(screen.getByRole('button', { name: `Remove filter: ${value}` })).toBeInTheDocument();
+      }
+    });
+  });
 });

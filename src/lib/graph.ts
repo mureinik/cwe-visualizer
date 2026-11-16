@@ -185,11 +185,11 @@ export function ancestorsOf(graph: Graph, id: string): Set<string> {
 }
 
 /**
- * How many distinct weaknesses sit beneath `id`, at any depth. The hierarchy
- * is a DAG rather than a tree — 200 entries have more than one parent — so
- * this counts each descendant once however many paths reach it.
+ * The distinct weaknesses beneath `id`, at any depth, excluding `id`. The
+ * hierarchy is a DAG rather than a tree — 200 entries have more than one
+ * parent — so each descendant is listed once however many paths reach it.
  */
-export function countDescendants(graph: Graph, id: string): number {
+export function descendantsOf(graph: Graph, id: string): Set<string> {
   const seen = new Set<string>();
   const queue = [...(graph.childrenOf.get(id) ?? [])];
   // Walk by index rather than shift(), which is O(n) per call.
@@ -202,5 +202,10 @@ export function countDescendants(graph: Graph, id: string): number {
     queue.push(...(graph.childrenOf.get(next) ?? []));
   }
   seen.delete(id);
-  return seen.size;
+  return seen;
+}
+
+/** How many distinct weaknesses sit beneath `id`, at any depth. */
+export function countDescendants(graph: Graph, id: string): number {
+  return descendantsOf(graph, id).size;
 }

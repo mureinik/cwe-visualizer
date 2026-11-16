@@ -1,4 +1,4 @@
-import { ancestorsOf, type Graph } from './graph';
+import { ancestorsOf, descendantsOf, type Graph } from './graph';
 import { phaseKey } from './phases';
 
 /** The view that imposes no constraint. Matches scripts/views.ts. */
@@ -54,22 +54,5 @@ export function withMatchPaths(graph: Graph, matches: Set<string>): Set<string> 
 
 /** How many distinct matching descendants sit beneath `id`, excluding `id`. */
 export function countMatchesBeneath(graph: Graph, id: string, matches: Set<string>): number {
-  const seen = new Set<string>();
-  const queue = [...(graph.childrenOf.get(id) ?? [])];
-  for (let i = 0; i < queue.length; i += 1) {
-    const next = queue[i];
-    if (seen.has(next)) {
-      continue;
-    }
-    seen.add(next);
-    queue.push(...(graph.childrenOf.get(next) ?? []));
-  }
-  seen.delete(id);
-  let count = 0;
-  for (const descendant of seen) {
-    if (matches.has(descendant)) {
-      count += 1;
-    }
-  }
-  return count;
+  return [...descendantsOf(graph, id)].filter((descendant) => matches.has(descendant)).length;
 }

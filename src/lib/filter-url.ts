@@ -1,5 +1,5 @@
 import { DEFAULT_FILTER, DEFAULT_VIEW_ID, type Filter } from './filter';
-import type { CweView, Graph } from './graph';
+import type { Graph } from './graph';
 import { phaseKey } from './phases';
 
 // The filter bar repeats what was dropped, and anyone can write the address,
@@ -18,19 +18,21 @@ export function readFilter(search: string, graph: Graph): { filter: Filter; drop
   const dropped: string[] = [];
 
   const view = params.get('view');
-  let validView: CweView | undefined;
+  // The groups a `group` may name: those of the chosen view, so none on the default.
+  let groupIds: string[] = [];
   if (view !== null) {
-    validView = graph.views.find((v) => v.id === view);
+    const validView = graph.views.find((v) => v.id === view);
     if (!validView) {
       dropped.push(droppedLabel('view', view, SAFE_ID));
     } else if (view !== DEFAULT_VIEW_ID) {
       filter.viewId = view;
+      groupIds = validView.groupIds;
     }
   }
 
   const group = params.get('group');
   if (group !== null) {
-    if (filter.viewId !== DEFAULT_VIEW_ID && validView?.groupIds.includes(group)) {
+    if (groupIds.includes(group)) {
       filter.groupId = group;
     } else {
       dropped.push(droppedLabel('group', group, SAFE_ID));
