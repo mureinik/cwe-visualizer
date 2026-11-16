@@ -1,7 +1,7 @@
-import type { CweData, CweEdge, CweMeta, CweNode } from './cwe-data';
+import type { CweData, CweEdge, CweGroup, CweMeta, CweNode, CwePhase, CweView } from './cwe-data';
 import { INVERSE_SUFFIX, isInverse } from './relations';
 
-export type { CweData, CweEdge, CweMeta, CweNode } from './cwe-data';
+export type { CweData, CweEdge, CweGroup, CweMeta, CweNode, CwePhase, CweView } from './cwe-data';
 
 export interface Graph {
   meta: CweMeta;
@@ -23,6 +23,12 @@ export interface Graph {
    */
   deprecatedRoots: string[];
   all: CweNode[];
+  /** The catalog's views; empty when the data has none. */
+  views: CweView[];
+  /** Keyed by group id, with a null prototype like `nodes`. */
+  groups: Record<string, CweGroup>;
+  /** Every introduction phase in the catalog; empty when the data has none. */
+  phases: CwePhase[];
 }
 
 export interface BuildGraphOptions {
@@ -156,7 +162,11 @@ export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
 
   const all = Object.values(nodes).sort((a, b) => compareIds(a.id, b.id));
 
-  return { meta: data.meta, nodes, childrenOf, parentsOf, relatedTo, roots, deprecatedRoots, all };
+  const views = data.views ?? [];
+  const groups = Object.assign(Object.create(null) as Record<string, CweGroup>, data.groups);
+  const phases = data.phases ?? [];
+
+  return { meta: data.meta, nodes, childrenOf, parentsOf, relatedTo, roots, deprecatedRoots, all, views, groups, phases };
 }
 
 export function ancestorsOf(graph: Graph, id: string): Set<string> {
