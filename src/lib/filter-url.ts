@@ -2,6 +2,15 @@ import { DEFAULT_FILTER, DEFAULT_VIEW_ID, type Filter } from './filter';
 import type { CweView, Graph } from './graph';
 import { phaseKey } from './phases';
 
+// The filter bar repeats what was dropped, and anyone can write the address,
+// so a dropped value is named only when it looks like what it claims to be.
+const SAFE_ID = /^\d+$/;
+const SAFE_PHASE = /^[A-Za-z0-9 &/:().,-]{1,40}$/;
+
+function droppedLabel(kind: string, value: string, safe: RegExp): string {
+  return safe.test(value) ? `${kind} ${value}` : `an unrecognised ${kind}`;
+}
+
 /** Reads the filter from a query string, dropping values this graph doesn't know. */
 export function readFilter(search: string, graph: Graph): { filter: Filter; dropped: string[] } {
   const params = new URLSearchParams(search);
@@ -13,7 +22,7 @@ export function readFilter(search: string, graph: Graph): { filter: Filter; drop
   if (view !== null) {
     validView = graph.views.find((v) => v.id === view);
     if (!validView) {
-      dropped.push(`view ${view}`);
+      dropped.push(droppedLabel('view', view, SAFE_ID));
     } else if (view !== DEFAULT_VIEW_ID) {
       filter.viewId = view;
     }
@@ -24,7 +33,7 @@ export function readFilter(search: string, graph: Graph): { filter: Filter; drop
     if (filter.viewId !== DEFAULT_VIEW_ID && validView?.groupIds.includes(group)) {
       filter.groupId = group;
     } else {
-      dropped.push(`group ${group}`);
+      dropped.push(droppedLabel('group', group, SAFE_ID));
     }
   }
 
@@ -33,7 +42,7 @@ export function readFilter(search: string, graph: Graph): { filter: Filter; drop
     if (graph.phases.some((p) => phaseKey(p) === phase)) {
       filter.phase = phase;
     } else {
-      dropped.push(`phase ${phase}`);
+      dropped.push(droppedLabel('phase', phase, SAFE_PHASE));
     }
   }
 

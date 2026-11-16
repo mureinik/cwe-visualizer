@@ -24,6 +24,22 @@ describe('readFilter', () => {
     });
   });
 
+  // The address is anyone's to write, and the filter bar repeats what it
+  // drops, so only a value that reads as an id or a phase name is repeated.
+  it('names a non-numeric view or group only generically', () => {
+    expect(readFilter('?view=Click%20here&group=evil.example', graph)).toEqual({
+      filter: DEFAULT_FILTER,
+      dropped: ['an unrecognised view', 'an unrecognised group'],
+    });
+  });
+
+  it('names a long or unusual phase only generically', () => {
+    const sentence = 'Your session has expired, sign in again at evil.example';
+    expect(readFilter(`?phase=${encodeURIComponent(sentence)}`, graph).dropped).toEqual(['an unrecognised phase']);
+    expect(readFilter('?phase=%3Cb%3EHi%3C%2Fb%3E', graph).dropped).toEqual(['an unrecognised phase']);
+    expect(readFilter('?phase=Design%20%26%20Test%3A%20Old%20(v2)', graph).dropped).toEqual(['phase Design & Test: Old (v2)']);
+  });
+
   it('drops a group with no view', () => {
     expect(readFilter('?group=20', graph)).toEqual({ filter: DEFAULT_FILTER, dropped: ['group 20'] });
   });
