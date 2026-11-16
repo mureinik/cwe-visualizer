@@ -58,8 +58,10 @@ function FilterButton({ graph, filter, onChange, narrow }: FilterButtonProps) {
       }
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      // A picker inside handles its own Escape, closing only its list.
+      // A picker inside handles its own Escape, closing only its list. This
+      // one is marked handled too, so the tree drawer under the panel stays open.
       if (event.key === 'Escape' && !event.defaultPrevented) {
+        event.preventDefault();
         setOpen(false);
         buttonRef.current?.focus();
       }

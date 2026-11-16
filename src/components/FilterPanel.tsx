@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, useRef } from 'react';
 import { DEFAULT_FILTER, DEFAULT_VIEW_ID, filterCount, type Filter } from '../lib/filter';
 import { isDeprecated, type Graph } from '../lib/graph';
 import { phaseKey, phaseLabel } from '../lib/phases';
@@ -17,6 +17,15 @@ interface FilterPanelProps {
 /** The view, group and phase pickers. There is no Apply: every change takes effect at once. */
 export function FilterPanel({ id, graph, filter, onChange, narrow, onClose }: FilterPanelProps) {
   const phaseId = useId();
+  const viewRef = useRef<HTMLInputElement>(null);
+  const groupRef = useRef<HTMLInputElement>(null);
+  const phaseRef = useRef<HTMLSelectElement>(null);
+  // A clear button disables itself once used, which would drop focus to the
+  // page; it goes to the control the button cleared instead.
+  const clear = (next: Filter, focusTo: React.RefObject<HTMLInputElement | HTMLSelectElement | null>) => {
+    onChange(next);
+    focusTo.current?.focus();
+  };
   const viewOptions: PickerOption[] = graph.views.map((view) => ({ id: view.id, label: `${view.name} (${view.id})` }));
   const groupOptions: PickerOption[] = (graph.views.find((view) => view.id === filter.viewId)?.groupIds ?? [])
     .map((groupId) => graph.groups[groupId])
@@ -35,6 +44,7 @@ export function FilterPanel({ id, graph, filter, onChange, narrow, onClose }: Fi
       <div className="filter-panel__field">
         <Picker
           label="View"
+          inputRef={viewRef}
           options={viewOptions}
           value={filter.viewId}
           onChange={(viewId) => onChange({ ...filter, viewId, groupId: null })}
@@ -43,7 +53,7 @@ export function FilterPanel({ id, graph, filter, onChange, narrow, onClose }: Fi
           type="button"
           className="filter-panel__clear"
           disabled={filter.viewId === DEFAULT_VIEW_ID}
-          onClick={() => onChange({ ...filter, viewId: DEFAULT_VIEW_ID, groupId: null })}
+          onClick={() => clear({ ...filter, viewId: DEFAULT_VIEW_ID, groupId: null }, viewRef)}
         >
           Show all CWEs
         </button>
@@ -51,6 +61,7 @@ export function FilterPanel({ id, graph, filter, onChange, narrow, onClose }: Fi
       <div className="filter-panel__field">
         <Picker
           label="Group"
+          inputRef={groupRef}
           options={groupOptions}
           value={filter.groupId}
           placeholder={groupOptions.length === 0 ? 'None in this view' : 'Any group'}
@@ -61,7 +72,7 @@ export function FilterPanel({ id, graph, filter, onChange, narrow, onClose }: Fi
           type="button"
           className="filter-panel__clear"
           disabled={filter.groupId === null}
-          onClick={() => onChange({ ...filter, groupId: null })}
+          onClick={() => clear({ ...filter, groupId: null }, groupRef)}
         >
           Clear group
         </button>
@@ -72,6 +83,7 @@ export function FilterPanel({ id, graph, filter, onChange, narrow, onClose }: Fi
             Phase
           </label>
           <select
+            ref={phaseRef}
             id={phaseId}
             className="picker__input"
             value={filter.phase ?? ''}
@@ -89,7 +101,7 @@ export function FilterPanel({ id, graph, filter, onChange, narrow, onClose }: Fi
           type="button"
           className="filter-panel__clear"
           disabled={filter.phase === null}
-          onClick={() => onChange({ ...filter, phase: null })}
+          onClick={() => clear({ ...filter, phase: null }, phaseRef)}
         >
           Clear phase
         </button>
@@ -98,7 +110,7 @@ export function FilterPanel({ id, graph, filter, onChange, narrow, onClose }: Fi
         type="button"
         className="filter-panel__clear-all"
         disabled={filterCount(filter) === 0}
-        onClick={() => onChange(DEFAULT_FILTER)}
+        onClick={() => clear(DEFAULT_FILTER, viewRef)}
       >
         Clear all
       </button>

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { useState } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FilterPanel } from '../../src/components/FilterPanel';
@@ -13,6 +14,12 @@ function renderPanel(filter: Filter = DEFAULT_FILTER, narrow = false) {
   const onClose = vi.fn();
   render(<FilterPanel graph={graph} filter={filter} onChange={onChange} narrow={narrow} onClose={onClose} />);
   return { onChange, onClose };
+}
+
+/** Holds the filter, so a clear button disables itself as it does in the app. */
+function StatefulPanel({ initial }: { initial: Filter }) {
+  const [filter, setFilter] = useState(initial);
+  return <FilterPanel graph={graph} filter={filter} onChange={setFilter} narrow={false} onClose={() => {}} />;
 }
 
 describe('FilterPanel', () => {
@@ -97,6 +104,25 @@ describe('FilterPanel', () => {
     const { onChange } = renderPanel({ viewId: '699', groupId: '1228', phase: 'Implementation' });
     await userEvent.click(screen.getByRole('button', { name: 'Clear all' }));
     expect(onChange).toHaveBeenCalledExactlyOnceWith(DEFAULT_FILTER);
+  });
+
+  // A clear button disables itself once used, which would drop focus to the page.
+  it.each([
+    ['Clear group', 'Group'],
+    ['Show all CWEs', 'View'],
+    ['Clear all', 'View'],
+  ])('moves focus from %s to the %s picker', async (button, picker) => {
+    render(<StatefulPanel initial={{ viewId: '699', groupId: '1228', phase: 'Implementation' }} />);
+    await userEvent.click(screen.getByRole('button', { name: button }));
+    expect(screen.getByRole('button', { name: button })).toBeDisabled();
+    expect(screen.getByRole('combobox', { name: picker })).toHaveFocus();
+  });
+
+  it('moves focus from Clear phase to the phase list', async () => {
+    render(<StatefulPanel initial={{ viewId: '699', groupId: '1228', phase: 'Implementation' }} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Clear phase' }));
+    expect(screen.getByRole('button', { name: 'Clear phase' })).toBeDisabled();
+    expect(screen.getByRole('combobox', { name: 'Phase' })).toHaveFocus();
   });
 
   it('disables the clear buttons with nothing to clear', () => {

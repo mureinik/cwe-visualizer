@@ -16,6 +16,8 @@ interface PickerProps {
   /** Shown when no option is chosen. */
   placeholder?: string;
   disabled?: boolean;
+  /** The text input, for a caller that needs to move focus to it. */
+  inputRef?: React.Ref<HTMLInputElement>;
 }
 
 /**
@@ -23,7 +25,7 @@ interface PickerProps {
  * SearchBox: arrows move the active option, Enter picks it, Escape closes.
  * Closed, it shows the chosen option.
  */
-export function Picker({ label, options, value, onChange, placeholder, disabled = false }: PickerProps) {
+export function Picker({ label, options, value, onChange, placeholder, disabled = false, inputRef }: PickerProps) {
   // What has been typed since the list opened; null shows the chosen option.
   const [query, setQuery] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -88,6 +90,7 @@ export function Picker({ label, options, value, onChange, placeholder, disabled 
         {label}
       </label>
       <input
+        ref={inputRef}
         id={inputId}
         type="text"
         role="combobox"

@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AppHeader } from '../../src/components/AppHeader';
+import { TreeDrawer } from '../../src/components/TreeDrawer';
 import { DEFAULT_FILTER, matchingIds } from '../../src/lib/filter';
 import { buildGraph, type CweData } from '../../src/lib/graph';
 import { viewsData } from '../fixtures/views-data';
@@ -112,6 +113,27 @@ describe('AppHeader filter button', () => {
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(button).toHaveFocus();
+  });
+
+  it('takes one Escape at a time over the open tree drawer: list, then panel, then drawer', async () => {
+    const onCloseDrawer = vi.fn();
+    render(
+      <>
+        <TreeDrawer open onClose={onCloseDrawer} graph={graph} selectedId={null} onSelect={() => {}} />
+        <AppHeader {...props} graph={graph} drawerOpen onFilterChange={() => {}} />
+      </>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /^Filter/ }));
+    await userEvent.click(screen.getByRole('combobox', { name: 'View' }));
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Filter' })).toBeInTheDocument();
+    expect(onCloseDrawer).not.toHaveBeenCalled();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: 'Filter' })).not.toBeInTheDocument();
+    expect(onCloseDrawer).not.toHaveBeenCalled();
+    await userEvent.keyboard('{Escape}');
+    expect(onCloseDrawer).toHaveBeenCalledOnce();
   });
 
   it('toggles the panel from the button', async () => {

@@ -36,6 +36,15 @@ describe('TreeDrawer', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('leaves an Escape that something inside it already handled', () => {
+    const onClose = vi.fn();
+    render(<TreeDrawer open onClose={onClose} graph={graph} selectedId={null} onSelect={() => {}} />);
+    const handled = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    handled.preventDefault();
+    screen.getByRole('button', { name: 'Close the weakness tree' }).dispatchEvent(handled);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('closes when the backdrop is clicked', async () => {
     const onClose = vi.fn();
     render(<TreeDrawer open onClose={onClose} graph={graph} selectedId={null} onSelect={() => {}} />);
