@@ -158,7 +158,7 @@ export function App() {
               hops={narrow ? 1 : 2}
               hideEdgeLabels={edgeLabels === 'hidden'}
             />
-            <DetailPanel graph={state.graph} selectedId={selectedId} onSelect={selectNode} flash={flash} />
+            <DetailPanel graph={state.graph} selectedId={selectedId} onSelect={selectNode} flash={flash} matches={matches} />
           </>
         )}
         <TreeDrawer

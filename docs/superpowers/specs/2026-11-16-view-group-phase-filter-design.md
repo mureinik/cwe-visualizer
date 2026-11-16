@@ -106,7 +106,8 @@ Measured on the CWE 5.0 archive (`cwec_v5.0.xml`):
   "Top 25 2025 or OWASP 2021". It could come later.
 - **Showing a CWE's views, groups or phases in the detail panel.**
 - **Filtering the detail panel's Parents and Children lists.** They describe
-  one CWE and stay complete.
+  one CWE and stay complete. Entries outside the filter are subdued, as in
+  the tree.
 - **Any change for the 4.x releases.** They are never rebuilt, so they won't
   get the filter.
 - **Dimensions** and the rest of #210.
@@ -294,6 +295,13 @@ On view 1000 with no phase, the default, everything behaves as it does today.
 - When the filter removes every result, the empty state says the filter is
   on, so "no results" isn't mistaken for "no such CWE".
 
+### Detail panel
+
+- Every relation list stays complete. Chips for CWEs outside the filter are
+  subdued like the tree's rows, and their accessible names end "outside the
+  filter".
+- The selected CWE's own header is unchanged.
+
 ### Controls
 
 - **Filter button:** next to search, labelled "Filter". It shows how many
@@ -353,7 +361,8 @@ On view 1000 with no phase, the default, everything behaves as it does today.
 - The selected CWE stays at full strength in the graph even when it doesn't
   match.
 - Matching CWEs are placed first in capped graph bands.
-- The detail panel's relation lists aren't filtered.
+- The detail panel's relation lists aren't filtered; entries outside the
+  filter are subdued.
 - The URL is updated with `replaceState`, as `?cwe=` is, so filter changes
   don't add Back-button history.
 
