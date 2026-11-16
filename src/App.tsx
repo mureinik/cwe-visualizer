@@ -123,6 +123,7 @@ export function App() {
         matches={matches}
         dropped={dropped}
         onFilterChange={setFilter}
+        narrow={narrow}
       />
       <main className="app-stage">
         {selectedId === null ? (

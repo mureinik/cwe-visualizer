@@ -1,8 +1,10 @@
+import { useEffect, useId, useRef, useState } from 'react';
 import type { EdgeLabels } from '../lib/edge-labels';
-import { DEFAULT_FILTER, type Filter } from '../lib/filter';
+import { DEFAULT_FILTER, filterCount, type Filter } from '../lib/filter';
 import type { Graph } from '../lib/graph';
 import { EdgeLabelsToggle } from './EdgeLabelsToggle';
 import { FilterBar } from './FilterBar';
+import { FilterPanel } from './FilterPanel';
 import { ReleaseSwitcher } from './ReleaseSwitcher';
 import { SearchBox } from './SearchBox';
 import { ThemeToggle } from './ThemeToggle';
@@ -20,9 +22,84 @@ interface AppHeaderProps {
   /** Filter values from the address this release doesn't have. */
   dropped?: string[];
   onFilterChange?: (filter: Filter) => void;
+  /** Below the breakpoint, where the filter panel is a bottom sheet. */
+  narrow?: boolean;
 }
 
 const NO_DROPPED: string[] = [];
+
+interface FilterButtonProps {
+  graph: Graph;
+  filter: Filter;
+  onChange: (filter: Filter) => void;
+  narrow: boolean;
+}
+
+/** Opens the filter panel, and closes it the way ReleaseSwitcher closes its list. */
+function FilterButton({ graph, filter, onChange, narrow }: FilterButtonProps) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelId = useId();
+  const count = filterCount(filter);
+
+  function close() {
+    setOpen(false);
+    buttonRef.current?.focus();
+  }
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const closeOutside = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      // A picker inside handles its own Escape, closing only its list.
+      if (event.key === 'Escape' && !event.defaultPrevented) {
+        setOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', closeOutside);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOutside);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [open]);
+
+  return (
+    <div
+      ref={rootRef}
+      className="filter-menu"
+      onBlur={(event) => {
+        // Tabbing out closes it, as a click outside does. A click on the
+        // panel's background blurs with no new focus; that isn't leaving.
+        if (event.relatedTarget !== null && !event.currentTarget.contains(event.relatedTarget)) {
+          setOpen(false);
+        }
+      }}
+    >
+      <button
+        ref={buttonRef}
+        type="button"
+        className="filter-button"
+        aria-label={count === 0 ? 'Filter' : `Filter, ${count} set`}
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((wasOpen) => !wasOpen)}
+      >
+        Filter
+        {count > 0 && <span className="filter-button__badge">{count}</span>}
+      </button>
+      {open && <FilterPanel id={panelId} graph={graph} filter={filter} onChange={onChange} narrow={narrow} onClose={close} />}
+    </div>
+  );
+}
 
 export function AppHeader({
   graph,
@@ -35,6 +112,7 @@ export function AppHeader({
   matches = null,
   dropped = NO_DROPPED,
   onFilterChange,
+  narrow = false,
 }: AppHeaderProps) {
   return (
     <header className="app-header">
@@ -50,6 +128,7 @@ export function AppHeader({
       <h1 className="app-header__title">CWE Visualizer</h1>
       <div className="app-header__search">
         <SearchBox graph={graph} onSelect={onSelect} matches={matches} />
+        {onFilterChange && <FilterButton graph={graph} filter={filter} onChange={onFilterChange} narrow={narrow} />}
       </div>
       <ReleaseSwitcher />
       <span className="app-header__version">CWE {graph.meta.cweVersion}</span>

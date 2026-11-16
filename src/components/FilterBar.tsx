@@ -47,12 +47,12 @@ function chipsFor(graph: Graph, filter: Filter): Chip[] {
 
 export function FilterBar({ graph, filter, matchCount, dropped, onChange }: FilterBarProps) {
   const chips = chipsFor(graph, filter);
-  if (chips.length === 0 && dropped.length === 0) {
-    return null;
-  }
+  const empty = chips.length === 0 && dropped.length === 0;
 
+  // Always mounted, hidden when empty, so the live region below exists before
+  // the first change and announces it.
   return (
-    <div className="filter-bar">
+    <div className={`filter-bar${empty ? ' visually-hidden' : ''}`}>
       {chips.length > 0 && (
         <ul className="filter-bar__chips" aria-label="Filters">
           {chips.map((chip) => (
@@ -72,11 +72,9 @@ export function FilterBar({ graph, filter, matchCount, dropped, onChange }: Filt
           ))}
         </ul>
       )}
-      {filterCount(filter) > 0 && (
-        <span className="filter-bar__count" role="status" aria-live="polite">
-          {`${matchCount} CWE${matchCount === 1 ? '' : 's'}`}
-        </span>
-      )}
+      <span className="filter-bar__count" role="status" aria-live="polite">
+        {filterCount(filter) > 0 ? `${matchCount} CWE${matchCount === 1 ? '' : 's'}` : ''}
+      </span>
       {dropped.length > 0 && (
         <p className="filter-bar__dropped">
           {`Not in CWE ${graph.meta.cweVersion}, so ignored: ${dropped.join(', ')}`}

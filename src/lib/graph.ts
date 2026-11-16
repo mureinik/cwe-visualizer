@@ -64,9 +64,9 @@ function inverseNature(type: string): string {
 /**
  * Whether MITRE has retired the entry. Obsolete entries are "still valid but
  * no longer relevant", usually superseded, so they get the same treatment as
- * Deprecated ones.
+ * Deprecated ones. Groupings carry the same statuses.
  */
-export function isDeprecated(node: CweNode | undefined): boolean {
+export function isDeprecated(node: Pick<CweNode, 'status'> | undefined): boolean {
   return node?.status === 'Deprecated' || node?.status === 'Obsolete';
 }
 

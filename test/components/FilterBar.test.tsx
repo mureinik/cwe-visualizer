@@ -9,11 +9,33 @@ import { filterData } from '../fixtures/filter-data';
 const graph = buildGraph(filterData);
 
 describe('FilterBar', () => {
-  it('renders nothing for the default filter', () => {
+  it('shows nothing but an empty, hidden status for the default filter', () => {
     const { container } = render(
       <FilterBar graph={graph} filter={DEFAULT_FILTER} matchCount={5} dropped={[]} onChange={() => {}} />,
     );
-    expect(container).toBeEmptyDOMElement();
+    expect(container).toHaveTextContent(/^$/);
+    expect(container.firstElementChild).toHaveClass('visually-hidden');
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  });
+
+  it('keeps the same live region from no filter to a filter, so the first change is announced', () => {
+    const { rerender } = render(
+      <FilterBar graph={graph} filter={DEFAULT_FILTER} matchCount={5} dropped={[]} onChange={() => {}} />,
+    );
+    const status = screen.getByRole('status');
+    expect(status).toHaveAttribute('aria-live', 'polite');
+    rerender(
+      <FilterBar
+        graph={graph}
+        filter={{ viewId: '1000', groupId: null, phase: 'Implementation' }}
+        matchCount={1}
+        dropped={[]}
+        onChange={() => {}}
+      />,
+    );
+    expect(screen.getByRole('status')).toBe(status);
+    expect(status).toHaveTextContent(/^1 CWE$/);
+    expect(status.closest('.filter-bar')).not.toHaveClass('visually-hidden');
   });
 
   it('shows a chip for the view and the phase, and how many CWEs match', () => {

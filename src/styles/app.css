@@ -11,6 +11,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
+  /* Else a long filter chip widens the grid column, and the page with it. */
+  min-width: 0;
   padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--border);
   background: var(--surface);
@@ -24,9 +26,17 @@
 }
 
 .app-header__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   flex: 1;
   min-width: 0;
-  max-width: 32rem;
+  max-width: 36rem;
+}
+
+.app-header__search > .search-box {
+  flex: 1;
+  min-width: 0;
 }
 
 .app-header__version {
