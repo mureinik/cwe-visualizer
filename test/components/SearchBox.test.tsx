@@ -136,3 +136,19 @@ describe('SearchBox when the graph changes under an active option', { tags: ['th
     expect(onError).not.toHaveBeenCalled();
   });
 });
+
+describe('SearchBox with a filter', () => {
+  it('says the filter is on when it hides every result', async () => {
+    render(<SearchBox graph={buildGraph(data)} onSelect={() => {}} matches={new Set(['89'])} />);
+    await userEvent.type(screen.getByLabelText('Search CWEs'), '79');
+    expect(screen.getByText('No matches within the filter')).toBeInTheDocument();
+    expect(screen.queryByRole('option')).not.toBeInTheDocument();
+  });
+
+  it('lists only the CWEs the filter matches', async () => {
+    render(<SearchBox graph={buildGraph(data)} onSelect={() => {}} matches={new Set(['89'])} />);
+    await userEvent.type(screen.getByLabelText('Search CWEs'), 'i');
+    expect(screen.getByRole('option', { name: 'CWE-89: SQL Injection' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /CWE-79/ })).not.toBeInTheDocument();
+  });
+});

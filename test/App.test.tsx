@@ -186,6 +186,104 @@ describe('App', () => {
     });
   });
 
+  describe('filter parameters', () => {
+    const node = (id: string, name: string, phases?: { name: string }[]) => ({
+      id, name, abstraction: 'Base', status: 'Draft', description: '', url: '', ...(phases && { phases }),
+    });
+    const filtered = {
+      meta: sampleData.meta,
+      nodes: {
+        '74': node('74', 'Injection'),
+        '79': node('79', 'Cross-site Scripting', [{ name: 'Implementation' }]),
+      },
+      edges: [{ from: '79', to: '74', type: 'ChildOf' }],
+      phases: [{ name: 'Implementation' }],
+      views: [
+        { id: '1000', name: 'Research Concepts', groupIds: [], memberIds: [] },
+        { id: '10', name: 'Top Ten', groupIds: [], memberIds: ['79'] },
+      ],
+      groups: {},
+    };
+
+    beforeEach(() => {
+      vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(filtered) })));
+    });
+
+    it('drops a view this release lacks from the address, says so, and still selects the CWE', async () => {
+      window.history.replaceState(null, '', '/?cwe=79&view=9999');
+      render(<App />);
+      expect(await screen.findByRole('heading', { name: 'CWE-79: Cross-site Scripting' })).toBeInTheDocument();
+      expect(screen.getByText('Not in CWE 4.15, so ignored: view 9999')).toBeInTheDocument();
+      const params = new URLSearchParams(window.location.search);
+      expect(params.has('view')).toBe(false);
+      expect(params.get('cwe')).toBe('79');
+    });
+
+    it('shows the view it names in the filter bar', async () => {
+      window.history.replaceState(null, '', '/?view=10');
+      render(<App />);
+      expect(await screen.findByRole('button', { name: 'Remove filter: Top Ten' })).toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent('1 CWE');
+    });
+
+    it('filters the landing panel by the view it names', async () => {
+      window.history.replaceState(null, '', '/?view=10');
+      render(<App />);
+      expect(
+        await screen.findByRole('button', { name: 'CWE-74: Injection, 1 of 1 weaknesses beneath it match the filter' }),
+      ).toHaveClass('pillar-card--context');
+    });
+
+    it('drops view 1000 from the address without reporting it', async () => {
+      window.history.replaceState(null, '', '/?view=1000&ref=share');
+      render(<App />);
+      await screen.findByRole('heading', { name: 'Start from a pillar' });
+      expect(window.location.search).toBe('?ref=share');
+      expect(screen.queryByText(/so ignored/)).not.toBeInTheDocument();
+    });
+
+    it('updates the address when a filter is removed, keeping the selected CWE', async () => {
+      window.history.replaceState(null, '', '/?cwe=79&view=10&phase=Implementation');
+      render(<App />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Remove filter: Top Ten' }));
+      const params = new URLSearchParams(window.location.search);
+      expect(params.has('view')).toBe(false);
+      expect(params.get('phase')).toBe('Implementation');
+      expect(params.get('cwe')).toBe('79');
+    });
+
+    it('stops reporting dropped values once the filter changes', async () => {
+      window.history.replaceState(null, '', '/?view=9999&phase=Implementation');
+      render(<App />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Remove filter: Implementation' }));
+      expect(screen.queryByText(/so ignored/)).not.toBeInTheDocument();
+    });
+
+    it('keeps the filter in the address when a CWE is picked', async () => {
+      window.history.replaceState(null, '', '/?view=10');
+      render(<App />);
+      await userEvent.click(await screen.findByRole('button', { name: /^CWE-74: Injection/ }));
+      const params = new URLSearchParams(window.location.search);
+      expect(params.get('view')).toBe('10');
+      expect(params.get('cwe')).toBe('74');
+    });
+
+    it('clears the filter from the landing panel when nothing matches', async () => {
+      // Valid on its own, but no CWE in view 10 is introduced in this phase.
+      const noneMatch = {
+        ...filtered,
+        nodes: { ...filtered.nodes, '74': node('74', 'Injection', [{ name: 'Testing' }]) },
+        phases: [{ name: 'Implementation' }, { name: 'Testing' }],
+      };
+      vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(noneMatch) })));
+      window.history.replaceState(null, '', '/?view=10&phase=Testing');
+      render(<App />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Clear filter' }));
+      expect(window.location.search).toBe('');
+      expect(screen.getByRole('button', { name: 'CWE-74: Injection, 1 weaknesses beneath it' })).toBeInTheDocument();
+    });
+  });
+
   describe('graph overflow', () => {
     const node = (id: string, name: string) => ({ id, name, abstraction: 'Base', status: 'Draft', description: '', url: '' });
     // More children and more laterals than the stage shows, so it offers

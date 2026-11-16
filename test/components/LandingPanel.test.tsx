@@ -68,4 +68,37 @@ describe('LandingPanel', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Browse the full tree' }));
     expect(onSelect).not.toHaveBeenCalled();
   });
+
+  describe('with a filter', () => {
+    it('lists only the pillars with a match beneath them, counting the matches', () => {
+      render(<LandingPanel graph={graph} onSelect={() => {}} onOpenTree={() => {}} matches={new Set(['79'])} onClearFilter={() => {}} />);
+      const card = screen.getByRole('button', {
+        name: 'CWE-284: Improper Access Control, 1 of 2 weaknesses beneath it match the filter',
+      });
+      expect(card).toHaveTextContent('1 of 2');
+      expect(screen.queryByRole('button', { name: /^CWE-707/ })).not.toBeInTheDocument();
+    });
+
+    it('subdues a pillar that only leads to a match', () => {
+      render(<LandingPanel graph={graph} onSelect={() => {}} onOpenTree={() => {}} matches={new Set(['79'])} onClearFilter={() => {}} />);
+      expect(screen.getByRole('button', { name: /^CWE-284/ })).toHaveClass('pillar-card--context');
+    });
+
+    it('does not subdue a pillar that matches itself', () => {
+      render(<LandingPanel graph={graph} onSelect={() => {}} onOpenTree={() => {}} matches={new Set(['707'])} onClearFilter={() => {}} />);
+      const card = screen.getByRole('button', {
+        name: 'CWE-707: Improper Neutralization, 0 of 0 weaknesses beneath it match the filter',
+      });
+      expect(card).not.toHaveClass('pillar-card--context');
+    });
+
+    it('says when nothing matches, and offers to clear the filter', async () => {
+      const onClearFilter = vi.fn();
+      render(<LandingPanel graph={graph} onSelect={() => {}} onOpenTree={() => {}} matches={new Set()} onClearFilter={onClearFilter} />);
+      expect(screen.getByText('No CWEs match the filter.')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^CWE-/ })).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Clear filter' }));
+      expect(onClearFilter).toHaveBeenCalledOnce();
+    });
+  });
 });

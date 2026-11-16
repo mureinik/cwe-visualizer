@@ -1,6 +1,8 @@
 import type { EdgeLabels } from '../lib/edge-labels';
+import { DEFAULT_FILTER, type Filter } from '../lib/filter';
 import type { Graph } from '../lib/graph';
 import { EdgeLabelsToggle } from './EdgeLabelsToggle';
+import { FilterBar } from './FilterBar';
 import { ReleaseSwitcher } from './ReleaseSwitcher';
 import { SearchBox } from './SearchBox';
 import { ThemeToggle } from './ThemeToggle';
@@ -12,7 +14,15 @@ interface AppHeaderProps {
   onToggleDrawer: () => void;
   edgeLabels: EdgeLabels;
   onEdgeLabelsChange: (edgeLabels: EdgeLabels) => void;
+  filter?: Filter;
+  /** The filter's matches (see `matchingIds`), or null with no filter. */
+  matches?: Set<string> | null;
+  /** Filter values from the address this release doesn't have. */
+  dropped?: string[];
+  onFilterChange?: (filter: Filter) => void;
 }
+
+const NO_DROPPED: string[] = [];
 
 export function AppHeader({
   graph,
@@ -21,6 +31,10 @@ export function AppHeader({
   onToggleDrawer,
   edgeLabels,
   onEdgeLabelsChange,
+  filter = DEFAULT_FILTER,
+  matches = null,
+  dropped = NO_DROPPED,
+  onFilterChange,
 }: AppHeaderProps) {
   return (
     <header className="app-header">
@@ -35,7 +49,7 @@ export function AppHeader({
       </button>
       <h1 className="app-header__title">CWE Visualizer</h1>
       <div className="app-header__search">
-        <SearchBox graph={graph} onSelect={onSelect} />
+        <SearchBox graph={graph} onSelect={onSelect} matches={matches} />
       </div>
       <ReleaseSwitcher />
       <span className="app-header__version">CWE {graph.meta.cweVersion}</span>
@@ -57,6 +71,15 @@ export function AppHeader({
           />
         </svg>
       </a>
+      {onFilterChange && (
+        <FilterBar
+          graph={graph}
+          filter={filter}
+          matchCount={matches?.size ?? graph.all.length}
+          dropped={dropped}
+          onChange={onFilterChange}
+        />
+      )}
     </header>
   );
 }

@@ -6,11 +6,13 @@ import { Glyph } from './Glyph';
 interface SearchBoxProps {
   graph: Graph;
   onSelect: (id: string) => void;
+  /** The filter's matches (see `matchingIds`), or null with no filter. */
+  matches?: Set<string> | null;
 }
 
 const MAX_RESULTS = 20;
 
-export function SearchBox({ graph, onSelect }: SearchBoxProps) {
+export function SearchBox({ graph, onSelect, matches = null }: SearchBoxProps) {
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(-1);
   const [dismissed, setDismissed] = useState(false);
@@ -18,7 +20,10 @@ export function SearchBox({ graph, onSelect }: SearchBoxProps) {
 
   // Searching scores and sorts the whole corpus, so do it only when the query
   // changes, not on every arrow key that just moves the active option.
-  const results = useMemo(() => searchNodes(graph, query).slice(0, MAX_RESULTS), [graph, query]);
+  const results = useMemo(
+    () => searchNodes(graph, query, matches).slice(0, MAX_RESULTS),
+    [graph, query, matches],
+  );
   const open = query.trim() !== '' && !dismissed;
   const optionId = (index: number) => `${listId}-option-${index}`;
 
@@ -83,7 +88,10 @@ export function SearchBox({ graph, onSelect }: SearchBoxProps) {
       {open && (
         <ul className="search-results" id={listId} role="listbox" aria-label="Search results">
           {results.length === 0 ? (
-            <li className="search-results__empty">No matches</li>
+            <li className="search-results__empty">
+              {/* Otherwise an empty list reads as "no such CWE". */}
+              {matches === null ? 'No matches' : 'No matches within the filter'}
+            </li>
           ) : (
             results.map((node, index) => (
               <li

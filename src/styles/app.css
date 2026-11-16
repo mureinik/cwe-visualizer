@@ -7,6 +7,8 @@
 
 .app-header {
   display: flex;
+  /* Only the filter bar wraps on a wide screen; it takes a row to itself. */
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-4);
