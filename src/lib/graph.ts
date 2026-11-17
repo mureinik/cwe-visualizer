@@ -1,7 +1,7 @@
-import type { CweData, CweEdge, CweGroup, CweMeta, CweNode, CwePhase, CweView } from './cwe-data';
+import type { CweData, CweEdge, CweGroup, CweLanguage, CweMeta, CweNode, CwePhase, CweView } from './cwe-data';
 import { INVERSE_SUFFIX, isInverse } from './relations';
 
-export type { CweData, CweEdge, CweGroup, CweMeta, CweNode, CwePhase, CweView } from './cwe-data';
+export type { CweData, CweEdge, CweGroup, CweLanguage, CweMeta, CweNode, CwePhase, CweView } from './cwe-data';
 
 export interface Graph {
   meta: CweMeta;
@@ -29,6 +29,10 @@ export interface Graph {
   groups: Record<string, CweGroup>;
   /** Every introduction phase in the catalog; empty when the data has none. */
   phases: CwePhase[];
+  /** The programming languages with members, sorted by name; empty when the data has none. */
+  languages: CweLanguage[];
+  /** Weaknesses MITRE marks as applying to any language; empty when the data has none. */
+  languageAgnosticIds: string[];
 }
 
 export interface BuildGraphOptions {
@@ -166,7 +170,13 @@ export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
   const groups = Object.assign(Object.create(null) as Record<string, CweGroup>, data.groups);
   const phases = data.phases ?? [];
 
-  return { meta: data.meta, nodes, childrenOf, parentsOf, relatedTo, roots, deprecatedRoots, all, views, groups, phases };
+  const languages = data.languages ?? [];
+  const languageAgnosticIds = data.languageAgnosticIds ?? [];
+
+  return {
+    meta: data.meta, nodes, childrenOf, parentsOf, relatedTo, roots, deprecatedRoots, all, views, groups, phases,
+    languages, languageAgnosticIds,
+  };
 }
 
 export function ancestorsOf(graph: Graph, id: string): Set<string> {

@@ -7,6 +7,9 @@ import { XMLParser } from 'fast-xml-parser';
 import { parseNuance } from './nuance.ts';
 import { orderPhases, readPhases } from './phases.ts';
 import type { RawIntroduction } from './phases.ts';
+import { evaluateImplicitViews } from './implicit-views.ts';
+import { readLanguages } from './languages.ts';
+import type { RawLanguage } from './languages.ts';
 import { readViews } from './views.ts';
 import type { RawGrouping, RawView } from './views.ts';
 import type { CweData, CweEdge, CweMeta, CweNode, CwePhase } from '../src/lib/cwe-data.ts';
@@ -25,6 +28,7 @@ interface RawWeakness {
   Description?: unknown;
   // A stop node, so this is the element's inner XML as a string ('' when empty).
   Technical_Nuance?: string;
+  Applicable_Platforms?: { Language?: RawLanguage | RawLanguage[] };
   Modes_Of_Introduction?: { Introduction?: RawIntroduction | RawIntroduction[] };
   Related_Weaknesses?: { Related_Weakness?: RawRelatedWeakness | RawRelatedWeakness[] };
 }
@@ -79,6 +83,7 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
   const nodes: Record<string, CweNode> = {};
   const edges: CweEdge[] = [];
   const allPhases: CwePhase[] = [];
+  const rawLanguages: { id: string; languages: RawLanguage[] }[] = [];
 
   for (const w of weaknessList) {
     const id = String(w['@_ID']);
@@ -103,6 +108,8 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
       allPhases.push(...phases);
     }
 
+    rawLanguages.push({ id, languages: toArray(w.Applicable_Platforms?.Language) });
+
     for (const rel of toArray(w.Related_Weaknesses?.Related_Weakness)) {
       const edge: CweEdge = {
         from: id,
@@ -118,11 +125,12 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
     }
   }
 
-  const { views, groups } = readViews(
-    toArray(catalog.Views?.View),
-    toArray(catalog.Groupings?.Grouping),
-    new Set(Object.keys(nodes)),
-  );
+  const weaknessIds = new Set(Object.keys(nodes));
+  const rawViews = toArray(catalog.Views?.View);
+  // A catalog with no views offers none; evaluating would only complain that the offered ones are missing.
+  const implicitMembers = rawViews.length === 0 ? new Map<string, string[]>() : evaluateImplicitViews(xmlText, rawViews, weaknessIds);
+  const { views, groups } = readViews(rawViews, toArray(catalog.Groupings?.Grouping), weaknessIds, implicitMembers);
+  const { languages, languageAgnosticIds } = readLanguages(rawLanguages);
 
   return {
     meta: {
@@ -136,6 +144,8 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
     phases: orderPhases(allPhases),
     views,
     groups,
+    languages,
+    languageAgnosticIds,
   };
 }
 
@@ -171,7 +181,11 @@ export async function readLocalMeta(outDir: string): Promise<CweMeta | null> {
   try {
     // meta.json alone isn't proof the data is intact: if cwe.json is missing
     // or truncated, report no local meta so the slow path regenerates it.
-    JSON.parse(await fs.readFile(path.join(outDir, 'cwe.json'), 'utf-8'));
+    const cached = JSON.parse(await fs.readFile(path.join(outDir, 'cwe.json'), 'utf-8')) as Partial<CweData>;
+    // Data written before languages existed is stale too.
+    if (!Array.isArray(cached.languages)) {
+      return null;
+    }
     const raw = await fs.readFile(path.join(outDir, 'meta.json'), 'utf-8');
     const { meta } = JSON.parse(raw) as { meta: Partial<CweMeta> };
     // Data written before catalogDate existed is stale even when its

@@ -79,6 +79,15 @@ export interface CweMeta {
   generatedAt: string;
 }
 
+/** A programming language the filter offers, and the weaknesses that match it. */
+export interface CweLanguage {
+  name: string;
+  /** The language classes mapped to it, such as Memory-Unsafe. */
+  classes: string[];
+  /** The weaknesses naming the language or one of its classes, sorted numerically. */
+  memberIds: string[];
+}
+
 export interface CweData {
   meta: CweMeta;
   nodes: Record<string, CweNode>;
@@ -95,4 +104,15 @@ export interface CweData {
   views?: CweView[];
   /** The groupings some view in `views` reaches, by ID. Written with `views`. */
   groups?: Record<string, CweGroup>;
+  /**
+   * The programming languages the filter offers, sorted by name. Optional so
+   * hand-built test data stays valid; prepare-data always writes it. Built by
+   * scripts/languages.ts.
+   */
+  languages?: CweLanguage[];
+  /**
+   * The weaknesses MITRE marks Not Language-Specific, sorted numerically.
+   * Written with `languages`.
+   */
+  languageAgnosticIds?: string[];
 }

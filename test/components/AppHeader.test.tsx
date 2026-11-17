@@ -89,7 +89,7 @@ describe('AppHeader filter button', () => {
   });
 
   it('counts what is set for a view plus a phase', () => {
-    const button = renderWithFilter({ viewId: '1435', groupId: null, phase: 'Implementation' });
+    const button = renderWithFilter({ viewId: '1435', groupId: null, phase: 'Implementation', language: null, anyLanguage: false });
     expect(button).toHaveAccessibleName('Filter, 2 set');
     expect(button).toHaveTextContent(/^Filter2$/);
   });

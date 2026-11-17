@@ -94,7 +94,29 @@ describe('parseCatalog', () => {
   });
 
   it('lists the included views, 1000 first and the rest by name', () => {
-    expect(data.views!.map((v) => v.id)).toEqual(['1000', '884', '699', '1435']);
+    expect(data.views!.map((v) => v.id)).toEqual([
+      '1000', '678', '884', '709', '1040', '699', '1424', '919', '1435',
+    ]);
+  });
+
+  it('offers the implicit views with the members their filters match', () => {
+    const members = Object.fromEntries(data.views!.map((v) => [v.id, v.memberIds]));
+    expect(members['919']).toEqual(['79']);
+    expect(members['1424']).toEqual(['89']);
+    expect(members['678']).toEqual(['80']);
+    expect(members['709']).toEqual(['74']);
+    expect(members['1040']).toEqual(['89']);
+  });
+
+  it('reads languages', () => {
+    expect(data.languages!.map((l) => [l.name, l.memberIds])).toEqual([
+      ['C', ['79', '80', '89']],
+      ['C++', ['80', '89']],
+      ['Go', ['80']],
+      ['Rust', ['80']],
+      ['SQL', ['89']],
+    ]);
+    expect(data.languageAgnosticIds).toEqual(['74', '79']);
   });
 
   it("resolves a grouping's weaknesses within a view", () => {
@@ -287,6 +309,19 @@ describe('run', () => {
     const result = await run({ version: '4.15', outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
     expect(result.updated).toBe(true);
     expect(result.meta.catalogDate).toBe('2024-11-19');
+  });
+
+  it('re-downloads data cached before languages existed, even when last-modified matches', async () => {
+    await run({ version: '4.15', outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    const dataPath = path.join(dir, 'cwe.json');
+    const cached = JSON.parse(await readFile(dataPath, 'utf-8')) as Record<string, unknown>;
+    delete cached.languages;
+    await writeFile(dataPath, JSON.stringify(cached));
+
+    const fetchSpy = fakeFetch({ lastModified: '"v1"' });
+    const result = await run({ version: '4.15', outDir: dir, fetchImpl: fetchSpy as unknown as typeof fetch });
+    expect(result.updated).toBe(true);
+    expect(fetchSpy).toHaveBeenCalled();
   });
 
   it('skips the download, without any request, when the cached version matches the pin', async () => {

@@ -9,13 +9,31 @@ export interface Filter {
   groupId: string | null;
   /** A phaseKey. */
   phase: string | null;
+  /** The name of an entry in graph.languages. */
+  language: string | null;
+  /** Also keep the weaknesses that apply to any language. Meaningful only with a language. */
+  anyLanguage: boolean;
 }
 
-export const DEFAULT_FILTER: Filter = { viewId: DEFAULT_VIEW_ID, groupId: null, phase: null };
+export const DEFAULT_FILTER: Filter = { viewId: DEFAULT_VIEW_ID, groupId: null, phase: null, language: null, anyLanguage: false };
 
-/** How many of the three constraints are active. */
+/** How many of the four constraints are active; the checkbox widens the language, so it doesn't count. */
 export function filterCount(filter: Filter): number {
-  return (filter.viewId === DEFAULT_VIEW_ID ? 0 : 1) + (filter.groupId === null ? 0 : 1) + (filter.phase === null ? 0 : 1);
+  return (filter.viewId === DEFAULT_VIEW_ID ? 0 : 1) +
+    (filter.groupId === null ? 0 : 1) +
+    (filter.phase === null ? 0 : 1) +
+    (filter.language === null ? 0 : 1);
+}
+
+/** Differs whenever the filter does, so a component can remount on it. */
+export function filterKey(filter: Filter): string {
+  return `${filter.viewId}|${filter.groupId}|${filter.phase}|${filter.language}|${filter.anyLanguage}`;
+}
+
+/** How many weaknesses applying to any language the checkbox adds: those not already members of `language`. */
+export function agnosticExtra(graph: Graph, language: string): number {
+  const members = new Set(graph.languages.find((l) => l.name === language)?.memberIds);
+  return graph.languageAgnosticIds.filter((id) => !members.has(id)).length;
 }
 
 /** The ids passing the filter, or null when the filter constrains nothing. */
@@ -32,10 +50,19 @@ export function matchingIds(graph: Graph, filter: Filter): Set<string> | null {
     allowed = new Set(ids ?? []);
   }
 
+  let inLanguage: Set<string> | null = null;
+  if (filter.language !== null) {
+    inLanguage = new Set(graph.languages.find((l) => l.name === filter.language)?.memberIds);
+    if (filter.anyLanguage) {
+      graph.languageAgnosticIds.forEach((id) => inLanguage?.add(id));
+    }
+  }
+
   const { phase } = filter;
   return new Set(
     graph.all
       .filter((node) => allowed === null || allowed.has(node.id))
+      .filter((node) => inLanguage === null || inLanguage.has(node.id))
       .filter((node) => phase === null || (node.phases ?? []).some((p) => phaseKey(p) === phase))
       .map((node) => node.id),
   );

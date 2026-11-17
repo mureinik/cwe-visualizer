@@ -37,4 +37,9 @@ export const viewsData: CweData = {
     '1228': { id: '1228', name: 'API / Function Errors', status: 'Draft', membersByView: { '699': ['79', '89'] } },
     '320': { id: '320', name: 'Key Management Errors', status: 'Obsolete', membersByView: { '699': ['321'] } },
   },
+  languages: [
+    { name: 'C', classes: ['Memory-Unsafe', 'Compiled'], memberIds: ['79'] },
+    { name: 'SQL', classes: [], memberIds: ['89'] },
+  ],
+  languageAgnosticIds: ['79', '321'],
 };

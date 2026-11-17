@@ -12,7 +12,7 @@ const graph = buildGraph({
 describe('readFilter', () => {
   it('reads a valid view, group and phase', () => {
     expect(readFilter('?cwe=79&view=10&group=20&phase=AI%3ATesting', graph)).toEqual({
-      filter: { viewId: '10', groupId: '20', phase: 'AI:Testing' },
+      filter: { viewId: '10', groupId: '20', phase: 'AI:Testing', language: null, anyLanguage: false },
       dropped: [],
     });
   });
@@ -83,6 +83,106 @@ describe('readFilter', () => {
     expect(readFilter('?phase=Design%20%26%20Test%3A%20Old%20(v2)', graph).dropped).toEqual(['phase Design & Test: Old (v2)']);
   });
 
+  it('reads a language and anyLanguage', () => {
+    expect(readFilter('?language=C&anyLanguage=1', graph)).toEqual({
+      filter: { ...DEFAULT_FILTER, language: 'C', anyLanguage: true },
+      dropped: [],
+    });
+    expect(readFilter('?language=C', graph).filter).toEqual({ ...DEFAULT_FILTER, language: 'C' });
+  });
+
+  it('drops an unknown language, naming it', () => {
+    expect(readFilter('?language=Kotlin', graph)).toEqual({ filter: DEFAULT_FILTER, dropped: ['language Kotlin'] });
+  });
+
+  it.each(['Click here', 'C sharp please sign in'])('names an unusual language (%s) only generically', (value) => {
+    expect(readFilter(`?${new URLSearchParams({ language: value })}`, graph)).toEqual({
+      filter: DEFAULT_FILTER,
+      dropped: ['an unrecognised language'],
+    });
+  });
+
+  it('drops anyLanguage without a known language', () => {
+    expect(readFilter('?anyLanguage=1', graph).dropped).toEqual(['any language']);
+    expect(readFilter('?language=Kotlin&anyLanguage=1', graph)).toEqual({
+      filter: DEFAULT_FILTER,
+      dropped: ['language Kotlin', 'any language'],
+    });
+  });
+
+  it('drops an anyLanguage other than 1', () => {
+    expect(readFilter('?language=C&anyLanguage=0', graph)).toEqual({
+      filter: { ...DEFAULT_FILTER, language: 'C' },
+      dropped: ['any language'],
+    });
+  });
+
+  it('keeps the language when the view is unknown', () => {
+    expect(readFilter('?view=9999&language=C', graph)).toEqual({
+      filter: { ...DEFAULT_FILTER, language: 'C' },
+      dropped: ['view 9999'],
+    });
+  });
+
+  // Typed into the address and repeated by the filter bar, so a language
+  // must equal a name in the graph's list exactly.
+  describe.each([
+    ['markup', '<img src=x onerror=alert(1)>'],
+    ['a script tag', '<script>alert(1)</script>'],
+    ['a script URL', 'javascript:alert(1)'],
+    ['a quoted attribute', 'C" onmouseover="alert(1)'],
+    ['a line break', 'C\n<b>x</b>'],
+    ['a name followed by markup', 'C<b>x</b>'],
+    ['the right name in the wrong case', 'c'],
+    ['a name with a leading space', ' C'],
+    ['an inherited object key', 'constructor'],
+    ['the prototype key', '__proto__'],
+    ['another inherited key', 'toString'],
+  ])('a language holding %s', (_, value) => {
+    const search = `?${new URLSearchParams({ language: value, anyLanguage: '1' })}`;
+
+    it('is not applied, and is not repeated', () => {
+      const { filter, dropped } = readFilter(`?${new URLSearchParams({ language: value })}`, graph);
+      expect(filter.language).toBeNull();
+      // A plain word passes the safe pattern, so it is named; it is still
+      // never applied. Anything with markup or punctuation is not repeated.
+      expect(dropped).toEqual([/^[A-Za-z0-9+#.]{1,12}$/.test(value) ? `language ${value}` : 'an unrecognised language']);
+    });
+
+    it('is not written back to the address', () => {
+      const params = new URLSearchParams(search);
+      writeFilter(params, readFilter(search, graph).filter);
+      expect(params.has('language')).toBe(false);
+      expect(params.has('anyLanguage')).toBe(false);
+    });
+  });
+
+  describe.each([
+    ['true', 'true'],
+    ['yes', 'yes'],
+    ['01', '01'],
+    ['1 with a leading space', ' 1'],
+    ['1 followed by markup', '1<b>x</b>'],
+    ['markup', '<img src=x onerror=alert(1)>'],
+    ['an inherited object key', 'constructor'],
+  ])('an anyLanguage holding %s', (_, value) => {
+    const search = `?${new URLSearchParams({ language: 'C', anyLanguage: value })}`;
+
+    it('is not applied, and is not repeated', () => {
+      const { filter, dropped } = readFilter(search, graph);
+      expect(filter.anyLanguage).toBe(false);
+      expect(filter.language).toBe('C');
+      expect(dropped).toEqual(['any language']);
+    });
+
+    it('is not written back to the address', () => {
+      const params = new URLSearchParams(search);
+      writeFilter(params, readFilter(search, graph).filter);
+      expect(params.get('language')).toBe('C');
+      expect(params.has('anyLanguage')).toBe(false);
+    });
+  });
+
   it('drops a group with no view', () => {
     expect(readFilter('?group=20', graph)).toEqual({ filter: DEFAULT_FILTER, dropped: ['group 20'] });
   });
@@ -94,22 +194,44 @@ describe('readFilter', () => {
 
 describe('writeFilter', () => {
   it('round-trips a custom phase', () => {
-    const filter = { viewId: '10', groupId: null, phase: 'Hardware:Implementation & Physical Design' };
+    const filter = { viewId: '10', groupId: null, phase: 'Hardware:Implementation & Physical Design', language: null, anyLanguage: false };
     const params = new URLSearchParams();
     writeFilter(params, filter);
     expect(readFilter(`?${params.toString()}`, graph)).toEqual({ filter, dropped: [] });
   });
 
   it('round-trips a view with a group', () => {
-    const filter = { viewId: '10', groupId: '20', phase: 'Testing' };
+    const filter = { viewId: '10', groupId: '20', phase: 'Testing', language: null, anyLanguage: false };
     const params = new URLSearchParams('cwe=79');
     writeFilter(params, filter);
     expect(params.get('group')).toBe('20');
     expect(readFilter(`?${params.toString()}`, graph)).toEqual({ filter, dropped: [] });
   });
 
-  it('removes all three parameters for the default filter and keeps cwe', () => {
-    const params = new URLSearchParams('cwe=79&view=10&group=20&phase=Testing');
+  it.each(['C', 'C++', 'C#'])('round-trips %s', (name) => {
+    const withLanguages = buildGraph({
+      ...data,
+      languages: [{ name: 'C', classes: [], memberIds: [] }, { name: 'C++', classes: [], memberIds: [] }, { name: 'C#', classes: [], memberIds: [] }],
+    });
+    const filter = { ...DEFAULT_FILTER, language: name, anyLanguage: true };
+    const params = new URLSearchParams('cwe=79');
+    writeFilter(params, filter);
+    expect(params.get('anyLanguage')).toBe('1');
+    expect(readFilter(`?${params.toString()}`, withLanguages)).toEqual({ filter, dropped: [] });
+  });
+
+  // Our own code never produces anyLanguage without a language: the panel,
+  // the chip and readFilter all clear or refuse that state.
+  describe('anyLanguage without a language', { tags: ['theoretical'] }, () => {
+    it('is written only with a language', () => {
+      const params = new URLSearchParams();
+      writeFilter(params, { ...DEFAULT_FILTER, anyLanguage: true });
+      expect(params.toString()).toBe('');
+    });
+  });
+
+  it('removes all five parameters for the default filter and keeps cwe', () => {
+    const params = new URLSearchParams('cwe=79&view=10&group=20&language=C&anyLanguage=1&phase=Testing');
     writeFilter(params, DEFAULT_FILTER);
     expect(params.toString()).toBe('cwe=79');
   });

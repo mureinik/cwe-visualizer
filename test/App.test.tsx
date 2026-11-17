@@ -235,6 +235,63 @@ describe('App', () => {
       expect(new URLSearchParams(window.location.search).has(param)).toBe(false);
     });
 
+    describe('language parameters', () => {
+      const withLanguages = { ...filtered, languages: [{ name: 'C', classes: [], memberIds: ['79'] }], languageAgnosticIds: [] };
+
+      beforeEach(() => {
+        vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(withLanguages) })));
+      });
+
+      // The tree remembers what the reader collapsed; a new filter starts it afresh.
+      it('remounts the tree when the language changes through the filter panel', async () => {
+        const twoLanguages = {
+          ...withLanguages,
+          languages: [...withLanguages.languages, { name: 'SQL', classes: [], memberIds: ['79'] }],
+        };
+        vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(twoLanguages) })));
+        window.history.replaceState(null, '', '/?language=C');
+        render(<App />);
+        await userEvent.click(await screen.findByRole('button', { name: 'Weakness tree' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Collapse CWE-74' }));
+        expect(screen.getByRole('button', { name: 'Expand CWE-74' })).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Filter, 1 set' }));
+        await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'SQL');
+        expect(await screen.findByRole('button', { name: 'Collapse CWE-74' })).toBeInTheDocument();
+      });
+
+      it('renders markup in language as nothing but a generic notice', async () => {
+        const search = new URLSearchParams({ cwe: '79', language: '<img src=x onerror=alert(1)><b>bold</b>' });
+        window.history.replaceState(null, '', `/?${search}`);
+        const { container } = render(<App />);
+        expect(await screen.findByRole('heading', { name: 'CWE-79: Cross-site Scripting' })).toBeInTheDocument();
+        expect(screen.getByText('Not in CWE 4.15, so ignored: an unrecognised language')).toBeInTheDocument();
+        expect(container.querySelector('img, b, [onerror]')).toBeNull();
+        expect(container.innerHTML).not.toContain('onerror');
+        expect(new URLSearchParams(window.location.search).has('language')).toBe(false);
+      });
+
+      it('renders markup in anyLanguage as nothing but a generic notice', async () => {
+        const search = new URLSearchParams({ cwe: '79', language: 'C', anyLanguage: '<img src=x onerror=alert(1)><b>bold</b>' });
+        window.history.replaceState(null, '', `/?${search}`);
+        const { container } = render(<App />);
+        expect(await screen.findByRole('heading', { name: 'CWE-79: Cross-site Scripting' })).toBeInTheDocument();
+        expect(screen.getByText('Not in CWE 4.15, so ignored: any language')).toBeInTheDocument();
+        expect(container.querySelector('img, b, [onerror]')).toBeNull();
+        expect(container.innerHTML).not.toContain('onerror');
+        const params = new URLSearchParams(window.location.search);
+        expect(params.get('language')).toBe('C');
+        expect(params.has('anyLanguage')).toBe(false);
+      });
+
+      it('labels the chip C when anyLanguage is dropped from the address', async () => {
+        const search = new URLSearchParams({ cwe: '79', language: 'C', anyLanguage: '<img src=x onerror=alert(1)>' });
+        window.history.replaceState(null, '', `/?${search}`);
+        render(<App />);
+        expect(await screen.findByRole('button', { name: 'Remove filter: C' })).toBeInTheDocument();
+        expect(screen.queryByText('C + any language')).not.toBeInTheDocument();
+      });
+    });
+
     it('shows the view it names in the filter bar', async () => {
       window.history.replaceState(null, '', '/?view=10');
       render(<App />);
