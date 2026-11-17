@@ -215,7 +215,7 @@
 **Interfaces:**
 
 - Consumes: `Filter`, `agnosticExtra` (Task 4).
-- Produces: `export function languageNote(language: CweLanguage): string`. Each class's phrase is the class lowercased, with a trailing `language` removed: `memory-unsafe`, `compiled`, `object-oriented`, `hardware description`. The phrases are joined `a`, `a or b`, or `a, b or c`.
+- Produces: `export function languageNote(language: CweLanguage): string`. Each class's phrase is the class lowercased, with a final word "language" removed: `memory-unsafe`, `compiled`, `object-oriented`, `hardware description`. The phrases are joined `a`, `a or b`, or `a, b or c`.
 
 - [ ] **Step 1: Write the failing tests** (real-world).
   - `languages.test.ts`:
