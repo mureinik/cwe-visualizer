@@ -178,6 +178,11 @@ describe('App', () => {
       ['markup', '<img src=x onerror=alert(1)>'],
       ['an inherited object key', 'constructor'],
       ['the prototype key', '__proto__'],
+      ['a script tag', '<script>alert(1)</script>'],
+      ['a number followed by markup', '74<b>x</b>'],
+      ['a number followed by markup after a line break', '74\n<b>x</b>'],
+      ['a signed number', '-74'],
+      ['non-ASCII digits', '\u0667\u0664'],
     ])('ignores %s and shows the landing page', async (_, value) => {
       window.history.replaceState(null, '', `/?${new URLSearchParams({ cwe: value })}`);
       render(<App />);
@@ -217,6 +222,17 @@ describe('App', () => {
       const params = new URLSearchParams(window.location.search);
       expect(params.has('view')).toBe(false);
       expect(params.get('cwe')).toBe('79');
+    });
+
+    it.each(['view', 'group', 'phase'])('renders markup in %s as nothing but a generic notice', async (param) => {
+      const search = new URLSearchParams({ cwe: '79', [param]: '<img src=x onerror=alert(1)><b>bold</b>' });
+      window.history.replaceState(null, '', `/?${search}`);
+      const { container } = render(<App />);
+      expect(await screen.findByRole('heading', { name: 'CWE-79: Cross-site Scripting' })).toBeInTheDocument();
+      expect(screen.getByText(`Not in CWE 4.15, so ignored: an unrecognised ${param}`)).toBeInTheDocument();
+      expect(container.querySelector('img, b, [onerror]')).toBeNull();
+      expect(container.innerHTML).not.toContain('onerror');
+      expect(new URLSearchParams(window.location.search).has(param)).toBe(false);
     });
 
     it('shows the view it names in the filter bar', async () => {
