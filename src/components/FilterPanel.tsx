@@ -1,6 +1,7 @@
 import { useId, useRef } from 'react';
-import { DEFAULT_FILTER, DEFAULT_VIEW_ID, filterCount, type Filter } from '../lib/filter';
+import { DEFAULT_FILTER, DEFAULT_VIEW_ID, agnosticExtra, filterCount, type Filter } from '../lib/filter';
 import { isDeprecated, type Graph } from '../lib/graph';
+import { languageNote } from '../lib/languages';
 import { phaseKey, phaseLabel } from '../lib/phases';
 import { Picker, type PickerOption } from './Picker';
 
@@ -14,12 +15,16 @@ interface FilterPanelProps {
   onClose: () => void;
 }
 
-/** The view, group and phase pickers. There is no Apply: every change takes effect at once. */
+/** The view, group, language and phase pickers. There is no Apply: every change takes effect at once. */
 export function FilterPanel({ id, graph, filter, onChange, narrow, onClose }: FilterPanelProps) {
   const phaseId = useId();
+  const languageId = useId();
+  const noteId = useId();
   const viewRef = useRef<HTMLInputElement>(null);
   const groupRef = useRef<HTMLInputElement>(null);
   const phaseRef = useRef<HTMLSelectElement>(null);
+  const languageRef = useRef<HTMLSelectElement>(null);
+  const language = graph.languages.find((l) => l.name === filter.language);
   // A clear button disables itself once used, which would drop focus to the
   // page; it goes to the control the button cleared instead.
   const clear = (next: Filter, focusTo: React.RefObject<HTMLInputElement | HTMLSelectElement | null>) => {
@@ -76,6 +81,58 @@ export function FilterPanel({ id, graph, filter, onChange, narrow, onClose }: Fi
         >
           Clear group
         </button>
+      </div>
+      <div className="filter-panel__field filter-panel__field--language">
+        <div className="filter-panel__row">
+          <div className="picker">
+            <label className="picker__label" htmlFor={languageId}>
+              Language
+            </label>
+            <select
+              ref={languageRef}
+              id={languageId}
+              className="picker__input"
+              value={filter.language ?? ''}
+              aria-describedby={language === undefined ? undefined : noteId}
+              onChange={(e) =>
+                onChange(
+                  e.target.value === ''
+                    ? { ...filter, language: null, anyLanguage: false }
+                    : { ...filter, language: e.target.value },
+                )}
+            >
+              <option value="">Any language</option>
+              {graph.languages.map((l) => (
+                <option key={l.name} value={l.name}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            className="filter-panel__clear"
+            disabled={filter.language === null}
+            onClick={() => clear({ ...filter, language: null, anyLanguage: false }, languageRef)}
+          >
+            Clear language
+          </button>
+        </div>
+        {language !== undefined && (
+          <>
+            <label className="filter-panel__check">
+              <input
+                type="checkbox"
+                checked={filter.anyLanguage}
+                onChange={(e) => onChange({ ...filter, anyLanguage: e.target.checked })}
+              />
+              Also show weaknesses that apply to any language (+{agnosticExtra(graph, language.name)})
+            </label>
+            <p id={noteId} className="filter-panel__note">
+              {languageNote(language)}
+            </p>
+          </>
+        )}
       </div>
       <div className="filter-panel__field">
         <div className="picker">

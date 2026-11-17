@@ -242,6 +242,23 @@ describe('App', () => {
         vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(withLanguages) })));
       });
 
+      // The tree remembers what the reader collapsed; a new filter starts it afresh.
+      it('remounts the tree when the language changes through the filter panel', async () => {
+        const twoLanguages = {
+          ...withLanguages,
+          languages: [...withLanguages.languages, { name: 'SQL', classes: [], memberIds: ['79'] }],
+        };
+        vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(twoLanguages) })));
+        window.history.replaceState(null, '', '/?language=C');
+        render(<App />);
+        await userEvent.click(await screen.findByRole('button', { name: 'Weakness tree' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Collapse CWE-74' }));
+        expect(screen.getByRole('button', { name: 'Expand CWE-74' })).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Filter, 1 set' }));
+        await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'SQL');
+        expect(await screen.findByRole('button', { name: 'Collapse CWE-74' })).toBeInTheDocument();
+      });
+
       it('renders markup in language as nothing but a generic notice', async () => {
         const search = new URLSearchParams({ cwe: '79', language: '<img src=x onerror=alert(1)><b>bold</b>' });
         window.history.replaceState(null, '', `/?${search}`);

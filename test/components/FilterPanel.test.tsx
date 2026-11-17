@@ -89,6 +89,76 @@ describe('FilterPanel', () => {
     expect(onChange).toHaveBeenCalledExactlyOnceWith(DEFAULT_FILTER);
   });
 
+  it('offers Any language, then each language by name, between Group and Phase', () => {
+    renderPanel();
+    const language = screen.getByRole('combobox', { name: 'Language' });
+    expect(language).toHaveValue('');
+    expect([...(language as HTMLSelectElement).options].map((option) => option.textContent)).toEqual([
+      'Any language',
+      'C',
+      'SQL',
+    ]);
+    expect(screen.getAllByRole('combobox').map((box) => (box as HTMLInputElement).labels?.[0]?.textContent)).toEqual([
+      'View',
+      'Group',
+      'Language',
+      'Phase',
+    ]);
+  });
+
+  it('sets the language and keeps the view and group', async () => {
+    const { onChange } = renderPanel({ viewId: '699', groupId: '1228', phase: null, language: null, anyLanguage: false });
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'C');
+    expect(onChange).toHaveBeenCalledExactlyOnceWith({ viewId: '699', groupId: '1228', phase: null, language: 'C', anyLanguage: false });
+  });
+
+  it('clears the language and anyLanguage when Any language is chosen', async () => {
+    const { onChange } = renderPanel({ ...DEFAULT_FILTER, language: 'C', anyLanguage: true });
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'Any language');
+    expect(onChange).toHaveBeenCalledExactlyOnceWith(DEFAULT_FILTER);
+  });
+
+  it('shows the checkbox and the note only once a language is chosen', () => {
+    renderPanel();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Language' })).not.toHaveAccessibleDescription();
+  });
+
+  it('describes the chosen language and offers the checkbox with its extra count', () => {
+    renderPanel({ ...DEFAULT_FILTER, language: 'C' });
+    expect(screen.getByRole('checkbox', { name: 'Also show weaknesses that apply to any language (+1)' })).not.toBeChecked();
+    expect(screen.getByRole('combobox', { name: 'Language' })).toHaveAccessibleDescription(
+      "Weaknesses MITRE ties to C, or to memory-unsafe or compiled languages. Which languages count as which is our call, not MITRE's.",
+    );
+  });
+
+  it('ticks anyLanguage', async () => {
+    const { onChange } = renderPanel({ ...DEFAULT_FILTER, language: 'C' });
+    await userEvent.click(screen.getByRole('checkbox'));
+    expect(onChange).toHaveBeenCalledExactlyOnceWith({ ...DEFAULT_FILTER, language: 'C', anyLanguage: true });
+  });
+
+  it('keeps anyLanguage when the language changes', async () => {
+    const { onChange } = renderPanel({ ...DEFAULT_FILTER, language: 'C', anyLanguage: true });
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'SQL');
+    expect(onChange).toHaveBeenCalledExactlyOnceWith({ ...DEFAULT_FILTER, language: 'SQL', anyLanguage: true });
+  });
+
+  it('shows (+0) when every agnostic weakness is already a member', () => {
+    const allMembers = buildGraph({ ...viewsData, languageAgnosticIds: ['79'] });
+    render(<FilterPanel graph={allMembers} filter={{ ...DEFAULT_FILTER, language: 'C' }} onChange={() => {}} narrow={false} onClose={() => {}} />);
+    expect(screen.getByRole('checkbox', { name: 'Also show weaknesses that apply to any language (+0)' })).toBeInTheDocument();
+  });
+
+  it('Clear language clears both and focuses the language list', async () => {
+    render(<StatefulPanel initial={{ ...DEFAULT_FILTER, language: 'C', anyLanguage: true }} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Clear language' }));
+    expect(screen.getByRole('button', { name: 'Clear language' })).toBeDisabled();
+    expect(screen.getByRole('combobox', { name: 'Language' })).toHaveValue('');
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Language' })).toHaveFocus();
+  });
+
   it('clears the group, the phase and the view on their own', async () => {
     const filter = { viewId: '699', groupId: '1228', phase: 'Implementation', language: null, anyLanguage: false };
     const { onChange } = renderPanel(filter);
@@ -101,7 +171,7 @@ describe('FilterPanel', () => {
   });
 
   it('clears everything with Clear all', async () => {
-    const { onChange } = renderPanel({ viewId: '699', groupId: '1228', phase: 'Implementation', language: null, anyLanguage: false });
+    const { onChange } = renderPanel({ viewId: '699', groupId: '1228', phase: 'Implementation', language: 'C', anyLanguage: true });
     await userEvent.click(screen.getByRole('button', { name: 'Clear all' }));
     expect(onChange).toHaveBeenCalledExactlyOnceWith(DEFAULT_FILTER);
   });
@@ -127,7 +197,7 @@ describe('FilterPanel', () => {
 
   it('disables the clear buttons with nothing to clear', () => {
     renderPanel();
-    for (const name of ['Clear group', 'Clear phase', 'Show all CWEs', 'Clear all']) {
+    for (const name of ['Clear group', 'Clear language', 'Clear phase', 'Show all CWEs', 'Clear all']) {
       expect(screen.getByRole('button', { name })).toBeDisabled();
     }
   });
