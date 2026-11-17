@@ -32,7 +32,7 @@ export interface RawView {
 export const DEFAULT_VIEW_ID = '1000';
 
 const INCLUDED_TYPES = new Set(['Graph', 'Explicit']);
-const RETIRED_STATUSES = new Set(['Deprecated', 'Obsolete']);
+export const RETIRED_STATUSES = new Set(['Deprecated', 'Obsolete']);
 
 function toList<T>(x: T | T[] | undefined): T[] {
   return Array.isArray(x) ? x : x === undefined ? [] : [x];
@@ -52,6 +52,7 @@ export function readViews(
   views: RawView[],
   groupings: RawGrouping[],
   weaknessIds: Set<string>,
+  implicitMembers: Map<string, string[]> = new Map(),
 ): { views: CweView[]; groups: Record<string, CweGroup> } {
   const rawGroups = new Map<string, RawGrouping>();
   for (const grouping of groupings) {
@@ -62,12 +63,21 @@ export function readViews(
   const result: CweView[] = [];
 
   for (const raw of views) {
-    if (!INCLUDED_TYPES.has(raw['@_Type'] ?? '') || RETIRED_STATUSES.has(raw['@_Status'] ?? '')) {
+    const id = String(raw['@_ID']);
+    // An implicit view lists no members; it is offered only with those its filter matched.
+    const implicit = raw['@_Type'] === 'Implicit' ? implicitMembers.get(id) : undefined;
+    if (
+      (!INCLUDED_TYPES.has(raw['@_Type'] ?? '') && implicit === undefined) ||
+      RETIRED_STATUSES.has(raw['@_Status'] ?? '')
+    ) {
       continue;
     }
-    const id = String(raw['@_ID']);
     const view: CweView = { id, name: raw['@_Name'] ?? '', groupIds: [], memberIds: [] };
     result.push(view);
+    if (implicit !== undefined) {
+      view.memberIds = [...implicit];
+      continue;
+    }
     if (id === DEFAULT_VIEW_ID) {
       continue;
     }

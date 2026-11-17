@@ -90,6 +90,12 @@ describe('evaluateImplicitViews', () => {
       evaluateImplicitViews(catalog(weakness('1')), [view('919', filter)], ids('1'), only('919')),
     ).toThrow(/View 919: filter matches .* which is not a weakness/);
   });
+
+  it('fails on a weakness the catalog does not list', () => {
+    expect(() =>
+      evaluateImplicitViews(catalog(weakness('1', true) + weakness('2', true)), [view('919', MOBILE)], ids('1'), only('919')),
+    ).toThrow(/View 919: filter matches .* which is not a weakness/);
+  });
 });
 
 describe('the implicit view lists', () => {

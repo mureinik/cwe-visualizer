@@ -85,6 +85,16 @@ describe('readViews', () => {
     expect(groups).toEqual({});
   });
 
+  it('offers an implicit view with the members it is given', () => {
+    const { views } = readViews(
+      [view('919', [], { '@_Type': 'Implicit' })],
+      [],
+      WEAKNESSES,
+      new Map([['919', ['79']]]),
+    );
+    expect(views).toEqual([{ id: '919', name: 'View 919', groupIds: [], memberIds: ['79'] }]);
+  });
+
   it('writes view 1000 first, without members', () => {
     const { views } = readViews(
       [view('1435', [['79', '1435']]), view('1000', [['79', '1000']], { '@_Name': 'Complete Weakness Hierarchy' })],

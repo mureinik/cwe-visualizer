@@ -4,6 +4,7 @@
 
 import { DOMParser } from '@xmldom/xmldom';
 import xpath from 'xpath';
+import { RETIRED_STATUSES } from './views.ts';
 import type { RawView } from './views.ts';
 
 /** Implicit views the app offers, by ID. */
@@ -25,7 +26,6 @@ export const SKIPPED_IMPLICIT_VIEWS: Readonly<Record<string, string>> = {
   '1081': 'an editorial list',
 };
 
-const RETIRED_STATUSES = new Set(['Deprecated', 'Obsolete']);
 const IMPLICIT = 'Implicit';
 
 interface Lists {

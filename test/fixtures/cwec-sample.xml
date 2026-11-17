@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Weakness_Catalog xmlns:xhtml="http://www.w3.org/1999/xhtml" Name="CWE" Version="4.15" Date="2024-11-19">
+<Weakness_Catalog xmlns="http://cwe.mitre.org/cwe-8" xmlns:xhtml="http://www.w3.org/1999/xhtml" Name="CWE" Version="4.15" Date="2024-11-19">
   <Weaknesses>
-    <Weakness ID="74" Name="Injection" Abstraction="Class" Status="Incomplete">
+    <Weakness ID="74" Name="Injection" Abstraction="Class" Structure="Chain" Status="Incomplete">
       <Description>The product constructs all or part of a command using externally-influenced input.</Description>
+      <Applicable_Platforms>
+        <Language Class="Not Language-Specific" Prevalence="Undetermined"/>
+      </Applicable_Platforms>
     </Weakness>
     <Weakness ID="79" Name="Cross-site Scripting" Abstraction="Base" Status="Stable">
       <Description>The product does not neutralize user-controllable input before it is placed in output.</Description>
+      <Applicable_Platforms>
+        <Language Name="C" Prevalence="Often"/>
+        <Language Class="Not Language-Specific" Prevalence="Undetermined"/>
+        <Technology Class="Mobile" Prevalence="Undetermined"/>
+      </Applicable_Platforms>
       <Technical_Nuance>
         <xhtml:p>Targets include:</xhtml:p>
         <xhtml:ul>
@@ -26,8 +34,11 @@
         <Related_Weakness Nature="PeerOf" CWE_ID="80" View_ID="1000"/>
       </Related_Weaknesses>
     </Weakness>
-    <Weakness ID="80" Name="Improper Neutralization of Script-Related HTML Tags" Abstraction="Base" Status="Stable">
+    <Weakness ID="80" Name="Improper Neutralization of Script-Related HTML Tags" Abstraction="Base" Structure="Composite" Status="Stable">
       <Description>The product receives input and neutralizes special characters, but the neutralization is incomplete.</Description>
+      <Applicable_Platforms>
+        <Language Class="Compiled" Prevalence="Often"/>
+      </Applicable_Platforms>
       <Technical_Nuance/>
       <Modes_Of_Introduction>
         <Introduction>
@@ -44,6 +55,18 @@
     </Weakness>
     <Weakness ID="89" Name="SQL Injection" Abstraction="Base" Status="Stable">
       <Description>The product constructs SQL commands using externally-influenced input.</Description>
+      <Applicable_Platforms>
+        <Language Name="SQL" Prevalence="Often"/>
+        <Language Class="Memory-Unsafe" Prevalence="Undetermined"/>
+      </Applicable_Platforms>
+      <Weakness_Ordinalities>
+        <Weakness_Ordinality>
+          <Ordinality>Indirect</Ordinality>
+        </Weakness_Ordinality>
+      </Weakness_Ordinalities>
+      <Taxonomy_Mappings>
+        <Taxonomy_Mapping Taxonomy_Name="ISA/IEC 62443" Entry_ID="x"/>
+      </Taxonomy_Mappings>
       <Modes_Of_Introduction>
         <Introduction>
           <Phase>Implementation</Phase>
@@ -97,7 +120,22 @@
       </Members>
     </View>
     <View ID="658" Name="Weaknesses in Software Written in C" Type="Implicit" Status="Draft">
-      <Filter>/Weakness[Applicable_Platforms/Language/@Name='C']</Filter>
+      <Filter>/Weakness_Catalog/Weaknesses/Weakness[./Applicable_Platforms/Language/@Name='C']</Filter>
+    </View>
+    <View ID="919" Name="Weaknesses in Mobile Applications" Type="Implicit" Status="Draft">
+      <Filter>/Weakness_Catalog/Weaknesses/Weakness[./Applicable_Platforms/Technology/@Class='Mobile']</Filter>
+    </View>
+    <View ID="1424" Name="Weaknesses Addressed by ISA/IEC 62443 Requirements" Type="Implicit" Status="Draft">
+      <Filter>/Weakness_Catalog/Weaknesses/Weakness[./Taxonomy_Mappings/Taxonomy_Mapping/@Taxonomy_Name='ISA/IEC 62443']</Filter>
+    </View>
+    <View ID="678" Name="Composites" Type="Implicit" Status="Draft">
+      <Filter>/Weakness_Catalog/Weaknesses/Weakness[@Structure='Composite'][not(@Status='Deprecated')]</Filter>
+    </View>
+    <View ID="709" Name="Named Chains" Type="Implicit" Status="Draft">
+      <Filter>/Weakness_Catalog/Weaknesses/Weakness[@Structure='Chain']</Filter>
+    </View>
+    <View ID="1040" Name="Quality Weaknesses with Indirect Security Impacts" Type="Implicit" Status="Draft">
+      <Filter>/Weakness_Catalog/Weaknesses/Weakness[Weakness_Ordinalities/Weakness_Ordinality/Ordinality='Indirect']</Filter>
     </View>
     <View ID="635" Name="Weaknesses Originally Used by NVD from CWE 1.0" Type="Graph" Status="Obsolete">
       <Members>
