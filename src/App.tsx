@@ -8,7 +8,7 @@ import { DetailPanel, type RelationFlash } from './components/DetailPanel';
 import { AppHeader } from './components/AppHeader';
 import { readStoredEdgeLabels } from './lib/edge-labels';
 import { Attribution } from './components/Attribution';
-import { DEFAULT_FILTER, matchingIds, type Filter } from './lib/filter';
+import { DEFAULT_FILTER, filterKey, matchingIds, type Filter } from './lib/filter';
 import { readFilter, writeFilter } from './lib/filter-url';
 
 type LoadState =
@@ -177,7 +177,7 @@ export function App() {
           }}
           revealId={revealId}
           matches={matches}
-          filterKey={`${filter.viewId}|${filter.groupId}|${filter.phase}`}
+          filterKey={filterKey(filter)}
         />
       </main>
       <Attribution catalogDate={state.graph.meta.catalogDate} />

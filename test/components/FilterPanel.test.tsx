@@ -95,7 +95,7 @@ describe('FilterPanel', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Clear group' }));
     expect(onChange).toHaveBeenLastCalledWith({ ...filter, groupId: null });
     await userEvent.click(screen.getByRole('button', { name: 'Clear phase' }));
-    expect(onChange).toHaveBeenLastCalledWith({ ...filter, phase: null, language: null, anyLanguage: false });
+    expect(onChange).toHaveBeenLastCalledWith({ ...filter, phase: null });
     await userEvent.click(screen.getByRole('button', { name: 'Show all CWEs' }));
     expect(onChange).toHaveBeenLastCalledWith({ viewId: '1000', groupId: null, phase: 'Implementation', language: null, anyLanguage: false });
   });

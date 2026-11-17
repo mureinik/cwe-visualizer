@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildGraph } from '../../src/lib/graph';
 import { filterData } from '../fixtures/filter-data';
-import { DEFAULT_FILTER, agnosticExtra, countMatchesBeneath, filterCount, matchingIds, withMatchPaths } from '../../src/lib/filter';
+import { DEFAULT_FILTER, agnosticExtra, countMatchesBeneath, filterKey, filterCount, matchingIds, withMatchPaths } from '../../src/lib/filter';
 
 const graph = buildGraph(filterData);
 const view10 = { ...DEFAULT_FILTER, viewId: '10' };
@@ -87,5 +87,20 @@ describe('countMatchesBeneath', () => {
     expect(countMatchesBeneath(graph, '1', matches)).toBe(1);
     expect(countMatchesBeneath(graph, '4', matches)).toBe(1);
     expect(countMatchesBeneath(graph, '3', matches)).toBe(0);
+  });
+});
+
+describe('filterKey', () => {
+  // The tree remounts when the key changes, so every field must be in it.
+  it('differs for each field of the filter', () => {
+    const filters = [
+      DEFAULT_FILTER,
+      view10,
+      { ...view10, groupId: '20' },
+      { ...DEFAULT_FILTER, phase: 'Testing' },
+      { ...DEFAULT_FILTER, language: 'C' },
+      { ...DEFAULT_FILTER, language: 'C', anyLanguage: true },
+    ];
+    expect(new Set(filters.map(filterKey)).size).toBe(filters.length);
   });
 });

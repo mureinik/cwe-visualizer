@@ -25,6 +25,11 @@ export function filterCount(filter: Filter): number {
     (filter.language === null ? 0 : 1);
 }
 
+/** Differs whenever the filter does, so a component can remount on it. */
+export function filterKey(filter: Filter): string {
+  return `${filter.viewId}|${filter.groupId}|${filter.phase}|${filter.language}|${filter.anyLanguage}`;
+}
+
 /** How many weaknesses applying to any language the checkbox adds: those not already members of `language`. */
 export function agnosticExtra(graph: Graph, language: string): number {
   const members = new Set(graph.languages.find((l) => l.name === language)?.memberIds);
