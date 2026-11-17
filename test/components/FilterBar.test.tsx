@@ -112,6 +112,53 @@ describe('FilterBar', () => {
     expect(onChange).toHaveBeenCalledExactlyOnceWith({ viewId: '10', groupId: '20', phase: null, language: null, anyLanguage: false });
   });
 
+  it.each([
+    [false, 'C'],
+    [true, 'C + any language'],
+  ])('shows a language chip between the group and the phase chips (anyLanguage %s)', (anyLanguage, label) => {
+    render(
+      <FilterBar
+        graph={graph}
+        filter={{ viewId: '10', groupId: '20', phase: 'Implementation', language: 'C', anyLanguage }}
+        matchCount={1}
+        dropped={[]}
+        onChange={() => {}}
+      />,
+    );
+    const labels = screen.getAllByRole('listitem').map((item) => item.textContent?.replace('×', ''));
+    expect(labels).toEqual(['Ten', 'Group', label, 'Implementation']);
+  });
+
+  it('clears the language and anyLanguage when the language chip is removed', async () => {
+    const onChange = vi.fn();
+    render(
+      <FilterBar
+        graph={graph}
+        filter={{ viewId: '10', groupId: '20', phase: 'Implementation', language: 'C', anyLanguage: true }}
+        matchCount={1}
+        dropped={[]}
+        onChange={onChange}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Remove filter: C + any language' }));
+    expect(onChange).toHaveBeenCalledExactlyOnceWith({ viewId: '10', groupId: '20', phase: 'Implementation', language: null, anyLanguage: false });
+  });
+
+  it('keeps the language when the view chip is removed', async () => {
+    const onChange = vi.fn();
+    render(
+      <FilterBar
+        graph={graph}
+        filter={{ viewId: '10', groupId: '20', phase: null, language: 'C', anyLanguage: true }}
+        matchCount={1}
+        dropped={[]}
+        onChange={onChange}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Remove filter: Ten' }));
+    expect(onChange).toHaveBeenCalledExactlyOnceWith({ viewId: '1000', groupId: null, phase: null, language: 'C', anyLanguage: true });
+  });
+
   it('shows only the phase chip on view 1000', () => {
     render(
       <FilterBar

@@ -282,6 +282,14 @@ describe('App', () => {
         expect(params.get('language')).toBe('C');
         expect(params.has('anyLanguage')).toBe(false);
       });
+
+      it('labels the chip C when anyLanguage is dropped from the address', async () => {
+        const search = new URLSearchParams({ cwe: '79', language: 'C', anyLanguage: '<img src=x onerror=alert(1)>' });
+        window.history.replaceState(null, '', `/?${search}`);
+        render(<App />);
+        expect(await screen.findByRole('button', { name: 'Remove filter: C' })).toBeInTheDocument();
+        expect(screen.queryByText('C + any language')).not.toBeInTheDocument();
+      });
     });
 
     it('shows the view it names in the filter bar', async () => {

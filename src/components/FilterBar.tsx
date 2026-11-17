@@ -34,6 +34,15 @@ function chipsFor(graph: Graph, filter: Filter): Chip[] {
       next: { ...filter, groupId: null },
     });
   }
+  if (filter.language !== null) {
+    const language = graph.languages.find((l) => l.name === filter.language);
+    const name = language?.name ?? filter.language;
+    chips.push({
+      key: 'language',
+      label: filter.anyLanguage ? `${name} + any language` : name,
+      next: { ...filter, language: null, anyLanguage: false },
+    });
+  }
   if (filter.phase !== null) {
     const phase = graph.phases.find((p) => phaseKey(p) === filter.phase);
     chips.push({
