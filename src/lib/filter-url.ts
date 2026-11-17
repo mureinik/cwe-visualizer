@@ -5,6 +5,7 @@ import { phaseKey } from './phases';
 // The filter bar repeats what was dropped, and anyone can write the address,
 // so a dropped value is named only when it looks like what it claims to be.
 const SAFE_ID = /^\d+$/;
+const SAFE_LANGUAGE = /^[A-Za-z0-9+#.]{1,12}$/;
 const SAFE_PHASE = /^[A-Za-z0-9 &/:().,-]{1,40}$/;
 
 function droppedLabel(kind: string, value: string, safe: RegExp): string {
@@ -39,6 +40,25 @@ export function readFilter(search: string, graph: Graph): { filter: Filter; drop
     }
   }
 
+  const language = params.get('language');
+  if (language !== null) {
+    if (graph.languages.some((l) => l.name === language)) {
+      filter.language = language;
+    } else {
+      dropped.push(droppedLabel('language', language, SAFE_LANGUAGE));
+    }
+  }
+
+  // Only the exact value 1, and only beside a language; never repeated.
+  const anyLanguage = params.get('anyLanguage');
+  if (anyLanguage !== null) {
+    if (anyLanguage === '1' && filter.language !== null) {
+      filter.anyLanguage = true;
+    } else {
+      dropped.push('any language');
+    }
+  }
+
   const phase = params.get('phase');
   if (phase !== null) {
     if (graph.phases.some((p) => phaseKey(p) === phase)) {
@@ -51,7 +71,7 @@ export function readFilter(search: string, graph: Graph): { filter: Filter; drop
   return { filter, dropped };
 }
 
-/** Sets or deletes `view`, `group` and `phase`; leaves everything else alone. */
+/** Sets or deletes `view`, `group`, `language`, `anyLanguage` and `phase`; leaves everything else alone. */
 export function writeFilter(params: URLSearchParams, filter: Filter): void {
   if (filter.viewId === DEFAULT_VIEW_ID) {
     params.delete('view');
@@ -67,5 +87,15 @@ export function writeFilter(params: URLSearchParams, filter: Filter): void {
     params.delete('phase');
   } else {
     params.set('phase', filter.phase);
+  }
+  if (filter.language === null) {
+    params.delete('language');
+  } else {
+    params.set('language', filter.language);
+  }
+  if (filter.language !== null && filter.anyLanguage) {
+    params.set('anyLanguage', '1');
+  } else {
+    params.delete('anyLanguage');
   }
 }

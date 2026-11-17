@@ -342,6 +342,15 @@ describe('buildGraph roots', () => {
     expect(buildGraph(data).roots).toEqual(['99', '1000']);
   });
 
+  // prepare-data always writes both lists, so a real cwe.json has them.
+  describe('data without languages', { tags: ['theoretical'] }, () => {
+    it('defaults languages and languageAgnosticIds to empty', () => {
+      const { languages, languageAgnosticIds } = buildGraph({ meta: sampleData.meta, nodes: {}, edges: [] });
+      expect(languages).toEqual([]);
+      expect(languageAgnosticIds).toEqual([]);
+    });
+  });
+
   // Nothing in src/ passes rootIds. Promote all three tests if something
   // starts to.
   describe('the rootIds option', { tags: ['theoretical'] }, () => {

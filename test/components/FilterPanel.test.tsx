@@ -36,10 +36,10 @@ describe('FilterPanel', () => {
   });
 
   it('sets the view and clears the group when a view is chosen', async () => {
-    const { onChange } = renderPanel({ viewId: '699', groupId: '1228', phase: 'Implementation' });
+    const { onChange } = renderPanel({ viewId: '699', groupId: '1228', phase: 'Implementation', language: null, anyLanguage: false });
     await userEvent.click(screen.getByRole('combobox', { name: 'View' }));
     await userEvent.click(screen.getByRole('option', { name: /Top 25/ }));
-    expect(onChange).toHaveBeenCalledExactlyOnceWith({ viewId: '1435', groupId: null, phase: 'Implementation' });
+    expect(onChange).toHaveBeenCalledExactlyOnceWith({ viewId: '1435', groupId: null, phase: 'Implementation', language: null, anyLanguage: false });
   });
 
   it('disables the group for view 1000', () => {
@@ -48,7 +48,7 @@ describe('FilterPanel', () => {
   });
 
   it("lists view 699's groupings, the deprecated one last and marked", async () => {
-    renderPanel({ viewId: '699', groupId: null, phase: null });
+    renderPanel({ viewId: '699', groupId: null, phase: null, language: null, anyLanguage: false });
     const group = screen.getByRole('combobox', { name: 'Group' });
     expect(group).toBeEnabled();
     await userEvent.click(group);
@@ -58,10 +58,10 @@ describe('FilterPanel', () => {
   });
 
   it('sets the group when one is chosen', async () => {
-    const { onChange } = renderPanel({ viewId: '699', groupId: null, phase: null });
+    const { onChange } = renderPanel({ viewId: '699', groupId: null, phase: null, language: null, anyLanguage: false });
     await userEvent.click(screen.getByRole('combobox', { name: 'Group' }));
     await userEvent.click(screen.getByRole('option', { name: 'API / Function Errors' }));
-    expect(onChange).toHaveBeenCalledExactlyOnceWith({ viewId: '699', groupId: '1228', phase: null });
+    expect(onChange).toHaveBeenCalledExactlyOnceWith({ viewId: '699', groupId: '1228', phase: null, language: null, anyLanguage: false });
   });
 
   it('offers any phase, then each phase by label', () => {
@@ -80,28 +80,28 @@ describe('FilterPanel', () => {
   it('sets a custom phase by its key', async () => {
     const { onChange } = renderPanel();
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Phase' }), 'Testing (AI)');
-    expect(onChange).toHaveBeenCalledExactlyOnceWith({ viewId: '1000', groupId: null, phase: 'AI:Testing' });
+    expect(onChange).toHaveBeenCalledExactlyOnceWith({ viewId: '1000', groupId: null, phase: 'AI:Testing', language: null, anyLanguage: false });
   });
 
   it('clears the phase when Any phase is chosen', async () => {
-    const { onChange } = renderPanel({ viewId: '1000', groupId: null, phase: 'Implementation' });
+    const { onChange } = renderPanel({ viewId: '1000', groupId: null, phase: 'Implementation', language: null, anyLanguage: false });
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Phase' }), 'Any phase');
     expect(onChange).toHaveBeenCalledExactlyOnceWith(DEFAULT_FILTER);
   });
 
   it('clears the group, the phase and the view on their own', async () => {
-    const filter = { viewId: '699', groupId: '1228', phase: 'Implementation' };
+    const filter = { viewId: '699', groupId: '1228', phase: 'Implementation', language: null, anyLanguage: false };
     const { onChange } = renderPanel(filter);
     await userEvent.click(screen.getByRole('button', { name: 'Clear group' }));
     expect(onChange).toHaveBeenLastCalledWith({ ...filter, groupId: null });
     await userEvent.click(screen.getByRole('button', { name: 'Clear phase' }));
-    expect(onChange).toHaveBeenLastCalledWith({ ...filter, phase: null });
+    expect(onChange).toHaveBeenLastCalledWith({ ...filter, phase: null, language: null, anyLanguage: false });
     await userEvent.click(screen.getByRole('button', { name: 'Show all CWEs' }));
-    expect(onChange).toHaveBeenLastCalledWith({ viewId: '1000', groupId: null, phase: 'Implementation' });
+    expect(onChange).toHaveBeenLastCalledWith({ viewId: '1000', groupId: null, phase: 'Implementation', language: null, anyLanguage: false });
   });
 
   it('clears everything with Clear all', async () => {
-    const { onChange } = renderPanel({ viewId: '699', groupId: '1228', phase: 'Implementation' });
+    const { onChange } = renderPanel({ viewId: '699', groupId: '1228', phase: 'Implementation', language: null, anyLanguage: false });
     await userEvent.click(screen.getByRole('button', { name: 'Clear all' }));
     expect(onChange).toHaveBeenCalledExactlyOnceWith(DEFAULT_FILTER);
   });
@@ -112,14 +112,14 @@ describe('FilterPanel', () => {
     ['Show all CWEs', 'View'],
     ['Clear all', 'View'],
   ])('moves focus from %s to the %s picker', async (button, picker) => {
-    render(<StatefulPanel initial={{ viewId: '699', groupId: '1228', phase: 'Implementation' }} />);
+    render(<StatefulPanel initial={{ viewId: '699', groupId: '1228', phase: 'Implementation', language: null, anyLanguage: false }} />);
     await userEvent.click(screen.getByRole('button', { name: button }));
     expect(screen.getByRole('button', { name: button })).toBeDisabled();
     expect(screen.getByRole('combobox', { name: picker })).toHaveFocus();
   });
 
   it('moves focus from Clear phase to the phase list', async () => {
-    render(<StatefulPanel initial={{ viewId: '699', groupId: '1228', phase: 'Implementation' }} />);
+    render(<StatefulPanel initial={{ viewId: '699', groupId: '1228', phase: 'Implementation', language: null, anyLanguage: false }} />);
     await userEvent.click(screen.getByRole('button', { name: 'Clear phase' }));
     expect(screen.getByRole('button', { name: 'Clear phase' })).toBeDisabled();
     expect(screen.getByRole('combobox', { name: 'Phase' })).toHaveFocus();

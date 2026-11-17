@@ -27,7 +27,7 @@ describe('FilterBar', () => {
     rerender(
       <FilterBar
         graph={graph}
-        filter={{ viewId: '1000', groupId: null, phase: 'Implementation' }}
+        filter={{ viewId: '1000', groupId: null, phase: 'Implementation', language: null, anyLanguage: false }}
         matchCount={1}
         dropped={[]}
         onChange={() => {}}
@@ -42,7 +42,7 @@ describe('FilterBar', () => {
     render(
       <FilterBar
         graph={graph}
-        filter={{ viewId: '10', groupId: null, phase: 'AI:Testing' }}
+        filter={{ viewId: '10', groupId: null, phase: 'AI:Testing', language: null, anyLanguage: false }}
         matchCount={19}
         dropped={[]}
         onChange={() => {}}
@@ -57,7 +57,7 @@ describe('FilterBar', () => {
     render(
       <FilterBar
         graph={graph}
-        filter={{ viewId: '10', groupId: '20', phase: null }}
+        filter={{ viewId: '10', groupId: '20', phase: null, language: null, anyLanguage: false }}
         matchCount={1}
         dropped={[]}
         onChange={() => {}}
@@ -72,14 +72,14 @@ describe('FilterBar', () => {
     render(
       <FilterBar
         graph={graph}
-        filter={{ viewId: '10', groupId: '20', phase: 'Implementation' }}
+        filter={{ viewId: '10', groupId: '20', phase: 'Implementation', language: null, anyLanguage: false }}
         matchCount={1}
         dropped={[]}
         onChange={onChange}
       />,
     );
     await userEvent.click(screen.getByRole('button', { name: 'Remove filter: Ten' }));
-    expect(onChange).toHaveBeenCalledExactlyOnceWith({ viewId: '1000', groupId: null, phase: 'Implementation' });
+    expect(onChange).toHaveBeenCalledExactlyOnceWith({ viewId: '1000', groupId: null, phase: 'Implementation', language: null, anyLanguage: false });
   });
 
   it('clears only the group when the group chip is removed', async () => {
@@ -87,14 +87,14 @@ describe('FilterBar', () => {
     render(
       <FilterBar
         graph={graph}
-        filter={{ viewId: '10', groupId: '20', phase: 'Implementation' }}
+        filter={{ viewId: '10', groupId: '20', phase: 'Implementation', language: null, anyLanguage: false }}
         matchCount={1}
         dropped={[]}
         onChange={onChange}
       />,
     );
     await userEvent.click(screen.getByRole('button', { name: 'Remove filter: Group' }));
-    expect(onChange).toHaveBeenCalledExactlyOnceWith({ viewId: '10', groupId: null, phase: 'Implementation' });
+    expect(onChange).toHaveBeenCalledExactlyOnceWith({ viewId: '10', groupId: null, phase: 'Implementation', language: null, anyLanguage: false });
   });
 
   it('clears only the phase when the phase chip is removed', async () => {
@@ -102,21 +102,21 @@ describe('FilterBar', () => {
     render(
       <FilterBar
         graph={graph}
-        filter={{ viewId: '10', groupId: '20', phase: 'Implementation' }}
+        filter={{ viewId: '10', groupId: '20', phase: 'Implementation', language: null, anyLanguage: false }}
         matchCount={1}
         dropped={[]}
         onChange={onChange}
       />,
     );
     await userEvent.click(screen.getByRole('button', { name: 'Remove filter: Implementation' }));
-    expect(onChange).toHaveBeenCalledExactlyOnceWith({ viewId: '10', groupId: '20', phase: null });
+    expect(onChange).toHaveBeenCalledExactlyOnceWith({ viewId: '10', groupId: '20', phase: null, language: null, anyLanguage: false });
   });
 
   it('shows only the phase chip on view 1000', () => {
     render(
       <FilterBar
         graph={graph}
-        filter={{ viewId: '1000', groupId: null, phase: 'Implementation' }}
+        filter={{ viewId: '1000', groupId: null, phase: 'Implementation', language: null, anyLanguage: false }}
         matchCount={1}
         dropped={[]}
         onChange={() => {}}
@@ -140,7 +140,7 @@ describe('FilterBar', () => {
       render(
         <FilterBar
           graph={graph}
-          filter={{ viewId: '9998', groupId: '9999', phase: 'Nope' }}
+          filter={{ viewId: '9998', groupId: '9999', phase: 'Nope', language: null, anyLanguage: false }}
           matchCount={0}
           dropped={[]}
           onChange={() => {}}

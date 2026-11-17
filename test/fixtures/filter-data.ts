@@ -24,4 +24,9 @@ export const filterData: CweData = {
     { id: '10', name: 'Ten', groupIds: ['20'], memberIds: ['3', '5'] },
   ],
   groups: { '20': { id: '20', name: 'Group', status: 'Draft', membersByView: { '10': ['3'] } } },
+  languages: [
+    { name: 'C', classes: ['Memory-Unsafe', 'Compiled'], memberIds: ['2', '3'] },
+    { name: 'C++', classes: ['Memory-Unsafe'], memberIds: ['5'] },
+  ],
+  languageAgnosticIds: ['1', '2', '4'],
 };
