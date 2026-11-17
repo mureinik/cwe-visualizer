@@ -23,6 +23,8 @@ export interface RawView {
   '@_Name'?: string;
   '@_Type'?: string;
   '@_Status'?: string;
+  /** The XPath of an implicit view; the other views list their members. */
+  Filter?: string;
   Members?: { Has_Member?: RawHasMember | RawHasMember[] };
 }
 
