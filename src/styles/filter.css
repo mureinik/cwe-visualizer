@@ -177,6 +177,10 @@
   font-size: var(--text-sm);
 }
 
+.filter-panel__check input {
+  flex: none;
+}
+
 .filter-panel__note {
   margin: 0;
   color: var(--text-secondary);

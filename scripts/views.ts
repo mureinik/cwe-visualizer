@@ -42,7 +42,7 @@ function numerically(a: string, b: string): number {
   return Number(a) - Number(b);
 }
 
-function byName(a: { name: string }, b: { name: string }): number {
+export function byName(a: { name: string }, b: { name: string }): number {
   const x = a.name.toLowerCase();
   const y = b.name.toLowerCase();
   return x < y ? -1 : x > y ? 1 : 0;

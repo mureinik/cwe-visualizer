@@ -48,6 +48,26 @@ describe('readLanguages', () => {
     expect(languages).toEqual([{ name: 'SQL', classes: [], memberIds: ['2'] }]);
   });
 
+  it('sorts names case-insensitively, so Perl comes before PHP', () => {
+    const { languages } = readLanguages([
+      {
+        id: '1',
+        languages: [
+          named('PHP'),
+          named('Perl'),
+          named('VHDL'),
+          named('Verilog'),
+        ],
+      },
+    ]);
+    expect(languages.map((l) => l.name)).toEqual([
+      'Perl',
+      'PHP',
+      'Verilog',
+      'VHDL',
+    ]);
+  });
+
   it('counts a weakness once per language', () => {
     const { languages } = readLanguages([
       { id: '1', languages: [named('C'), classed('Memory-Unsafe')] },

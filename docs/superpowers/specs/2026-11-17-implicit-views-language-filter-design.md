@@ -69,7 +69,7 @@ no `Language` element):
   | + classes mapped to C (Memory-Unsafe, Compiled) | 106 |
   | + Not Language-Specific | 849 |
 
-  Python goes 60 → 75 → 798 and Java 84 → 93 → 856. 48 of the Not
+  Python goes 60 → 75 → 798 and Java 84 → 88 → 852. 48 of the Not
   Language-Specific entries are hardware weaknesses.
 
 ## Goals

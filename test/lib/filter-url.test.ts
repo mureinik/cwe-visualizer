@@ -220,10 +220,14 @@ describe('writeFilter', () => {
     expect(readFilter(`?${params.toString()}`, withLanguages)).toEqual({ filter, dropped: [] });
   });
 
-  it('writes anyLanguage only with a language', () => {
-    const params = new URLSearchParams();
-    writeFilter(params, { ...DEFAULT_FILTER, anyLanguage: true });
-    expect(params.toString()).toBe('');
+  // Our own code never produces anyLanguage without a language: the panel,
+  // the chip and readFilter all clear or refuse that state.
+  describe('anyLanguage without a language', { tags: ['theoretical'] }, () => {
+    it('is written only with a language', () => {
+      const params = new URLSearchParams();
+      writeFilter(params, { ...DEFAULT_FILTER, anyLanguage: true });
+      expect(params.toString()).toBe('');
+    });
   });
 
   it('removes all five parameters for the default filter and keeps cwe', () => {

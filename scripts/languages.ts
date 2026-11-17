@@ -3,6 +3,7 @@
 // doesn't know fails the build, so a new one is a decision.
 
 import type { CweLanguage } from '../src/lib/cwe-data.ts';
+import { byName } from './views.ts';
 
 /** A Language as fast-xml-parser gives it. */
 export interface RawLanguage {
@@ -118,7 +119,7 @@ export function readLanguages(
       ),
       memberIds: [...ids].sort(numerically),
     }))
-    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    .sort(byName);
 
   return { languages, languageAgnosticIds: [...agnostic].sort(numerically) };
 }

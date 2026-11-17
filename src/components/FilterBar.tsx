@@ -35,11 +35,9 @@ function chipsFor(graph: Graph, filter: Filter): Chip[] {
     });
   }
   if (filter.language !== null) {
-    const language = graph.languages.find((l) => l.name === filter.language);
-    const name = language?.name ?? filter.language;
     chips.push({
       key: 'language',
-      label: filter.anyLanguage ? `${name} + any language` : name,
+      label: filter.anyLanguage ? `${filter.language} + any language` : filter.language,
       next: { ...filter, language: null, anyLanguage: false },
     });
   }

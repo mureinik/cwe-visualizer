@@ -41,8 +41,12 @@ describe('matchingIds', () => {
     expect(matchingIds(graph, { ...view10, language: 'C' })).toEqual(new Set(['3']));
   });
 
-  it('ignores anyLanguage without a language', () => {
-    expect(matchingIds(graph, { ...DEFAULT_FILTER, anyLanguage: true })).toBeNull();
+  // Our own code never produces anyLanguage without a language: the panel,
+  // the chip and readFilter all clear or refuse that state.
+  describe('anyLanguage without a language', { tags: ['theoretical'] }, () => {
+    it('is ignored', () => {
+      expect(matchingIds(graph, { ...DEFAULT_FILTER, anyLanguage: true })).toBeNull();
+    });
   });
 
   // readFilter drops a view or group the graph doesn't have, and the panel
