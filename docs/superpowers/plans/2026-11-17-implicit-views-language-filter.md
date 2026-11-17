@@ -21,6 +21,12 @@
 - Known language names: C, C++, Java, Python, Go, PHP, C#, Verilog, VHDL, Perl, JavaScript, ASP.NET, SQL, Ruby, XML, Rust, VB.NET, Other. "Other" is never offered.
 - A language is offered only when it has members. Languages are sorted by name.
 - URL parameters `language=<name>` and `anyLanguage=1`, written with `replaceState` like the others.
+- **Each new URL parameter accepts only a closed list of values (an allowlist), so the address can't be used for cross-site scripting.**
+  - `language` is applied only when it equals, exactly, the `name` of an entry in `graph.languages`.
+  - `anyLanguage` is applied only when it is exactly `1` and a valid language is set.
+  - Any other value is dropped and never reaches the filter, the URL, the DOM or an attribute.
+  - The "dropped" notice repeats an unknown `language` only when it matches `/^[A-Za-z0-9+#.]{1,12}$/`: no spaces, quotes, angle brackets, `&`, `:` or line breaks, which covers every known name. Otherwise the notice says `an unrecognised language`. A dropped `anyLanguage` is always named `any language` and its value is never repeated.
+  - Nothing renders a parameter's raw value with `dangerouslySetInnerHTML` or into an `href`.
 - Copy, exact: picker label `Language`, empty option `Any language`, clear button `Clear language`, checkbox `Also show weaknesses that apply to any language (+N)`, note `Weaknesses MITRE ties to <name>, or to <classes> languages. Which languages count as which is our call, not MITRE's.` (no classes: `Weaknesses MITRE ties to <name>.`), chip `<name>` or `<name> + any language`.
 - Adding `language: null, anyLanguage: false` to existing `Filter` literals in tests is a type-only edit, not a behaviour change; make no other change to an existing real-world test unless a task says so.
 - Every new test is classified (CONTRIBUTING, "Real-world and theoretical tests"), real-world when in doubt. Fixtures go in `test/fixtures/`.
@@ -33,7 +39,8 @@
 2. **Changing the view or removing the view chip keeps the language.** Only the group belongs to the view. Tests in Tasks 4 and 6.
 3. **The real catalog's default namespace.** A filter must still match when the root has `xmlns="http://cwe.mitre.org/cwe-8"`. The fixture carries it, tested in Tasks 1 and 3.
 4. **`?anyLanguage=1` with no or an unknown language** is dropped and named, never silently kept. Test in Task 4.
-5. **The checkbox count when every agnostic weakness is already a member** reads `(+0)` and the checkbox still works. Test in Task 5.
+5. **Every new parameter is checked against an allowlist.** Markup, script URLs, quote breakouts, case and whitespace variants, and object keys in `language` or `anyLanguage` are dropped and named only generically, and never reach the DOM. Tests in Tasks 4 and 6.
+6. **The checkbox count when every agnostic weakness is already a member** reads `(+0)` and the checkbox still works. Test in Task 5.
 
 ---
 
@@ -164,7 +171,7 @@
 - Modify: `src/lib/graph.ts` (`Graph` gains `languages: CweLanguage[]` and `languageAgnosticIds: string[]`, defaulting to `[]`)
 - Modify: `src/lib/filter.ts`, `src/lib/filter-url.ts`
 - Modify: `test/fixtures/filter-data.ts`, `test/fixtures/views-data.ts`
-- Test: `test/lib/filter.test.ts`, `test/lib/filter-url.test.ts`, `test/lib/graph.test.ts`
+- Test: `test/lib/filter.test.ts`, `test/lib/filter-url.test.ts`, `test/lib/graph.test.ts`, `test/App.test.tsx`
 
 **Interfaces:**
 
@@ -190,10 +197,29 @@
     - `reads a language and anyLanguage`.
     - `round-trips C++ and C#`: write, then read back from `params.toString()`.
     - `drops an unknown language, naming it`: `language Kotlin`.
-    - `names an unusual language only generically`: with the safe pattern `/^[A-Za-z0-9 +#.]{1,20}$/`.
+    - `names an unusual language only generically`: for example `Click here` or `C sharp please sign in`, using the safe pattern from Global Constraints.
     - `drops anyLanguage without a known language`: the dropped list contains `any language`.
     - `drops an anyLanguage other than 1`.
     - `keeps the language when the view is unknown`.
+    - **Allowlist tests**, modelled on the existing `a non-numeric %s` block. These are real-world, since the address is user input.
+      - `a language outside the list`, as an `it.each` over the payloads below. Each `is not applied, and %s is not repeated`: `filter.language` is `null` and `dropped` equals `['an unrecognised language']`.
+        - `<img src=x onerror=alert(1)>`
+        - `<script>alert(1)</script>`
+        - `javascript:alert(1)`
+        - `C" onmouseover="alert(1)`
+        - `C\n<b>x</b>`
+        - `C<b>x</b>`
+        - `c`, the right name in the wrong case
+        - `C` with a leading space
+        - `constructor`
+        - `__proto__`
+        - `toString`
+      - `an anyLanguage other than 1`, as an `it.each` over `true`, `yes`, `01`, `1` with a leading space, `1<b>x</b>`, `<img src=x onerror=alert(1)>` and `constructor`, each with `language=C`. `filter.anyLanguage` is `false`, `filter.language` is `'C'`, and `dropped` equals `['any language']`.
+      - `writeFilter writes only allowlisted values`: after `readFilter` of each payload above, `writeFilter` leaves no `language` or `anyLanguage` in the params.
+  - `App.test.tsx`, in the `filter parameters` block. These are real-world and new; the existing `renders markup in %s` test stays as it is.
+    - Use a local copy of `filtered` with `languages: [{ name: 'C', classes: [], memberIds: ['79'] }]` and `languageAgnosticIds: []`.
+    - `renders markup in language as nothing but a generic notice`: `?cwe=79&language=<img src=x onerror=alert(1)><b>bold</b>`. The CWE heading shows, the notice reads `Not in CWE 4.15, so ignored: an unrecognised language`, and `container.querySelector('img, b, [onerror]')` is `null`. `container.innerHTML` doesn't contain `onerror`, and the URL no longer has `language`.
+    - `renders markup in anyLanguage as nothing but a generic notice`: the same, with `language=C&anyLanguage=<img…>`. The notice reads `Not in CWE 4.15, so ignored: any language`, and the URL keeps `language=C` and loses `anyLanguage`.
   - `graph.test.ts`: `defaults languages and languageAgnosticIds to empty`. This is theoretical (reason 3: prepare-data always writes them), in a nested tagged `describe`.
 
 - [ ] **Step 3: Run** `npx vitest run test/lib`. Expected: the new tests FAIL.
@@ -260,6 +286,7 @@
   - `shows a language chip`: `C`, or `C + any language` when `anyLanguage` is set. It sits after the group chip and before the phase chip.
   - `clears the language and anyLanguage when the language chip is removed`.
   - `keeps the language when the view chip is removed`.
+  - In `App.test.tsx`: `labels the chip C when anyLanguage is dropped from the address`. Load `?language=C&anyLanguage=<img src=x onerror=alert(1)>` and expect the chip `C`, not `C + any language`. This is real-world.
 
 - [ ] **Step 2: Run** the test file. Expected: FAIL.
 

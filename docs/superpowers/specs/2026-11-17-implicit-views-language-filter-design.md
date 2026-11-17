@@ -242,6 +242,12 @@ Phase     [Any phase         ▾]   Clear phase
   this release doesn't have is dropped and named in the filter bar.
 - `anyLanguage` without `language`, or with a value other than `1`, is
   dropped.
+- Both parameters take only a closed list of values, an allowlist, so the
+  address can't be used for cross-site scripting. `language` must equal a
+  language this release offers, and `anyLanguage` must be exactly `1`.
+  Anything else is dropped before it reaches the filter or the page, and
+  tests cover markup, script URLs, quote breakouts, case and whitespace
+  variants and object keys.
 - Language names contain `+` and `#` (C++, C#), so they must survive
   `URLSearchParams` both ways, and the "dropped" label needs a safe-value
   pattern that admits them. A hand-typed `?language=C++` reads as C followed by two spaces
