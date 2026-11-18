@@ -26,6 +26,11 @@ enforces on its own, so breaking them fails silently.
   `LICENSE.md`, and the `<Attribution>` footer in `src/App.tsx` say so.
   Don't drop them in a refactor, and keep the footer reachable if you move
   where CWE data is displayed.
+- **Leave no uncovered or partial lines in a PR.** Codecov's
+  `codecov/patch` check is informational, so it passes whatever it finds.
+  Read its PR comment after each push and fix every miss and partial in
+  the changed lines;
+  [`CONTRIBUTING.md`](CONTRIBUTING.md#scripts) says how.
 - **Never use `--no-verify`.** The pre-commit hook runs `lint-staged` and the
   full test suite. Bypassing it is the one way to get unlinted, failing code
   into a commit. If it blocks you, fix the cause.
