@@ -284,3 +284,47 @@ describe('DetailPanel with a filter', () => {
     expect(chips().every((b) => b.classList.contains('relation-chip--outside'))).toBe(true);
   });
 });
+
+describe('DetailPanel dimensions', () => {
+  const dims = [
+    { type: 'Behavior-Type', value: 'Optimization' },
+    { type: 'Behavior-Type', value: 'Removal or Modification' },
+    { type: 'Code-Type', value: 'Code' },
+    { type: 'Code-Property', value: 'Security-critical' },
+    { type: 'Technology', value: 'Processor' },
+  ];
+  const withDims = buildGraph({
+    ...data,
+    nodes: {
+      ...data.nodes,
+      '74': {
+        ...data.nodes['74'],
+        dimensions: dims,
+        technicalNuance: [{ kind: 'paragraph', lines: [[{ text: 'Nuance for 74' }]] }],
+      },
+    },
+  });
+
+  it('shows dimensions after the description and before technical nuance', () => {
+    render(<DetailPanel graph={withDims} selectedId="74" onSelect={() => {}} />);
+    const description = screen.getByText('Base description');
+    const dimensions = screen.getByText('Dimensions');
+    const nuance = screen.getByText('Technical nuance');
+    expect(description.compareDocumentPosition(dimensions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(dimensions.compareDocumentPosition(nuance) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('shows no dimensions for a CWE without them', () => {
+    render(<DetailPanel graph={withDims} selectedId="79" onSelect={() => {}} />);
+    expect(screen.queryByText('Dimensions')).toBeNull();
+  });
+
+  it('closes the dimensions again when another CWE is selected', async () => {
+    const { rerender } = render(<DetailPanel graph={withDims} selectedId="74" onSelect={() => {}} />);
+    await userEvent.click(screen.getByText('Dimensions'));
+    expect(screen.getByText('Dimensions').closest('details')).toHaveAttribute('open');
+    rerender(<DetailPanel graph={withDims} selectedId="20" onSelect={() => {}} />);
+    rerender(<DetailPanel graph={withDims} selectedId="74" onSelect={() => {}} />);
+    expect(screen.getByText('Dimensions').closest('details')).not.toHaveAttribute('open');
+  });
+});

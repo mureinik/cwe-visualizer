@@ -3,6 +3,7 @@ import type { LateralRelation } from '../lib/ego';
 import { compareIds, isDeprecated, type Graph } from '../lib/graph';
 import { RELATION_GROUPS, relationGroup, type RelationGroup } from '../lib/relations';
 import { Glyph } from './Glyph';
+import { Dimensions } from './Dimensions';
 import { TechnicalNuance } from './TechnicalNuance';
 
 /** Relations to point out, for the graph's lateral "+N more" chip. */
@@ -181,6 +182,7 @@ export function DetailPanel({ graph, selectedId, onSelect, flash = null, matches
 
       {node.description && <p className="detail-panel__description">{node.description}</p>}
 
+      {node.dimensions && <Dimensions key={`dimensions-${node.id}`} dimensions={node.dimensions} />}
       {node.technicalNuance && <TechnicalNuance key={node.id} blocks={node.technicalNuance} />}
 
       <a className="detail-panel__link" href={node.url} target="_blank" rel="noreferrer">
