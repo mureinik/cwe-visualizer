@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildGraph, type CweData } from '../../src/lib/graph';
-import { buildEgoGraph } from '../../src/lib/ego';
+import { buildEgoGraph, edgeDimensions } from '../../src/lib/ego';
 
 const node = (id: string) => ({
   id, name: `Name ${id}`, abstraction: 'Base', status: 'Draft', description: '', url: '',
@@ -258,7 +258,7 @@ describe('buildEgoGraph with two relations in one group', () => {
 
   it('draws them as one edge that names both', () => {
     const ego = buildEgoGraph(buildGraph(pair), '788');
-    expect(ego.edges).toEqual([{ from: '788', to: '787', types: ['Overlaps', 'PeerOf'], group: 'peer' }]);
+    expect(ego.edges).toEqual([{ from: '788', to: '787', types: ['Overlaps', 'PeerOf'], group: 'peer', namedFrom: '788' }]);
   });
 
   it('counts the CWE once when the cap hides it, but names both relations', () => {
@@ -285,14 +285,14 @@ describe('buildEgoGraph with a relation to a parent or child', () => {
   it('keeps one edge per group, since the groups are drawn differently', () => {
     const ego = buildEgoGraph(buildGraph(pair), '788');
     expect(ego.edges).toEqual([
-      { from: '126', to: '788', types: ['ChildOf'], group: 'hierarchy' },
-      { from: '788', to: '126', types: ['Overlaps'], group: 'peer' },
+      { from: '126', to: '788', types: ['ChildOf'], group: 'hierarchy', namedFrom: '126' },
+      { from: '788', to: '126', types: ['Overlaps'], group: 'peer', namedFrom: '788' },
     ]);
   });
 });
 
 describe('buildEgoGraph reaching a CWE twice on the way up', () => {
-  const childOf = (from: string, to: string) => ({ from, to, types: ['ChildOf'], group: 'hierarchy' });
+  const childOf = (from: string, to: string) => ({ from, to, types: ['ChildOf'], group: 'hierarchy', namedFrom: from });
   const hierarchy = (ids: string[], edges: [string, string][]) =>
     buildGraph({
       meta: data.meta,
@@ -396,5 +396,38 @@ describe('buildEgoGraph edge direction', () => {
       expect(bandOf(ego, '306')).toBe(0);
       expect(ego.nodes.filter((n) => n.band === 0 && n.id !== '500')).toHaveLength(4);
     });
+  });
+});
+
+describe('the edge a relation with dimensions is drawn as', () => {
+  const validation = [{ type: 'Behavior-Type', value: 'Validation' }];
+  const sequence: CweData = {
+    meta: data.meta,
+    nodes: { '20': node('20'), '89': node('89') },
+    edges: [{ from: '89', to: '20', type: 'CanFollow', dimensions: validation }],
+  };
+
+  it('draws a CanFollow drawn reversed from its centre, and records the centre as its namer', () => {
+    const ego = buildEgoGraph(buildGraph(sequence), '89');
+    expect(ego.edges).toEqual([{ from: '20', to: '89', types: ['CanFollow'], group: 'sequence', namedFrom: '89' }]);
+  });
+
+  it('finds its dimensions from the centre', () => {
+    const g = buildGraph(sequence);
+    const [edge] = buildEgoGraph(g, '89').edges;
+    expect(edgeDimensions(g, edge)).toEqual([{ type: 'CanFollow', dimensions: validation }]);
+  });
+
+  it('finds the same dimensions under the inverse type from the other end', () => {
+    const g = buildGraph(sequence);
+    const [edge] = buildEgoGraph(g, '20').edges;
+    expect(edgeDimensions(g, edge)).toEqual([{ type: 'CanPrecede', dimensions: validation }]);
+  });
+
+  it('gives no groups for an edge with no dimensions', () => {
+    const g = buildGraph(data);
+    for (const edge of buildEgoGraph(g, '3').edges) {
+      expect(edgeDimensions(g, edge)).toEqual([]);
+    }
   });
 });

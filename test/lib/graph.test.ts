@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { buildGraph, ancestorsOf, compareIds, countDescendants, isDeprecated, type CweData } from '../../src/lib/graph';
+import {
+  buildGraph, ancestorsOf, compareIds, countDescendants, isDeprecated, relationDimensions, type CweData,
+} from '../../src/lib/graph';
 
 const sampleData: CweData = {
   meta: { cweVersion: '4.15', catalogDate: '2025-12-01', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
@@ -473,5 +475,86 @@ describe('buildGraph catalog fields', () => {
     expect(graph.phases).toEqual([]);
     expect(graph.groups).toEqual({});
     expect(Object.getPrototypeOf(graph.groups)).toBeNull();
+  });
+});
+
+describe('relation dimensions', () => {
+  const node = (id: string) => ({
+    id, name: `CWE ${id}`, abstraction: 'Base', status: 'Stable', description: `d${id}`,
+    url: `https://cwe.mitre.org/data/definitions/${id}.html`,
+  });
+  const exposure = [
+    { type: 'Behavior-Type', value: 'Exposure' },
+    { type: 'Other', value: 'to an Unauthorized Actor' },
+  ];
+  const canAlsoBe = [
+    { type: 'Behavior-Type', value: 'Generation' },
+    { type: 'Resource-Type', value: 'Error Message' },
+    { type: 'Info-Type', value: 'Information' },
+    { type: 'Info-Property', value: 'Sensitive' },
+  ];
+  const overlaps = [
+    { type: 'Behavior-Type', value: 'Read' },
+    { type: 'Behavior-Property', value: 'Over' },
+  ];
+  const accessControl = { type: 'Behavior-Type', value: 'Access Control' };
+  const validation = [{ type: 'Behavior-Type', value: 'Validation' }];
+  const data: CweData = {
+    meta: sampleData.meta,
+    nodes: Object.fromEntries(['20', '89', '126', '200', '201', '209', '284', '285', '788'].map((id) => [id, node(id)])),
+    edges: [
+      { from: '201', to: '200', type: 'ChildOf', dimensions: exposure },
+      { from: '201', to: '209', type: 'CanAlsoBe', dimensions: canAlsoBe },
+      { from: '788', to: '126', type: 'Overlaps', dimensions: overlaps },
+      { from: '126', to: '788', type: 'ChildOf' },
+      { from: '285', to: '284', type: 'ChildOf', viewId: '1000', dimensions: [accessControl] },
+      { from: '285', to: '284', type: 'ChildOf', viewId: '1340' },
+      { from: '89', to: '20', type: 'CanFollow', dimensions: validation },
+    ],
+  };
+  const g = buildGraph(data);
+
+  it('finds a ChildOf relation from the child', () => {
+    expect(relationDimensions(g, '201', '200', 'ChildOf')).toEqual(exposure);
+  });
+
+  it('finds a ChildOf relation from the parent as ParentOf', () => {
+    expect(relationDimensions(g, '200', '201', 'ParentOf')).toEqual(exposure);
+  });
+
+  it('finds a CanAlsoBe relation from either end', () => {
+    expect(relationDimensions(g, '201', '209', 'CanAlsoBe')).toEqual(canAlsoBe);
+    expect(relationDimensions(g, '209', '201', 'CanAlsoBe (inverse)')).toEqual(canAlsoBe);
+  });
+
+  it('finds a symmetric relation from the end that does not state it', () => {
+    expect(relationDimensions(g, '126', '788', 'Overlaps')).toEqual(overlaps);
+  });
+
+  it('does not lend a relation\'s dimensions to another relation between the same pair', () => {
+    expect(relationDimensions(g, '126', '788', 'ChildOf')).toEqual([]);
+    expect(relationDimensions(g, '788', '126', 'ParentOf')).toEqual([]);
+  });
+
+  it('merges a relation stated in several views, once', () => {
+    expect(relationDimensions(g, '285', '284', 'ChildOf')).toEqual([accessControl]);
+  });
+
+  it('finds a CanFollow relation from the CanPrecede end', () => {
+    expect(relationDimensions(g, '20', '89', 'CanPrecede')).toEqual(validation);
+  });
+
+  it('leaves the synthesized inverse without dimensions', () => {
+    const inverse = g.relatedTo.get('209')?.find((edge) => edge.to === '201');
+    expect(inverse).toBeDefined();
+    expect(inverse).not.toHaveProperty('dimensions');
+  });
+
+  it('gives [] for a relation with no dimensions anywhere', () => {
+    expect(relationDimensions(g, '20', '89', 'CanFollow')).toEqual([]);
+  });
+
+  it('has an empty map for data without dimensions', () => {
+    expect(buildGraph(sampleData).relationDimensions.size).toBe(0);
   });
 });

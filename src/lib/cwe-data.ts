@@ -36,6 +36,20 @@ export interface CweGroup {
   membersByView: Record<string, string[]>;
 }
 
+/**
+ * The version of cwe.json's shape. Bump it whenever the build starts writing
+ * something a cached file would lack, so a stale file is regenerated.
+ */
+export const DATA_FORMAT = 2;
+
+/** One part MITRE built a weakness's name from (CWE 5.0 Dimensions). */
+export interface CweDimension {
+  /** One of the schema's 18 types, verbatim, e.g. "Behavior-Type". */
+  type: string;
+  /** MITRE's text, whitespace-collapsed and trimmed, otherwise verbatim. */
+  value: string;
+}
+
 export interface CweNode {
   id: string;
   name: string;
@@ -54,6 +68,8 @@ export interface CweNode {
    * scripts/phases.ts.
    */
   phases?: CwePhase[];
+  /** Present only when non-empty. In schema type order. */
+  dimensions?: CweDimension[];
 }
 
 export interface CweEdge {
@@ -66,6 +82,8 @@ export interface CweEdge {
    * Views later is additive rather than a pipeline change.
    */
   viewId?: string;
+  /** Present only when non-empty. In schema type order. */
+  dimensions?: CweDimension[];
 }
 
 export interface CweMeta {
@@ -89,6 +107,8 @@ export interface CweLanguage {
 }
 
 export interface CweData {
+  /** The version of this file's shape; see DATA_FORMAT. Absent in files older than it. */
+  dataFormat?: number;
   meta: CweMeta;
   nodes: Record<string, CweNode>;
   edges: CweEdge[];

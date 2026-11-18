@@ -8,16 +8,19 @@ import { parseNuance } from './nuance.ts';
 import { orderPhases, readPhases } from './phases.ts';
 import type { RawIntroduction } from './phases.ts';
 import { evaluateImplicitViews } from './implicit-views.ts';
+import { readDimensions } from './dimensions.ts';
 import { readLanguages } from './languages.ts';
 import type { RawLanguage } from './languages.ts';
 import { readViews } from './views.ts';
 import type { RawGrouping, RawView } from './views.ts';
+import { DATA_FORMAT } from '../src/lib/cwe-data.ts';
 import type { CweData, CweEdge, CweMeta, CweNode, CwePhase } from '../src/lib/cwe-data.ts';
 
 interface RawRelatedWeakness {
   '@_Nature': string;
   '@_CWE_ID': string;
   '@_View_ID'?: string;
+  Dimensions?: unknown;
 }
 
 interface RawWeakness {
@@ -26,6 +29,7 @@ interface RawWeakness {
   '@_Abstraction'?: string;
   '@_Status'?: string;
   Description?: unknown;
+  Dimensions?: unknown;
   // A stop node, so this is the element's inner XML as a string ('' when empty).
   Technical_Nuance?: string;
   Applicable_Platforms?: { Language?: RawLanguage | RawLanguage[] };
@@ -65,6 +69,8 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
   const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: '@_',
+    // Dimension values such as 1e5 must stay text.
+    parseTagValue: false,
     stopNodes: ['Weakness_Catalog.Weaknesses.Weakness.Technical_Nuance'],
   });
   const doc = parser.parse(xmlText) as RawDocument;
@@ -102,6 +108,11 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
       nodes[id].technicalNuance = nuance;
     }
 
+    const dimensions = readDimensions(w.Dimensions, `CWE-${id}`);
+    if (dimensions.length > 0) {
+      nodes[id].dimensions = dimensions;
+    }
+
     const phases = readPhases(toArray(w.Modes_Of_Introduction?.Introduction), id);
     if (phases.length > 0) {
       nodes[id].phases = phases;
@@ -121,6 +132,10 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
       if (rel['@_View_ID'] !== undefined) {
         edge.viewId = String(rel['@_View_ID']);
       }
+      const relationDimensions = readDimensions(rel.Dimensions, `CWE-${id} ${rel['@_Nature']} CWE-${edge.to}`);
+      if (relationDimensions.length > 0) {
+        edge.dimensions = relationDimensions;
+      }
       edges.push(edge);
     }
   }
@@ -133,6 +148,7 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
   const { languages, languageAgnosticIds } = readLanguages(rawLanguages);
 
   return {
+    dataFormat: DATA_FORMAT,
     meta: {
       cweVersion: String(catalog['@_Version']),
       catalogDate,
@@ -182,8 +198,8 @@ export async function readLocalMeta(outDir: string): Promise<CweMeta | null> {
     // meta.json alone isn't proof the data is intact: if cwe.json is missing
     // or truncated, report no local meta so the slow path regenerates it.
     const cached = JSON.parse(await fs.readFile(path.join(outDir, 'cwe.json'), 'utf-8')) as Partial<CweData>;
-    // Data written before languages existed is stale too.
-    if (!Array.isArray(cached.languages)) {
+    // Data written before languages, or before the current data format, is stale too.
+    if (!Array.isArray(cached.languages) || cached.dataFormat !== DATA_FORMAT) {
       return null;
     }
     const raw = await fs.readFile(path.join(outDir, 'meta.json'), 'utf-8');

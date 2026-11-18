@@ -615,3 +615,71 @@ describe('GraphStage filter fade', () => {
     expect(container.querySelector('.graph-node--unmatched, .graph-edge-group--unmatched')).toBeNull();
   });
 });
+
+describe('GraphStage edge tooltips with dimensions', () => {
+  const exposure = [
+    { type: 'Behavior-Type', value: 'Exposure' },
+    { type: 'Other', value: 'to an Unauthorized Actor' },
+  ];
+  const withDimensions = buildGraph({
+    meta: data.meta,
+    nodes: { '200': node('200', 'Exposure of Sensitive Information'), '201': node('201', 'Insertion of Sensitive Information') },
+    edges: [{ from: '201', to: '200', type: 'ChildOf', dimensions: exposure }],
+  });
+  const title = (selectedId: string, g = withDimensions) => {
+    const { container } = render(
+      <GraphStage graph={g} selectedId={selectedId} onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+    return container.querySelector('.graph-edge title')?.textContent;
+  };
+  const expected = 'ChildOf\nBehavior type: Exposure\nOther: to an Unauthorized Actor';
+
+  it('adds the dimensions under the relation, from the child', () => {
+    expect(title('201')).toBe(expected);
+  });
+
+  it('adds the same from the parent', () => {
+    expect(title('200')).toBe(expected);
+  });
+
+  it('gives the label the same tooltip, keeping its text the relation alone', () => {
+    const { container } = render(
+      <GraphStage graph={withDimensions} selectedId="201" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+    const label = container.querySelector('.graph-edge__label');
+    expect(label?.parentElement?.querySelector(':scope > title')?.textContent).toBe(expected);
+    expect(label?.textContent).toBe('ChildOf');
+  });
+
+  it('gives a label without dimensions the bare relation as its tooltip', () => {
+    const { container } = render(
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+    const label = container.querySelector('.graph-edge__label');
+    expect(label?.parentElement?.querySelector(':scope > title')?.textContent).toBe(label?.textContent);
+  });
+
+  it('keeps the bare relation for an edge without dimensions', () => {
+    expect(title('79', graph)).toBe('ChildOf');
+  });
+
+  it("adds the dimensions to an ancestor's own hierarchy edge", () => {
+    const g = buildGraph({
+      meta: data.meta,
+      nodes: {
+        '100': node('100', 'Top'),
+        '200': node('200', 'Exposure of Sensitive Information'),
+        '201': node('201', 'Insertion of Sensitive Information'),
+      },
+      edges: [
+        { from: '201', to: '200', type: 'ChildOf' },
+        { from: '200', to: '100', type: 'ChildOf', dimensions: exposure },
+      ],
+    });
+    const { container } = render(
+      <GraphStage graph={g} selectedId="201" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+    const titles = Array.from(container.querySelectorAll('.graph-edge title'), (t) => t.textContent);
+    expect(titles.sort()).toEqual(['ChildOf', expected]);
+  });
+});

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LateralRelation } from '../lib/ego';
-import { compareIds, isDeprecated, type Graph } from '../lib/graph';
+import { chipDimensionLine, differsBy, type TypedDimensions } from '../lib/dimensions';
+import { compareIds, isDeprecated, relationDimensions, type Graph } from '../lib/graph';
 import { RELATION_GROUPS, relationGroup, type RelationGroup } from '../lib/relations';
 import { Glyph } from './Glyph';
+import { Dimensions } from './Dimensions';
 import { TechnicalNuance } from './TechnicalNuance';
 
 /** Relations to point out, for the graph's lateral "+N more" chip. */
@@ -32,6 +34,8 @@ interface Entry {
    * it. Hierarchy sections don't need them; the heading says it.
    */
   types?: string[];
+  /** What MITRE says differs along each relation; only set when some type has any. */
+  dimensions?: TypedDimensions[];
 }
 
 interface Section {
@@ -39,12 +43,37 @@ interface Section {
   entries: Entry[];
 }
 
+// Sets the entry's dimensions when any of the relation types has some, keeping
+// every such type in the order given.
+function attachDimensions(graph: Graph, id: string, entry: Entry, types: string[]) {
+  const groups: TypedDimensions[] = [];
+  for (const type of types) {
+    const dimensions = relationDimensions(graph, id, entry.id, type);
+    if (dimensions.length > 0) {
+      groups.push({ type, dimensions });
+    }
+  }
+  if (groups.length > 0) {
+    entry.dimensions = groups;
+  }
+}
+
+// A hierarchy chip has no types of its own; the relation's type, named from
+// this CWE's side, is only used to look its dimensions up.
+function hierarchyEntries(graph: Graph, id: string, ids: string[], type: string): Entry[] {
+  return ids.map((to) => {
+    const entry: Entry = { id: to };
+    attachDimensions(graph, id, entry, [type]);
+    return entry;
+  });
+}
+
 // Every section lists by CWE number, as everywhere else ids are listed: the
 // data's own order is lexicographic, which puts CWE-1257 before CWE-128.
 function relationSections(graph: Graph, id: string): Section[] {
   const sections: Section[] = [
-    { label: 'Parents', entries: (graph.parentsOf.get(id) ?? []).map((to) => ({ id: to })) },
-    { label: 'Children', entries: (graph.childrenOf.get(id) ?? []).map((to) => ({ id: to })) },
+    { label: 'Parents', entries: hierarchyEntries(graph, id, graph.parentsOf.get(id) ?? [], 'ChildOf') },
+    { label: 'Children', entries: hierarchyEntries(graph, id, graph.childrenOf.get(id) ?? [], 'ParentOf') },
   ];
   for (const section of sections) {
     section.entries.sort((x, y) => compareIds(x.id, y.id));
@@ -55,13 +84,13 @@ function relationSections(graph: Graph, id: string): Section[] {
   // chip naming both, in type order to keep it stable.
   const related = graph.relatedTo.get(id) ?? [];
   const byIdThenType = [...related].sort((x, y) => compareIds(x.to, y.to) || x.type.localeCompare(y.type));
-  const byGroup = new Map<RelationGroup, Entry[]>();
+  const byGroup = new Map<RelationGroup, (Entry & { types: string[] })[]>();
   for (const edge of byIdThenType) {
     const group = relationGroup(edge.type);
     const list = byGroup.get(group) ?? [];
     const last = list.at(-1);
     if (last?.id === edge.to) {
-      last.types?.push(edge.type);
+      last.types.push(edge.type);
     } else {
       list.push({ id: edge.to, types: [edge.type] });
     }
@@ -69,7 +98,11 @@ function relationSections(graph: Graph, id: string): Section[] {
   }
 
   for (const key of ['peer', 'sequence', 'requires'] as const) {
-    sections.push({ label: RELATION_GROUPS[key].label, entries: byGroup.get(key) ?? [] });
+    const entries = byGroup.get(key) ?? [];
+    for (const entry of entries) {
+      attachDimensions(graph, id, entry, entry.types);
+    }
+    sections.push({ label: RELATION_GROUPS[key].label, entries });
   }
 
   return sections.filter((section) => section.entries.length > 0);
@@ -88,23 +121,32 @@ function RelationChip({
   outside: boolean;
   onSelect: (id: string) => void;
 }) {
-  const { id, types } = entry;
+  const { id, types, dimensions } = entry;
   const type = types?.join(', ');
   const node = graph.nodes[id];
   const name = node ? `CWE-${id}: ${node.name}` : `CWE-${id}`;
   const label = type ? `${type} ${name}` : name;
+  const outsideLabel = outside ? `${label}, outside the filter` : label;
+  const differs = dimensions && differsBy(dimensions);
+  const row = (
+    <>
+      <Glyph abstraction={node?.abstraction ?? ''} size={12} deprecated={isDeprecated(node)} />
+      {type && <span className="relation-chip__type">{type}</span>}
+      <span className="relation-chip__id">CWE-{id}</span>
+      {node && <span className="relation-chip__name">{node.name}</span>}
+    </>
+  );
   return (
     <li>
       <button
         type="button"
-        className={`relation-chip${flashed ? ' relation-chip--flash' : ''}${outside ? ' relation-chip--outside' : ''}`}
+        className={`relation-chip${flashed ? ' relation-chip--flash' : ''}${outside ? ' relation-chip--outside' : ''}${dimensions ? ' relation-chip--dimensions' : ''}`}
         onClick={() => onSelect(id)}
-        aria-label={outside ? `${label}, outside the filter` : label}
+        aria-label={differs ? `${outsideLabel}. ${differs}` : outsideLabel}
+        title={differs}
       >
-        <Glyph abstraction={node?.abstraction ?? ''} size={12} deprecated={isDeprecated(node)} />
-        {type && <span className="relation-chip__type">{type}</span>}
-        <span className="relation-chip__id">CWE-{id}</span>
-        {node && <span className="relation-chip__name">{node.name}</span>}
+        {dimensions ? <span className="relation-chip__row">{row}</span> : row}
+        {dimensions && <span className="relation-chip__dimensions">{chipDimensionLine(dimensions)}</span>}
       </button>
     </li>
   );
@@ -181,6 +223,7 @@ export function DetailPanel({ graph, selectedId, onSelect, flash = null, matches
 
       {node.description && <p className="detail-panel__description">{node.description}</p>}
 
+      {node.dimensions && <Dimensions key={`dimensions-${node.id}`} dimensions={node.dimensions} />}
       {node.technicalNuance && <TechnicalNuance key={node.id} blocks={node.technicalNuance} />}
 
       <a className="detail-panel__link" href={node.url} target="_blank" rel="noreferrer">

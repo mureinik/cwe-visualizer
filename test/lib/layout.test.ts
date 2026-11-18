@@ -30,8 +30,8 @@ const ego: EgoGraph = {
     { id: '30', band: 0, side: 'right' },
   ],
   edges: [
-    { from: '3', to: '2', types: ['ChildOf'], group: 'hierarchy' },
-    { from: '3', to: '30', types: ['CanPrecede'], group: 'sequence' },
+    { from: '3', to: '2', types: ['ChildOf'], group: 'hierarchy', namedFrom: '3' },
+    { from: '3', to: '30', types: ['CanPrecede'], group: 'sequence', namedFrom: '3' },
   ],
   overflow: { parentId: '3', hiddenCount: 8 },
   lateralOverflow: { left: 0, right: 0 },
@@ -113,7 +113,7 @@ describe('layoutEgoGraph child edge labels', () => {
       { id: '10', band: 1, side: 'center' },
       { id: '11', band: 1, side: 'center' },
     ],
-    edges: ['10', '11'].map((from) => ({ from, to: '3', types: ['ChildOf'], group: 'hierarchy' as const })),
+    edges: ['10', '11'].map((from) => ({ from, to: '3', types: ['ChildOf'], group: 'hierarchy' as const, namedFrom: from })),
     overflow: null,
   };
 
@@ -139,7 +139,7 @@ describe('layoutEgoGraph child edge labels', () => {
     const crowded: EgoGraph = {
       ...family,
       nodes: [{ id: '3', band: 0, side: 'center' }, ...ids.map((id) => ({ id, band: 1 as const, side: 'center' as const }))],
-      edges: ids.map((from) => ({ from, to: '3', types: ['ChildOf'], group: 'hierarchy' as const })),
+      edges: ids.map((from) => ({ from, to: '3', types: ['ChildOf'], group: 'hierarchy' as const, namedFrom: from })),
       overflow: { parentId: '3', hiddenCount: 1 },
     };
     const labels = (stage: { width: number; height: number }) => layoutEgoGraph(crowded, stage).edges.map((e) => e.label);
@@ -167,7 +167,7 @@ describe('layoutEgoGraph child edge labels', () => {
     // CWE-788 Overlaps its child CWE-126 in CWE 5.0.
     const related = {
       ...family,
-      edges: [{ from: '10', to: '3', types: ['Overlaps'], group: 'peer' as const }],
+      edges: [{ from: '10', to: '3', types: ['Overlaps'], group: 'peer' as const, namedFrom: '3' }],
     };
     const layout = layoutEgoGraph(related, size);
     const [a, b] = [layout.nodes.find((n) => n.id === '3')!, layout.nodes.find((n) => n.id === '10')!];
@@ -457,8 +457,8 @@ describe('layoutEgoGraph edges between the same pair', () => {
         { id: other, band: centerId === '788' ? 1 : -1, side: 'center' },
       ],
       edges: [
-        { from: '126', to: '788', types: ['ChildOf'], group: 'hierarchy' },
-        { from: centerId, to: other, types: ['Overlaps'], group: 'peer' },
+        { from: '126', to: '788', types: ['ChildOf'], group: 'hierarchy', namedFrom: '126' },
+        { from: centerId, to: other, types: ['Overlaps'], group: 'peer', namedFrom: centerId },
       ],
       overflow: null,
       lateralOverflow: { left: 0, right: 0 },
@@ -522,7 +522,7 @@ describe('layoutEgoGraph with an edge to a node it was not given', { tags: ['the
   it('drops the edge rather than draw it to nowhere', () => {
     const dangling: EgoGraph = {
       ...ego,
-      edges: [...ego.edges, { from: '3', to: '99', types: ['PeerOf'], group: 'peer' }],
+      edges: [...ego.edges, { from: '3', to: '99', types: ['PeerOf'], group: 'peer', namedFrom: '3' }],
     };
     expect(layoutEgoGraph(dangling, size).edges.map((e) => e.to)).toEqual(['2', '30']);
   });
@@ -548,7 +548,7 @@ function heightAt(points: { x: number; y: number }[], x: number) {
 
 describe('lateral arcs', () => {
   const lateral = (id: string, side: 'left' | 'right') => ({ id, band: 0 as const, side });
-  const relation = (to: string) => ({ from: '50', to, types: ['PeerOf'], group: 'peer' as const });
+  const relation = (to: string) => ({ from: '50', to, types: ['PeerOf'], group: 'peer' as const, namedFrom: '50' });
   // CWE-79 in CWE 5.0 has two laterals on each side. The ids run either side
   // of the centre's, which decides which way the pair's normal points.
   const row: EgoGraph = {
@@ -619,7 +619,7 @@ describe('lateral arcs', () => {
     const two = {
       ...row,
       nodes: row.nodes.filter((n) => n.id === '50' || n.id === '90'),
-      edges: [relation('90'), { from: '50', to: '90', types: ['Requires'], group: 'requires' as const }],
+      edges: [relation('90'), { from: '50', to: '90', types: ['Requires'], group: 'requires' as const, namedFrom: '50' }],
     };
     const ys = layoutEgoGraph(two, size).edges.map((e) => e.label.y).sort((a, b) => a - b);
     expect(ys[1] - ys[0]).toBeCloseTo(BUNDLE_GAP);
@@ -643,7 +643,7 @@ describe('lateral arcs', () => {
     const vertical: EgoGraph = {
       ...row,
       nodes: [{ id: '50', band: 0, side: 'center' }, { id: '40', band: -1, side: 'center' }],
-      edges: [{ from: '50', to: '40', types: ['ChildOf'], group: 'hierarchy' }],
+      edges: [{ from: '50', to: '40', types: ['ChildOf'], group: 'hierarchy', namedFrom: '50' }],
     };
     const layout = layoutEgoGraph(vertical, size);
     const [a, b] = layout.nodes;

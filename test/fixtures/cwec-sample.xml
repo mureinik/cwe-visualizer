@@ -3,6 +3,14 @@
   <Weaknesses>
     <Weakness ID="74" Name="Injection" Abstraction="Class" Structure="Chain" Status="Incomplete">
       <Description>The product constructs all or part of a command using externally-influenced input.</Description>
+			<Dimensions>
+				<Dimension Type="Behavior-Property">Improper</Dimension>
+				<Dimension Type="Behavior-Type">Neutralization</Dimension>
+				<Dimension Type="Input-Type">Special Elements</Dimension>
+				<Dimension Type="Other">Output</Dimension>
+				<Dimension Type="Other">Used by a Downstream Component</Dimension>
+				<Dimension Type="Common-Name">Injection</Dimension>
+			</Dimensions>
       <Applicable_Platforms>
         <Language Class="Not Language-Specific" Prevalence="Undetermined"/>
       </Applicable_Platforms>
@@ -30,7 +38,16 @@
         </Introduction>
       </Modes_Of_Introduction>
       <Related_Weaknesses>
-        <Related_Weakness Nature="ChildOf" CWE_ID="74" View_ID="1000"/>
+        <Related_Weakness Nature="ChildOf" CWE_ID="74" View_ID="1000">
+			<Dimensions>
+				<Dimension Type="Input-Type">Input</Dimension>
+				<Dimension Type="Technology">Web</Dimension>
+				<Dimension Type="Resource-Type">Page</Dimension>
+				<Dimension Type="Behavior-Type">Generation</Dimension>
+				<Dimension Type="Common-Name">Cross-site Scripting</Dimension>
+			</Dimensions>
+        </Related_Weakness>
+        <Related_Weakness Nature="ChildOf" CWE_ID="74" View_ID="1003"/>
         <Related_Weakness Nature="PeerOf" CWE_ID="80" View_ID="1000"/>
       </Related_Weaknesses>
     </Weakness>

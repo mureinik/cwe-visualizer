@@ -1,4 +1,5 @@
 import { arrowMarkerId, EDGE_GROUPS } from '../lib/relations';
+import { edgeTitle, type TypedDimensions } from '../lib/dimensions';
 import { relationLabel } from '../lib/ego';
 import type { PositionedEdge } from '../lib/layout';
 
@@ -8,13 +9,15 @@ interface GraphEdgeProps {
   unmatched?: boolean;
   /** Whether the edge ends at the selected node, whose halo is the larger. */
   intoCenter?: boolean;
+  /** The dimensions MITRE states on the edge's relations, for its tooltip. */
+  dimensions?: TypedDimensions[];
 }
 
 function groupClass(dimmed: boolean, unmatched: boolean) {
   return `graph-edge-group${dimmed ? ' graph-edge-group--dimmed' : ''}${unmatched ? ' graph-edge-group--unmatched' : ''}`;
 }
 
-export function GraphEdge({ edge, dimmed, unmatched = false, intoCenter = false }: GraphEdgeProps) {
+export function GraphEdge({ edge, dimmed, unmatched = false, intoCenter = false, dimensions }: GraphEdgeProps) {
   const { line } = EDGE_GROUPS[edge.group];
 
   return (
@@ -28,7 +31,7 @@ export function GraphEdge({ edge, dimmed, unmatched = false, intoCenter = false 
         strokeDasharray={line.dash}
         markerEnd={line.arrow ? `url(#${arrowMarkerId(intoCenter ? 'graph-center' : 'graph', edge.group)})` : undefined}
       >
-        <title>{relationLabel(edge)}</title>
+        <title>{edgeTitle(edge.types, dimensions ?? [])}</title>
       </path>
     </g>
   );
@@ -38,12 +41,18 @@ interface GraphEdgeLabelProps {
   edge: PositionedEdge;
   dimmed: boolean;
   unmatched?: boolean;
+  /** As on GraphEdge: the label sits over the middle of its edge, so it carries the same tooltip. */
+  dimensions: TypedDimensions[];
 }
 
-/** Apart from its edge, so that it can be drawn over all of them. */
-export function GraphEdgeLabel({ edge, dimmed, unmatched = false }: GraphEdgeLabelProps) {
+/**
+ * Apart from its edge, so that it can be drawn over all of them. The tooltip
+ * is on the group, not the text, so the label's text stays the relation alone.
+ */
+export function GraphEdgeLabel({ edge, dimmed, unmatched = false, dimensions }: GraphEdgeLabelProps) {
   return (
     <g className={groupClass(dimmed, unmatched)}>
+      <title>{edgeTitle(edge.types, dimensions)}</title>
       <text
         className="graph-edge__label"
         x={edge.label.x}

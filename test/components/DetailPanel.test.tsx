@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DetailPanel } from '../../src/components/DetailPanel';
-import { buildGraph, type CweData } from '../../src/lib/graph';
+import { buildGraph, type CweData, type CweEdge } from '../../src/lib/graph';
 
 const data: CweData = {
   meta: { cweVersion: '4.20', catalogDate: '2025-12-01', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
@@ -282,5 +282,166 @@ describe('DetailPanel with a filter', () => {
     render(<DetailPanel graph={graph} selectedId="79" onSelect={() => {}} matches={new Set()} />);
     expect(chips()).toHaveLength(all);
     expect(chips().every((b) => b.classList.contains('relation-chip--outside'))).toBe(true);
+  });
+});
+
+describe('DetailPanel dimensions', () => {
+  const dims = [
+    { type: 'Behavior-Type', value: 'Optimization' },
+    { type: 'Behavior-Type', value: 'Removal or Modification' },
+    { type: 'Code-Type', value: 'Code' },
+    { type: 'Code-Property', value: 'Security-critical' },
+    { type: 'Technology', value: 'Processor' },
+  ];
+  const withDims = buildGraph({
+    ...data,
+    nodes: {
+      ...data.nodes,
+      '74': {
+        ...data.nodes['74'],
+        dimensions: dims,
+        technicalNuance: [{ kind: 'paragraph', lines: [[{ text: 'Nuance for 74' }]] }],
+      },
+      '79': { ...data.nodes['79'], dimensions: [{ type: 'Code-Type', value: 'Code' }] },
+    },
+  });
+
+  it('shows dimensions after the description and before technical nuance', () => {
+    render(<DetailPanel graph={withDims} selectedId="74" onSelect={() => {}} />);
+    const description = screen.getByText('Base description');
+    const dimensions = screen.getByText('Dimensions');
+    const nuance = screen.getByText('Technical nuance');
+    expect(description.compareDocumentPosition(dimensions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(dimensions.compareDocumentPosition(nuance) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('shows no dimensions for a CWE without them', () => {
+    render(<DetailPanel graph={withDims} selectedId="20" onSelect={() => {}} />);
+    expect(screen.queryByText('Dimensions')).toBeNull();
+  });
+
+  it('closes the dimensions again when another CWE is selected', async () => {
+    const { rerender } = render(<DetailPanel graph={withDims} selectedId="74" onSelect={() => {}} />);
+    await userEvent.click(screen.getByText('Dimensions'));
+    expect(screen.getByText('Dimensions').closest('details')).toHaveAttribute('open');
+    rerender(<DetailPanel graph={withDims} selectedId="79" onSelect={() => {}} />);
+    expect(screen.getByText('Dimensions').closest('details')).not.toHaveAttribute('open');
+  });
+});
+
+describe('DetailPanel relation chips with dimensions', () => {
+  const stated = 'Differs by: Behavior type Generation; Common name Cross-site Scripting';
+  const dimsData: CweData = {
+    ...data,
+    edges: [
+      {
+        from: '79',
+        to: '74',
+        type: 'ChildOf',
+        dimensions: [
+          { type: 'Behavior-Type', value: 'Generation' },
+          { type: 'Common-Name', value: 'Cross-site Scripting' },
+        ],
+      },
+      { from: '80', to: '79', type: 'ChildOf' },
+      { from: '79', to: '20', type: 'CanFollow' },
+      { from: '79', to: '80', type: 'PeerOf', dimensions: [{ type: 'Other', value: 'Output' }] },
+    ],
+  };
+  const dimsGraph = buildGraph(dimsData);
+  const chipLine = (button: HTMLElement) => button.querySelector('.relation-chip__dimensions');
+
+  it('shows the dimensions on the parent chip, in its name and as its title', () => {
+    render(<DetailPanel graph={dimsGraph} selectedId="79" onSelect={() => {}} />);
+    const chip = screen.getByRole('button', { name: `CWE-74: Injection. ${stated}` });
+    expect(chipLine(chip)).toHaveTextContent('Generation · Cross-site Scripting');
+    expect(chip).toHaveAttribute('title', stated);
+  });
+
+  it('shows the same line on the child chip of the same relation', () => {
+    render(<DetailPanel graph={dimsGraph} selectedId="74" onSelect={() => {}} />);
+    const chip = screen.getByRole('button', { name: `CWE-79: Cross-site Scripting. ${stated}` });
+    expect(chipLine(chip)).toHaveTextContent('Generation · Cross-site Scripting');
+  });
+
+  it('shows a stated PeerOf from its target', () => {
+    render(<DetailPanel graph={dimsGraph} selectedId="80" onSelect={() => {}} />);
+    const chip = screen.getByRole('button', { name: /^PeerOf CWE-79: / });
+    expect(chipLine(chip)).toHaveTextContent('Output');
+  });
+
+  it('keeps the outside-the-filter suffix before the dimensions', () => {
+    render(<DetailPanel graph={dimsGraph} selectedId="79" onSelect={() => {}} matches={new Set(['80'])} />);
+    expect(
+      screen.getByRole('button', { name: `CWE-74: Injection, outside the filter. ${stated}` }),
+    ).toBeInTheDocument();
+  });
+
+  it('still focuses a flashed chip that has dimensions', () => {
+    render(
+      <DetailPanel
+        graph={dimsGraph}
+        selectedId="79"
+        onSelect={() => {}}
+        flash={{ relations: [{ id: '80', type: 'PeerOf' }], token: 1 }}
+      />,
+    );
+    const chip = screen.getByRole('button', { name: /^PeerOf CWE-80: .*Differs by: Other Output$/ });
+    expect(chip).toHaveClass('relation-chip--flash');
+    expect(chip).toHaveFocus();
+  });
+
+  it('leaves a chip without dimensions as it was', () => {
+    render(<DetailPanel graph={dimsGraph} selectedId="79" onSelect={() => {}} />);
+    const chip = screen.getByRole('button', { name: 'CanFollow CWE-20: Improper Input Validation' });
+    expect(chip).not.toHaveAttribute('title');
+    expect(chipLine(chip)).toBeNull();
+    expect(chip).not.toHaveClass('relation-chip--dimensions');
+  });
+
+  it('marks a chip that has dimensions', () => {
+    render(<DetailPanel graph={dimsGraph} selectedId="79" onSelect={() => {}} />);
+    expect(screen.getByRole('button', { name: `CWE-74: Injection. ${stated}` })).toHaveClass('relation-chip--dimensions');
+  });
+});
+
+describe('DetailPanel CanAlsoBe dimensions', () => {
+  it('shows the stated dimensions on the inverse chip of the target', () => {
+    const alsoData: CweData = {
+      ...data,
+      nodes: { ...data.nodes, '201': { ...data.nodes['79'], id: '201', name: 'Stater' }, '209': { ...data.nodes['79'], id: '209', name: 'Target' } },
+      edges: [{ from: '201', to: '209', type: 'CanAlsoBe', dimensions: [{ type: 'Other', value: 'Output' }] }],
+    };
+    const alsoGraph = buildGraph(alsoData);
+    render(<DetailPanel graph={alsoGraph} selectedId="209" onSelect={() => {}} />);
+    const chip = screen.getByRole('button', { name: /^CanAlsoBe \(inverse\) CWE-201: /i });
+    expect(chip.querySelector('.relation-chip__dimensions')).toHaveTextContent('Output');
+  });
+});
+
+describe('DetailPanel with a graph that has no relation lists', { tags: ['theoretical'] }, () => {
+  // buildGraph gives every node all three lists, but DetailPanel accepts any Graph.
+  it('shows no relations for a node with no list entries', () => {
+    const bare = {
+      ...graph,
+      childrenOf: new Map<string, string[]>(),
+      parentsOf: new Map<string, string[]>(),
+      relatedTo: new Map<string, CweEdge[]>(),
+    };
+    render(<DetailPanel graph={bare} selectedId="79" onSelect={() => {}} />);
+    expect(screen.getByRole('heading', { name: 'CWE-79: Cross-site Scripting' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /^Parents/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /^Peers/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('DetailPanel with a relation to a CWE outside the corpus', { tags: ['theoretical'] }, () => {
+  // A relation to an entry that doesn't exist would be a mistake in MITRE's data.
+  it('lists it by number alone', () => {
+    const dangling = buildGraph({ ...data, edges: [{ from: '79', to: '99999', type: 'ChildOf' }] });
+    render(<DetailPanel graph={dangling} selectedId="79" onSelect={() => {}} />);
+    const chip = screen.getByRole('button', { name: 'CWE-99999' });
+    expect(chip).toHaveTextContent('CWE-99999');
+    expect(chip.querySelector('.relation-chip__name')).toBeNull();
   });
 });
