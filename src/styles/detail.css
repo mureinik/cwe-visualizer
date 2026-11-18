@@ -164,7 +164,6 @@
 
 .relation-chip {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1);
   min-width: 0;
@@ -207,8 +206,22 @@
   white-space: nowrap;
 }
 
+.relation-chip--dimensions {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* The chip's usual single row, kept intact above the dimensions line. */
+.relation-chip__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
 .relation-chip__dimensions {
-  flex-basis: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--text-muted);
   font-size: var(--text-xs);
   text-align: left;

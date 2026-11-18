@@ -58,19 +58,23 @@ function attachDimensions(graph: Graph, id: string, entry: Entry, types: string[
   }
 }
 
+// A hierarchy chip has no types of its own; the relation's type, named from
+// this CWE's side, is only used to look its dimensions up.
+function hierarchyEntries(graph: Graph, id: string, ids: string[], type: string): Entry[] {
+  return ids.map((to) => {
+    const entry: Entry = { id: to };
+    attachDimensions(graph, id, entry, [type]);
+    return entry;
+  });
+}
+
 // Every section lists by CWE number, as everywhere else ids are listed: the
 // data's own order is lexicographic, which puts CWE-1257 before CWE-128.
 function relationSections(graph: Graph, id: string): Section[] {
   const sections: Section[] = [
-    { label: 'Parents', entries: (graph.parentsOf.get(id) ?? []).map((to) => ({ id: to })) },
-    { label: 'Children', entries: (graph.childrenOf.get(id) ?? []).map((to) => ({ id: to })) },
+    { label: 'Parents', entries: hierarchyEntries(graph, id, graph.parentsOf.get(id) ?? [], 'ChildOf') },
+    { label: 'Children', entries: hierarchyEntries(graph, id, graph.childrenOf.get(id) ?? [], 'ParentOf') },
   ];
-  const hierarchyTypes = ['ChildOf', 'ParentOf'];
-  sections.forEach((section, i) => {
-    for (const entry of section.entries) {
-      attachDimensions(graph, id, entry, [hierarchyTypes[i]]);
-    }
-  });
   for (const section of sections) {
     section.entries.sort((x, y) => compareIds(x.id, y.id));
   }
@@ -126,19 +130,24 @@ function RelationChip({
   const label = type ? `${type} ${name}` : name;
   const outsideLabel = outside ? `${label}, outside the filter` : label;
   const differs = dimensions && differsBy(dimensions);
+  const row = (
+    <>
+      <Glyph abstraction={node?.abstraction ?? ''} size={12} deprecated={isDeprecated(node)} />
+      {type && <span className="relation-chip__type">{type}</span>}
+      <span className="relation-chip__id">CWE-{id}</span>
+      {node && <span className="relation-chip__name">{node.name}</span>}
+    </>
+  );
   return (
     <li>
       <button
         type="button"
-        className={`relation-chip${flashed ? ' relation-chip--flash' : ''}${outside ? ' relation-chip--outside' : ''}`}
+        className={`relation-chip${flashed ? ' relation-chip--flash' : ''}${outside ? ' relation-chip--outside' : ''}${dimensions ? ' relation-chip--dimensions' : ''}`}
         onClick={() => onSelect(id)}
         aria-label={differs ? `${outsideLabel}. ${differs}` : outsideLabel}
         title={differs}
       >
-        <Glyph abstraction={node?.abstraction ?? ''} size={12} deprecated={isDeprecated(node)} />
-        {type && <span className="relation-chip__type">{type}</span>}
-        <span className="relation-chip__id">CWE-{id}</span>
-        {node && <span className="relation-chip__name">{node.name}</span>}
+        {dimensions ? <span className="relation-chip__row">{row}</span> : row}
         {dimensions && <span className="relation-chip__dimensions">{chipDimensionLine(dimensions)}</span>}
       </button>
     </li>

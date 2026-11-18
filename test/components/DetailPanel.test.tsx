@@ -396,5 +396,11 @@ describe('DetailPanel relation chips with dimensions', () => {
     const chip = screen.getByRole('button', { name: 'CanFollow CWE-20: Improper Input Validation' });
     expect(chip).not.toHaveAttribute('title');
     expect(chipLine(chip)).toBeNull();
+    expect(chip).not.toHaveClass('relation-chip--dimensions');
+  });
+
+  it('marks a chip that has dimensions', () => {
+    render(<DetailPanel graph={dimsGraph} selectedId="79" onSelect={() => {}} />);
+    expect(screen.getByRole('button', { name: `CWE-74: Injection. ${stated}` })).toHaveClass('relation-chip--dimensions');
   });
 });
