@@ -199,9 +199,12 @@ such as `CanFollow`.
   CWE-126's Overlaps with 788 has 788's.
 - `buildGraph`'s synthesized inverse edges in `relatedTo` stay free of
   dimensions. The lookup alone resolves the other end.
-- CanAlsoBe is not reciprocal and gets no synthesized inverse
-  (`graph.ts`). Its dimensions therefore show only from the stating end,
-  such as 201's chip for 209.
+- CanAlsoBe has no named inverse, so `buildGraph` lists it on the target
+  as "CanAlsoBe (inverse)". The lookup resolves a "(inverse)" type to the
+  stated one, so CWE-209's chip for 201 shows the same dimensions as
+  201's chip for 209. (Corrected while planning, on 2026-11-18: this first
+  said CanAlsoBe gets no synthesized inverse and shows only from the
+  stating end.)
 
 ### Display
 
@@ -312,7 +315,8 @@ Parents (1)
   - CWE-1037: several values of one Type, and source order differing
     from schema order;
   - CWE-201 → 200: a ChildOf with dimensions, seen from both ends;
-  - CWE-201 → 209: CanAlsoBe, from the stating end only;
+  - CWE-201 → 209: CanAlsoBe, from both ends, the target's through its
+    "(inverse)" chip;
   - CWE-788 / 126: Overlaps with dimensions next to a ChildOf without;
   - CWE-285 → 284: the same relation in two views, one with dimensions;
   - CWE-405: a stray quote, kept;
