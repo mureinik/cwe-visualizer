@@ -41,12 +41,18 @@ interface GraphEdgeLabelProps {
   edge: PositionedEdge;
   dimmed: boolean;
   unmatched?: boolean;
+  /** As on GraphEdge: the label sits over the middle of its edge, so it carries the same tooltip. */
+  dimensions?: TypedDimensions[];
 }
 
-/** Apart from its edge, so that it can be drawn over all of them. */
-export function GraphEdgeLabel({ edge, dimmed, unmatched = false }: GraphEdgeLabelProps) {
+/**
+ * Apart from its edge, so that it can be drawn over all of them. The tooltip
+ * is on the group, not the text, so the label's text stays the relation alone.
+ */
+export function GraphEdgeLabel({ edge, dimmed, unmatched = false, dimensions }: GraphEdgeLabelProps) {
   return (
     <g className={groupClass(dimmed, unmatched)}>
+      <title>{edgeTitle(edge.types, dimensions ?? [])}</title>
       <text
         className="graph-edge__label"
         x={edge.label.x}

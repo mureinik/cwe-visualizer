@@ -642,6 +642,23 @@ describe('GraphStage edge tooltips with dimensions', () => {
     expect(title('200')).toBe(expected);
   });
 
+  it('gives the label the same tooltip, keeping its text the relation alone', () => {
+    const { container } = render(
+      <GraphStage graph={withDimensions} selectedId="201" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+    const label = container.querySelector('.graph-edge__label');
+    expect(label?.parentElement?.querySelector(':scope > title')?.textContent).toBe(expected);
+    expect(label?.textContent).toBe('ChildOf');
+  });
+
+  it('gives a label without dimensions the bare relation as its tooltip', () => {
+    const { container } = render(
+      <GraphStage graph={graph} selectedId="79" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+    const label = container.querySelector('.graph-edge__label');
+    expect(label?.parentElement?.querySelector(':scope > title')?.textContent).toBe(label?.textContent);
+  });
+
   it('keeps the bare relation for an edge without dimensions', () => {
     expect(title('79', graph)).toBe('ChildOf');
   });

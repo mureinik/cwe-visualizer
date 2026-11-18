@@ -293,6 +293,7 @@ export function GraphStage({
                   edge={edge}
                   dimmed={incident !== null && !lit}
                   unmatched={isUnmatched(edge.from) || isUnmatched(edge.to)}
+                  dimensions={edgeDimensions(graph, edge)}
                 />
               );
             })}
