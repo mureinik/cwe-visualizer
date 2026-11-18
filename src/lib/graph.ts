@@ -1,4 +1,5 @@
-import type { CweData, CweEdge, CweGroup, CweLanguage, CweMeta, CweNode, CwePhase, CweView } from './cwe-data';
+import type { CweData, CweDimension, CweEdge, CweGroup, CweLanguage, CweMeta, CweNode, CwePhase, CweView } from './cwe-data';
+import { mergeDimensions } from './dimensions';
 import { INVERSE_SUFFIX, isInverse } from './relations';
 
 export type { CweData, CweEdge, CweGroup, CweLanguage, CweMeta, CweNode, CwePhase, CweView } from './cwe-data';
@@ -33,6 +34,12 @@ export interface Graph {
   languages: CweLanguage[];
   /** Weaknesses MITRE marks as applying to any language; empty when the data has none. */
   languageAgnosticIds: string[];
+  /**
+   * The dimensions MITRE states on a relation, keyed `${from}|${to}|${type}`
+   * over the stated edges that have any; empty when the data has none. Read
+   * it through relationDimensions, which also finds them from the other end.
+   */
+  relationDimensions: Map<string, CweDimension[]>;
 }
 
 export interface BuildGraphOptions {
@@ -150,6 +157,14 @@ export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
     }
   }
 
+  const relationDimensionsMap = new Map<string, CweDimension[]>();
+  for (const edge of data.edges) {
+    if (edge.dimensions && edge.dimensions.length > 0) {
+      const key = `${edge.from}|${edge.to}|${edge.type}`;
+      relationDimensionsMap.set(key, mergeDimensions(relationDimensionsMap.get(key) ?? [], edge.dimensions));
+    }
+  }
+
   const isDeprecatedId = (id: string) => isDeprecated(nodes[id]);
 
   let roots: string[];
@@ -175,8 +190,35 @@ export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
 
   return {
     meta: data.meta, nodes, childrenOf, parentsOf, relatedTo, roots, deprecatedRoots, all, views, groups, phases,
-    languages, languageAgnosticIds,
+    languages, languageAgnosticIds, relationDimensions: relationDimensionsMap,
   };
+}
+
+/** The type the other end of a relation states it with, if it has one. */
+function statedFromOtherEnd(type: string): string | undefined {
+  if (type === 'ChildOf') {
+    return 'ParentOf';
+  }
+  if (type === 'ParentOf') {
+    return 'ChildOf';
+  }
+  const nature = INVERSE_NATURES.get(type);
+  if (nature !== undefined) {
+    return nature;
+  }
+  return isInverse(type) ? type.slice(0, -INVERSE_SUFFIX.length) : undefined;
+}
+
+/**
+ * The dimensions MITRE states on a relation, found from either end. `type`
+ * is named from `id`'s side, as in relatedTo.
+ */
+export function relationDimensions(graph: Graph, id: string, otherId: string, type: string): CweDimension[] {
+  const stated = statedFromOtherEnd(type);
+  return mergeDimensions(
+    graph.relationDimensions.get(`${id}|${otherId}|${type}`) ?? [],
+    stated === undefined ? [] : graph.relationDimensions.get(`${otherId}|${id}|${stated}`) ?? [],
+  );
 }
 
 export function ancestorsOf(graph: Graph, id: string): Set<string> {
