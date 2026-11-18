@@ -328,3 +328,73 @@ describe('DetailPanel dimensions', () => {
     expect(screen.getByText('Dimensions').closest('details')).not.toHaveAttribute('open');
   });
 });
+
+describe('DetailPanel relation chips with dimensions', () => {
+  const stated = 'Differs by: Behavior type Generation; Common name Cross-site Scripting';
+  const dimsData: CweData = {
+    ...data,
+    edges: [
+      {
+        from: '79',
+        to: '74',
+        type: 'ChildOf',
+        dimensions: [
+          { type: 'Behavior-Type', value: 'Generation' },
+          { type: 'Common-Name', value: 'Cross-site Scripting' },
+        ],
+      },
+      { from: '80', to: '79', type: 'ChildOf' },
+      { from: '79', to: '20', type: 'CanFollow' },
+      { from: '79', to: '80', type: 'PeerOf', dimensions: [{ type: 'Other', value: 'Output' }] },
+    ],
+  };
+  const dimsGraph = buildGraph(dimsData);
+  const chipLine = (button: HTMLElement) => button.querySelector('.relation-chip__dimensions');
+
+  it('shows the dimensions on the parent chip, in its name and as its title', () => {
+    render(<DetailPanel graph={dimsGraph} selectedId="79" onSelect={() => {}} />);
+    const chip = screen.getByRole('button', { name: `CWE-74: Injection. ${stated}` });
+    expect(chipLine(chip)).toHaveTextContent('Generation · Cross-site Scripting');
+    expect(chip).toHaveAttribute('title', stated);
+  });
+
+  it('shows the same line on the child chip of the same relation', () => {
+    render(<DetailPanel graph={dimsGraph} selectedId="74" onSelect={() => {}} />);
+    const chip = screen.getByRole('button', { name: `CWE-79: Cross-site Scripting. ${stated}` });
+    expect(chipLine(chip)).toHaveTextContent('Generation · Cross-site Scripting');
+  });
+
+  it('shows a stated PeerOf from its target', () => {
+    render(<DetailPanel graph={dimsGraph} selectedId="80" onSelect={() => {}} />);
+    const chip = screen.getByRole('button', { name: /^PeerOf CWE-79: / });
+    expect(chipLine(chip)).toHaveTextContent('Output');
+  });
+
+  it('keeps the outside-the-filter suffix before the dimensions', () => {
+    render(<DetailPanel graph={dimsGraph} selectedId="79" onSelect={() => {}} matches={new Set(['80'])} />);
+    expect(
+      screen.getByRole('button', { name: `CWE-74: Injection, outside the filter. ${stated}` }),
+    ).toBeInTheDocument();
+  });
+
+  it('still focuses a flashed chip that has dimensions', () => {
+    render(
+      <DetailPanel
+        graph={dimsGraph}
+        selectedId="79"
+        onSelect={() => {}}
+        flash={{ relations: [{ id: '80', type: 'PeerOf' }], token: 1 }}
+      />,
+    );
+    const chip = screen.getByRole('button', { name: /^PeerOf CWE-80: .*Differs by: Other Output$/ });
+    expect(chip).toHaveClass('relation-chip--flash');
+    expect(chip).toHaveFocus();
+  });
+
+  it('leaves a chip without dimensions as it was', () => {
+    render(<DetailPanel graph={dimsGraph} selectedId="79" onSelect={() => {}} />);
+    const chip = screen.getByRole('button', { name: 'CanFollow CWE-20: Improper Input Validation' });
+    expect(chip).not.toHaveAttribute('title');
+    expect(chipLine(chip)).toBeNull();
+  });
+});

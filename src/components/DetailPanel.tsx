@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LateralRelation } from '../lib/ego';
-import { compareIds, isDeprecated, type Graph } from '../lib/graph';
+import { chipDimensionLine, differsBy, type TypedDimensions } from '../lib/dimensions';
+import { compareIds, isDeprecated, relationDimensions, type Graph } from '../lib/graph';
 import { RELATION_GROUPS, relationGroup, type RelationGroup } from '../lib/relations';
 import { Glyph } from './Glyph';
 import { Dimensions } from './Dimensions';
@@ -33,11 +34,28 @@ interface Entry {
    * it. Hierarchy sections don't need them; the heading says it.
    */
   types?: string[];
+  /** What MITRE says differs along each relation; only set when some type has any. */
+  dimensions?: TypedDimensions[];
 }
 
 interface Section {
   label: string;
   entries: Entry[];
+}
+
+// Sets the entry's dimensions when any of the relation types has some, keeping
+// every such type in the order given.
+function attachDimensions(graph: Graph, id: string, entry: Entry, types: string[]) {
+  const groups: TypedDimensions[] = [];
+  for (const type of types) {
+    const dimensions = relationDimensions(graph, id, entry.id, type);
+    if (dimensions.length > 0) {
+      groups.push({ type, dimensions });
+    }
+  }
+  if (groups.length > 0) {
+    entry.dimensions = groups;
+  }
 }
 
 // Every section lists by CWE number, as everywhere else ids are listed: the
@@ -47,6 +65,12 @@ function relationSections(graph: Graph, id: string): Section[] {
     { label: 'Parents', entries: (graph.parentsOf.get(id) ?? []).map((to) => ({ id: to })) },
     { label: 'Children', entries: (graph.childrenOf.get(id) ?? []).map((to) => ({ id: to })) },
   ];
+  const hierarchyTypes = ['ChildOf', 'ParentOf'];
+  sections.forEach((section, i) => {
+    for (const entry of section.entries) {
+      attachDimensions(graph, id, entry, [hierarchyTypes[i]]);
+    }
+  });
   for (const section of sections) {
     section.entries.sort((x, y) => compareIds(x.id, y.id));
   }
@@ -73,6 +97,12 @@ function relationSections(graph: Graph, id: string): Section[] {
     sections.push({ label: RELATION_GROUPS[key].label, entries: byGroup.get(key) ?? [] });
   }
 
+  for (const section of sections.slice(2)) {
+    for (const entry of section.entries) {
+      attachDimensions(graph, id, entry, entry.types ?? []);
+    }
+  }
+
   return sections.filter((section) => section.entries.length > 0);
 }
 
@@ -89,23 +119,27 @@ function RelationChip({
   outside: boolean;
   onSelect: (id: string) => void;
 }) {
-  const { id, types } = entry;
+  const { id, types, dimensions } = entry;
   const type = types?.join(', ');
   const node = graph.nodes[id];
   const name = node ? `CWE-${id}: ${node.name}` : `CWE-${id}`;
   const label = type ? `${type} ${name}` : name;
+  const outsideLabel = outside ? `${label}, outside the filter` : label;
+  const differs = dimensions && differsBy(dimensions);
   return (
     <li>
       <button
         type="button"
         className={`relation-chip${flashed ? ' relation-chip--flash' : ''}${outside ? ' relation-chip--outside' : ''}`}
         onClick={() => onSelect(id)}
-        aria-label={outside ? `${label}, outside the filter` : label}
+        aria-label={differs ? `${outsideLabel}. ${differs}` : outsideLabel}
+        title={differs}
       >
         <Glyph abstraction={node?.abstraction ?? ''} size={12} deprecated={isDeprecated(node)} />
         {type && <span className="relation-chip__type">{type}</span>}
         <span className="relation-chip__id">CWE-{id}</span>
         {node && <span className="relation-chip__name">{node.name}</span>}
+        {dimensions && <span className="relation-chip__dimensions">{chipDimensionLine(dimensions)}</span>}
       </button>
     </li>
   );

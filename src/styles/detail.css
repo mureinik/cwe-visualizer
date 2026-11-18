@@ -164,6 +164,7 @@
 
 .relation-chip {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1);
   min-width: 0;
@@ -204,6 +205,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.relation-chip__dimensions {
+  flex-basis: 100%;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  text-align: left;
+  white-space: normal;
 }
 
 /*
