@@ -208,9 +208,10 @@ such as `CanFollow`.
 **A weakness's dimensions**:
 
 - **Placement:** a "Dimensions" disclosure (native `<details>`) in the
-  detail panel, after Technical nuance and before the "View on
-  cwe.mitre.org" link. It is closed by default and closes again when
-  another CWE is selected, as Technical nuance does.
+  detail panel, after the description and before Technical nuance. The
+  maintainer's call: the short dimension rows ask less of the reader than
+  the nuance's prose, so they come first. It is closed by default and
+  closes again when another CWE is selected, as Technical nuance does.
 - **Explanation:** the first line inside it reads "The parts MITRE built
   this weakness's name from."
 - **Rows:** one row per Type, in schema order. A Type with several values
@@ -279,9 +280,6 @@ Parents (1)
 
 ## Calls made in design (not the maintainer's; correct if wrong)
 
-- A weakness's dimensions sit after Technical nuance, so the two
-  disclosures stay together and the MITRE link stays last before the
-  relations.
 - The chip line shows values only. The types are in its accessible name
   and title, because the chip has no room for a type column.
 - Values are joined with "; " in the disclosure and " · " on the chip.
