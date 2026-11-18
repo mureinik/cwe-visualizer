@@ -42,7 +42,7 @@ interface GraphEdgeLabelProps {
   dimmed: boolean;
   unmatched?: boolean;
   /** As on GraphEdge: the label sits over the middle of its edge, so it carries the same tooltip. */
-  dimensions?: TypedDimensions[];
+  dimensions: TypedDimensions[];
 }
 
 /**
@@ -52,7 +52,7 @@ interface GraphEdgeLabelProps {
 export function GraphEdgeLabel({ edge, dimmed, unmatched = false, dimensions }: GraphEdgeLabelProps) {
   return (
     <g className={groupClass(dimmed, unmatched)}>
-      <title>{edgeTitle(edge.types, dimensions ?? [])}</title>
+      <title>{edgeTitle(edge.types, dimensions)}</title>
       <text
         className="graph-edge__label"
         x={edge.label.x}
