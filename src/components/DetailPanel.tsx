@@ -84,13 +84,13 @@ function relationSections(graph: Graph, id: string): Section[] {
   // chip naming both, in type order to keep it stable.
   const related = graph.relatedTo.get(id) ?? [];
   const byIdThenType = [...related].sort((x, y) => compareIds(x.to, y.to) || x.type.localeCompare(y.type));
-  const byGroup = new Map<RelationGroup, Entry[]>();
+  const byGroup = new Map<RelationGroup, (Entry & { types: string[] })[]>();
   for (const edge of byIdThenType) {
     const group = relationGroup(edge.type);
     const list = byGroup.get(group) ?? [];
     const last = list.at(-1);
     if (last?.id === edge.to) {
-      last.types?.push(edge.type);
+      last.types.push(edge.type);
     } else {
       list.push({ id: edge.to, types: [edge.type] });
     }
@@ -98,13 +98,11 @@ function relationSections(graph: Graph, id: string): Section[] {
   }
 
   for (const key of ['peer', 'sequence', 'requires'] as const) {
-    sections.push({ label: RELATION_GROUPS[key].label, entries: byGroup.get(key) ?? [] });
-  }
-
-  for (const section of sections.slice(2)) {
-    for (const entry of section.entries) {
-      attachDimensions(graph, id, entry, entry.types ?? []);
+    const entries = byGroup.get(key) ?? [];
+    for (const entry of entries) {
+      attachDimensions(graph, id, entry, entry.types);
     }
+    sections.push({ label: RELATION_GROUPS[key].label, entries });
   }
 
   return sections.filter((section) => section.entries.length > 0);

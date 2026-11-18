@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DetailPanel } from '../../src/components/DetailPanel';
-import { buildGraph, type CweData } from '../../src/lib/graph';
+import { buildGraph, type CweData, type CweEdge } from '../../src/lib/graph';
 
 const data: CweData = {
   meta: { cweVersion: '4.20', catalogDate: '2025-12-01', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
@@ -416,5 +416,32 @@ describe('DetailPanel CanAlsoBe dimensions', () => {
     render(<DetailPanel graph={alsoGraph} selectedId="209" onSelect={() => {}} />);
     const chip = screen.getByRole('button', { name: /^CanAlsoBe \(inverse\) CWE-201: /i });
     expect(chip.querySelector('.relation-chip__dimensions')).toHaveTextContent('Output');
+  });
+});
+
+describe('DetailPanel with a graph that has no relation lists', { tags: ['theoretical'] }, () => {
+  // buildGraph gives every node all three lists, but DetailPanel accepts any Graph.
+  it('shows no relations for a node with no list entries', () => {
+    const bare = {
+      ...graph,
+      childrenOf: new Map<string, string[]>(),
+      parentsOf: new Map<string, string[]>(),
+      relatedTo: new Map<string, CweEdge[]>(),
+    };
+    render(<DetailPanel graph={bare} selectedId="79" onSelect={() => {}} />);
+    expect(screen.getByRole('heading', { name: 'CWE-79: Cross-site Scripting' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /^Parents/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /^Peers/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('DetailPanel with a relation to a CWE outside the corpus', { tags: ['theoretical'] }, () => {
+  // A relation to an entry that doesn't exist would be a mistake in MITRE's data.
+  it('lists it by number alone', () => {
+    const dangling = buildGraph({ ...data, edges: [{ from: '79', to: '99999', type: 'ChildOf' }] });
+    render(<DetailPanel graph={dangling} selectedId="79" onSelect={() => {}} />);
+    const chip = screen.getByRole('button', { name: 'CWE-99999' });
+    expect(chip).toHaveTextContent('CWE-99999');
+    expect(chip.querySelector('.relation-chip__name')).toBeNull();
   });
 });
