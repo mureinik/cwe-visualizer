@@ -100,8 +100,23 @@ CI also uploads the report to [Codecov](https://about.codecov.io/), which
 compares it with the PR's base. It comments on the PR with the change, and
 its `codecov/project` check fails when total coverage drops by more than 1
 point. It also reports coverage of the lines the PR changed
-(`codecov/patch`), for information only. The settings are in
-`codecov.yml`. The upload needs a `CODECOV_TOKEN` secret, the repository's
+(`codecov/patch`). That check is informational, so it never fails, but
+don't treat its result as optional: a PR is ready only when the lines it
+adds or changes have no misses and no partials. Read the Codecov comment
+after each push. "Patch coverage is 100.00%", with no files listed, is
+the bar. Locally, `npm run test:coverage` writes `coverage/index.html`,
+which marks partial branches in each file. A partial usually means one
+of two things:
+
+- **A fallback that can't run**, such as `?? []` after a lookup that always
+  succeeds, or an optional prop that every caller passes. Remove it and
+  let the types say so, rather than testing dead code.
+- **A guard against input that can't happen but is worth keeping**, such
+  as a relation to a CWE that doesn't exist. Cover it with a theoretical
+  test (see
+  [Real-world and theoretical tests](#real-world-and-theoretical-tests)).
+
+The settings are in `codecov.yml`. The upload needs a `CODECOV_TOKEN` secret, the repository's
 upload token from Codecov, stored both as an Actions secret and as a
 Dependabot secret, since Dependabot's runs can't see Actions secrets.
 
