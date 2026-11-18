@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import AdmZip from 'adm-zip';
 import { archiveUrl, extractXmlFromZip, parseCatalog, readPinnedVersion, writeOutput, run } from '../../scripts/prepare-data.ts';
+import { DATA_FORMAT } from '../../src/lib/cwe-data';
 import type { CweData } from '../../src/lib/cwe-data';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -138,9 +139,47 @@ describe('parseCatalog', () => {
   it('builds an edge per Related_Weakness with its nature as the type', () => {
     const edgesFrom79 = data.edges.filter((e) => e.from === '79');
     expect(edgesFrom79).toEqual([
-      { from: '79', to: '74', type: 'ChildOf', viewId: '1000' },
+      { from: '79', to: '74', type: 'ChildOf', viewId: '1000', dimensions: expect.any(Array) as unknown },
+      { from: '79', to: '74', type: 'ChildOf', viewId: '1003' },
       { from: '79', to: '80', type: 'PeerOf', viewId: '1000' },
     ]);
+  });
+
+  it("reads a weakness's dimensions in schema order", () => {
+    expect(data.nodes['74'].dimensions).toEqual([
+      { type: 'Behavior-Type', value: 'Neutralization' },
+      { type: 'Behavior-Property', value: 'Improper' },
+      { type: 'Input-Type', value: 'Special Elements' },
+      { type: 'Common-Name', value: 'Injection' },
+      { type: 'Other', value: 'Output' },
+      { type: 'Other', value: 'Used by a Downstream Component' },
+    ]);
+  });
+
+  it('leaves dimensions absent when a weakness has none', () => {
+    expect('dimensions' in data.nodes['80']).toBe(false);
+  });
+
+  it("reads a relation's dimensions onto its edge", () => {
+    const edges = data.edges.filter((e) => e.from === '79' && e.to === '74');
+    expect(edges.find((e) => e.viewId === '1000')).toEqual({
+      from: '79',
+      to: '74',
+      type: 'ChildOf',
+      viewId: '1000',
+      dimensions: [
+        { type: 'Behavior-Type', value: 'Generation' },
+        { type: 'Resource-Type', value: 'Page' },
+        { type: 'Input-Type', value: 'Input' },
+        { type: 'Technology', value: 'Web' },
+        { type: 'Common-Name', value: 'Cross-site Scripting' },
+      ],
+    });
+    expect('dimensions' in edges.find((e) => e.viewId === '1003')!).toBe(false);
+  });
+
+  it('writes the data format', () => {
+    expect(data.dataFormat).toBe(DATA_FORMAT);
   });
 
   it('has no edges for a weakness with no Related_Weaknesses element', () => {
@@ -170,6 +209,14 @@ describe('parseCatalog', () => {
           <Related_Weaknesses><Related_Weakness Nature="ChildOf" CWE_ID="2"/></Related_Weaknesses>
         </Weakness></Weaknesses></Weakness_Catalog>`;
       expect(parseCatalog(xml, '"x"').edges[0].viewId).toBeUndefined();
+    });
+
+    it('keeps a numeric-looking dimension value as text', () => {
+      const xml = `<Weakness_Catalog Version="4.15" Date="2024-11-19"><Weaknesses>
+        <Weakness ID="1" Name="A" Abstraction="Base" Status="Draft"><Description>d</Description>
+          <Dimensions><Dimension Type="Other">1e5</Dimension></Dimensions>
+        </Weakness></Weaknesses></Weakness_Catalog>`;
+      expect(parseCatalog(xml, '"x"').nodes['1'].dimensions).toEqual([{ type: 'Other', value: '1e5' }]);
     });
 
     it('defaults missing Weakness attributes to empty strings', () => {
@@ -316,6 +363,19 @@ describe('run', () => {
     const dataPath = path.join(dir, 'cwe.json');
     const cached = JSON.parse(await readFile(dataPath, 'utf-8')) as Record<string, unknown>;
     delete cached.languages;
+    await writeFile(dataPath, JSON.stringify(cached));
+
+    const fetchSpy = fakeFetch({ lastModified: '"v1"' });
+    const result = await run({ version: '4.15', outDir: dir, fetchImpl: fetchSpy as unknown as typeof fetch });
+    expect(result.updated).toBe(true);
+    expect(fetchSpy).toHaveBeenCalled();
+  });
+
+  it('re-downloads data cached before the data format existed, even when last-modified matches', async () => {
+    await run({ version: '4.15', outDir: dir, fetchImpl: fakeFetch({ lastModified: '"v1"' }) as unknown as typeof fetch });
+    const dataPath = path.join(dir, 'cwe.json');
+    const cached = JSON.parse(await readFile(dataPath, 'utf-8')) as Record<string, unknown>;
+    delete cached.dataFormat;
     await writeFile(dataPath, JSON.stringify(cached));
 
     const fetchSpy = fakeFetch({ lastModified: '"v1"' });
