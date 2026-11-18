@@ -21,7 +21,10 @@ const CWE_1037 = [
   d('Code-Property', 'Security-critical'),
 ];
 
-const CWE_201_CHILD_OF = [d('Behavior-Type', 'Exposure'), d('Other', 'to an Unauthorized Actor')];
+const CWE_201_CHILD_OF = [
+  d('Behavior-Type', 'Exposure'),
+  d('Other', 'to an Unauthorized Actor'),
+];
 
 describe('DIMENSION_TYPES', () => {
   it("lists the schema's 18 types in order", () => {
@@ -94,7 +97,10 @@ describe('mergeDimensions', () => {
 describe('dimensionRows', () => {
   it('gives one row per type, in input order', () => {
     expect(dimensionRows(mergeDimensions(CWE_1037))).toEqual([
-      { label: 'Behavior type', values: ['Optimization', 'Removal or Modification'] },
+      {
+        label: 'Behavior type',
+        values: ['Optimization', 'Removal or Modification'],
+      },
       { label: 'Code type', values: ['Code'] },
       { label: 'Code property', values: ['Security-critical'] },
       { label: 'Technology', values: ['Processor'] },
@@ -106,21 +112,30 @@ describe('the edge texts, for one relation type', () => {
   const group = [{ type: 'ChildOf', dimensions: CWE_201_CHILD_OF }];
 
   it('puts the values on the chip', () => {
-    expect(chipDimensionLine(group)).toBe('Exposure · to an Unauthorized Actor');
+    expect(chipDimensionLine(group)).toBe(
+      'Exposure · to an Unauthorized Actor',
+    );
   });
 
   it('names the types in the accessible name', () => {
-    expect(differsBy(group)).toBe('Differs by: Behavior type Exposure; Other to an Unauthorized Actor');
+    expect(differsBy(group)).toBe(
+      'Differs by: Behavior type Exposure; Other to an Unauthorized Actor',
+    );
   });
 
   it('lists a row per type in the tooltip', () => {
-    expect(edgeTitle(['ChildOf'], group)).toBe('ChildOf\nBehavior type: Exposure\nOther: to an Unauthorized Actor');
+    expect(edgeTitle(['ChildOf'], group)).toBe(
+      'ChildOf\nBehavior type: Exposure\nOther: to an Unauthorized Actor',
+    );
   });
 
   it('joins several values of a type with "; " in the tooltip', () => {
-    expect(edgeTitle(['ChildOf'], [{ type: 'ChildOf', dimensions: mergeDimensions(CWE_1037) }])).toContain(
-      '\nBehavior type: Optimization; Removal or Modification\n',
-    );
+    expect(
+      edgeTitle(
+        ['ChildOf'],
+        [{ type: 'ChildOf', dimensions: mergeDimensions(CWE_1037) }],
+      ),
+    ).toContain('\nBehavior type: Optimization; Removal or Modification\n');
   });
 });
 
@@ -135,13 +150,26 @@ describe('the edge texts, for several relation types', () => {
   });
 
   it('prefixes each group with its relation type in the accessible name', () => {
-    expect(differsBy(groups)).toBe('Differs by: CanAlsoBe: Behavior type Generation. PeerOf: Other Output');
+    expect(differsBy(groups)).toBe(
+      'Differs by: CanAlsoBe: Behavior type Generation. PeerOf: Other Output',
+    );
   });
 
   it('nests each group under its relation type in the tooltip', () => {
     expect(edgeTitle(['CanAlsoBe', 'PeerOf'], groups)).toBe(
       'CanAlsoBe, PeerOf\nCanAlsoBe:\n  Behavior type: Generation\nPeerOf:\n  Other: Output',
     );
+  });
+});
+
+describe('edgeTitle for several types with one group', () => {
+  it('nests the group under its type', () => {
+    expect(
+      edgeTitle(
+        ['CanAlsoBe', 'PeerOf'],
+        [{ type: 'PeerOf', dimensions: [d('Other', 'Output')] }],
+      ),
+    ).toBe('CanAlsoBe, PeerOf\nPeerOf:\n  Other: Output');
   });
 });
 
