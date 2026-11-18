@@ -200,6 +200,17 @@ describe('parseCatalog', () => {
     }
   });
 
+  // No 5.0 dimension value looks numeric.
+  describe('numeric-looking dimension values', { tags: ['theoretical'] }, () => {
+    it('keeps a numeric-looking dimension value as text', () => {
+      const xml = `<Weakness_Catalog Version="4.15" Date="2024-11-19"><Weaknesses>
+        <Weakness ID="1" Name="A" Abstraction="Base" Status="Draft"><Description>d</Description>
+          <Dimensions><Dimension Type="Other">1e5</Dimension></Dimensions>
+        </Weakness></Weaknesses></Weakness_Catalog>`;
+      expect(parseCatalog(xml, '"x"').nodes['1'].dimensions).toEqual([{ type: 'Other', value: '1e5' }]);
+    });
+  });
+
   // The schema requires View_ID on every Related_Weakness, and Name,
   // Abstraction and Status on every Weakness.
   describe('attributes the schema requires', { tags: ['theoretical'] }, () => {
@@ -209,14 +220,6 @@ describe('parseCatalog', () => {
           <Related_Weaknesses><Related_Weakness Nature="ChildOf" CWE_ID="2"/></Related_Weaknesses>
         </Weakness></Weaknesses></Weakness_Catalog>`;
       expect(parseCatalog(xml, '"x"').edges[0].viewId).toBeUndefined();
-    });
-
-    it('keeps a numeric-looking dimension value as text', () => {
-      const xml = `<Weakness_Catalog Version="4.15" Date="2024-11-19"><Weaknesses>
-        <Weakness ID="1" Name="A" Abstraction="Base" Status="Draft"><Description>d</Description>
-          <Dimensions><Dimension Type="Other">1e5</Dimension></Dimensions>
-        </Weakness></Weaknesses></Weakness_Catalog>`;
-      expect(parseCatalog(xml, '"x"').nodes['1'].dimensions).toEqual([{ type: 'Other', value: '1e5' }]);
     });
 
     it('defaults missing Weakness attributes to empty strings', () => {

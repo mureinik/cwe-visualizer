@@ -67,10 +67,10 @@ change them there, not file by file.
 
 `scripts/` holds only what the build runs, which today is
 `prepare-data.ts`, `build-site.ts`, `nuance.ts`, `phases.ts`, `views.ts`,
-`implicit-views.ts`, `languages.ts` and `dimensions.ts` (which `prepare-data.ts` uses to
-convert Technical_Nuance, read introduction phases, resolve views and
-groupings, evaluate the XPath filters of implicit views, and read
-programming languages, and dimensions). Helpers that only serve CI,
+`implicit-views.ts`, `languages.ts` and `dimensions.ts` (which
+`prepare-data.ts` uses to convert Technical_Nuance, read introduction
+phases, resolve views and groupings, evaluate the XPath filters of
+implicit views, and read programming languages and dimensions). Helpers that only serve CI,
 deployment config or maintainers live in `.github/scripts/` instead.
 Coverage measures the app, `src/`, only: the scripts in both places
 have tests, but neither kind ships.

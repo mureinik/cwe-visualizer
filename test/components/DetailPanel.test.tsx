@@ -302,6 +302,7 @@ describe('DetailPanel dimensions', () => {
         dimensions: dims,
         technicalNuance: [{ kind: 'paragraph', lines: [[{ text: 'Nuance for 74' }]] }],
       },
+      '79': { ...data.nodes['79'], dimensions: [{ type: 'Code-Type', value: 'Code' }] },
     },
   });
 
@@ -315,7 +316,7 @@ describe('DetailPanel dimensions', () => {
   });
 
   it('shows no dimensions for a CWE without them', () => {
-    render(<DetailPanel graph={withDims} selectedId="79" onSelect={() => {}} />);
+    render(<DetailPanel graph={withDims} selectedId="20" onSelect={() => {}} />);
     expect(screen.queryByText('Dimensions')).toBeNull();
   });
 
@@ -323,8 +324,7 @@ describe('DetailPanel dimensions', () => {
     const { rerender } = render(<DetailPanel graph={withDims} selectedId="74" onSelect={() => {}} />);
     await userEvent.click(screen.getByText('Dimensions'));
     expect(screen.getByText('Dimensions').closest('details')).toHaveAttribute('open');
-    rerender(<DetailPanel graph={withDims} selectedId="20" onSelect={() => {}} />);
-    rerender(<DetailPanel graph={withDims} selectedId="74" onSelect={() => {}} />);
+    rerender(<DetailPanel graph={withDims} selectedId="79" onSelect={() => {}} />);
     expect(screen.getByText('Dimensions').closest('details')).not.toHaveAttribute('open');
   });
 });
@@ -402,5 +402,19 @@ describe('DetailPanel relation chips with dimensions', () => {
   it('marks a chip that has dimensions', () => {
     render(<DetailPanel graph={dimsGraph} selectedId="79" onSelect={() => {}} />);
     expect(screen.getByRole('button', { name: `CWE-74: Injection. ${stated}` })).toHaveClass('relation-chip--dimensions');
+  });
+});
+
+describe('DetailPanel CanAlsoBe dimensions', () => {
+  it('shows the stated dimensions on the inverse chip of the target', () => {
+    const alsoData: CweData = {
+      ...data,
+      nodes: { ...data.nodes, '201': { ...data.nodes['79'], id: '201', name: 'Stater' }, '209': { ...data.nodes['79'], id: '209', name: 'Target' } },
+      edges: [{ from: '201', to: '209', type: 'CanAlsoBe', dimensions: [{ type: 'Other', value: 'Output' }] }],
+    };
+    const alsoGraph = buildGraph(alsoData);
+    render(<DetailPanel graph={alsoGraph} selectedId="209" onSelect={() => {}} />);
+    const chip = screen.getByRole('button', { name: /^CanAlsoBe \(inverse\) CWE-201: /i });
+    expect(chip.querySelector('.relation-chip__dimensions')).toHaveTextContent('Output');
   });
 });

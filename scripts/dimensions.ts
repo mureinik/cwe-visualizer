@@ -25,8 +25,14 @@ function collapse(text: string): string {
  * weakness ("CWE-1024") or relation ("CWE-201 ChildOf CWE-200") for errors.
  */
 export function readDimensions(raw: unknown, where: string): CweDimension[] {
+  if (Array.isArray(raw)) {
+    throw new Error(`${where}: more than one Dimensions element`);
+  }
   if (typeof raw !== 'object' || raw === null) {
     return [];
+  }
+  if ((raw as { Dimension?: unknown }).Dimension === undefined) {
+    throw new Error(`${where}: Dimensions has no Dimension elements`);
   }
   const seen = new Set<string>();
   const entries: CweDimension[] = [];

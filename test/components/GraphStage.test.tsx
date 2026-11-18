@@ -645,4 +645,24 @@ describe('GraphStage edge tooltips with dimensions', () => {
   it('keeps the bare relation for an edge without dimensions', () => {
     expect(title('79', graph)).toBe('ChildOf');
   });
+
+  it("adds the dimensions to an ancestor's own hierarchy edge", () => {
+    const g = buildGraph({
+      meta: data.meta,
+      nodes: {
+        '100': node('100', 'Top'),
+        '200': node('200', 'Exposure of Sensitive Information'),
+        '201': node('201', 'Insertion of Sensitive Information'),
+      },
+      edges: [
+        { from: '201', to: '200', type: 'ChildOf' },
+        { from: '200', to: '100', type: 'ChildOf', dimensions: exposure },
+      ],
+    });
+    const { container } = render(
+      <GraphStage graph={g} selectedId="201" onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+    const titles = Array.from(container.querySelectorAll('.graph-edge title'), (t) => t.textContent);
+    expect(titles.sort()).toEqual(['ChildOf', expected]);
+  });
 });

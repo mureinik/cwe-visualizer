@@ -72,3 +72,21 @@ describe('readDimensions', () => {
     );
   });
 });
+
+// 5.0 has neither a childless nor a repeated Dimensions element.
+describe('readDimensions on a malformed Dimensions element', { tags: ['theoretical'] }, () => {
+  it('returns nothing for an absent or empty element', () => {
+    expect(readDimensions(undefined, 'CWE-1')).toEqual([]);
+    expect(readDimensions('', 'CWE-1')).toEqual([]);
+  });
+
+  it('throws on an element with no Dimension children', () => {
+    expect(() => readDimensions({ Other: 'x' }, 'CWE-1')).toThrow('CWE-1: Dimensions has no Dimension elements');
+  });
+
+  it('throws on a repeated Dimensions element', () => {
+    expect(() => readDimensions([{ Dimension: dim('Other', 'a') }, { Dimension: dim('Other', 'b') }], 'CWE-1')).toThrow(
+      'CWE-1: more than one Dimensions element',
+    );
+  });
+});
