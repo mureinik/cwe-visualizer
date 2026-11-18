@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Graph } from '../lib/graph';
-import { buildEgoGraph, edgeKey, type AncestorHops, type LateralRelation } from '../lib/ego';
+import { buildEgoGraph, edgeDimensions, edgeKey, type AncestorHops, type LateralRelation } from '../lib/ego';
 import { childCapFor, edgeMargin, lateralCapFor, layoutEgoGraph, type PositionedNode, type StageSize } from '../lib/layout';
 import { elideSharedPrefix, fitLabel, labelBudget } from '../lib/labels';
 import { arrowMarkerId, EDGE_GROUPS } from '../lib/relations';
@@ -277,6 +277,7 @@ export function GraphStage({
                   dimmed={dimmed}
                   unmatched={isUnmatched(edge.from) || isUnmatched(edge.to)}
                   intoCenter={edge.to === ego?.centerId}
+                  dimensions={edgeDimensions(graph, edge)}
                 />
               );
             })}

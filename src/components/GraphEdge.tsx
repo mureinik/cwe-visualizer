@@ -1,4 +1,5 @@
 import { arrowMarkerId, EDGE_GROUPS } from '../lib/relations';
+import { edgeTitle, type TypedDimensions } from '../lib/dimensions';
 import { relationLabel } from '../lib/ego';
 import type { PositionedEdge } from '../lib/layout';
 
@@ -8,13 +9,15 @@ interface GraphEdgeProps {
   unmatched?: boolean;
   /** Whether the edge ends at the selected node, whose halo is the larger. */
   intoCenter?: boolean;
+  /** The dimensions MITRE states on the edge's relations, for its tooltip. */
+  dimensions?: TypedDimensions[];
 }
 
 function groupClass(dimmed: boolean, unmatched: boolean) {
   return `graph-edge-group${dimmed ? ' graph-edge-group--dimmed' : ''}${unmatched ? ' graph-edge-group--unmatched' : ''}`;
 }
 
-export function GraphEdge({ edge, dimmed, unmatched = false, intoCenter = false }: GraphEdgeProps) {
+export function GraphEdge({ edge, dimmed, unmatched = false, intoCenter = false, dimensions }: GraphEdgeProps) {
   const { line } = EDGE_GROUPS[edge.group];
 
   return (
@@ -28,7 +31,7 @@ export function GraphEdge({ edge, dimmed, unmatched = false, intoCenter = false 
         strokeDasharray={line.dash}
         markerEnd={line.arrow ? `url(#${arrowMarkerId(intoCenter ? 'graph-center' : 'graph', edge.group)})` : undefined}
       >
-        <title>{relationLabel(edge)}</title>
+        <title>{edgeTitle(edge.types, dimensions ?? [])}</title>
       </path>
     </g>
   );

@@ -71,7 +71,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "170"
         },
         {
           "from": "170",
@@ -79,7 +80,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "170"
         },
         {
           "from": "20",
@@ -87,7 +89,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "20"
         },
         {
           "from": "170",
@@ -95,7 +98,8 @@
           "types": [
             "CanPrecede"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "170"
         },
         {
           "from": "170",
@@ -103,7 +107,8 @@
           "types": [
             "CanPrecede"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "170"
         },
         {
           "from": "193",
@@ -111,7 +116,8 @@
           "types": [
             "CanFollow"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "170"
         },
         {
           "from": "682",
@@ -119,7 +125,8 @@
           "types": [
             "CanFollow"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "170"
         },
         {
           "from": "170",
@@ -127,7 +134,8 @@
           "types": [
             "CanAlsoBe"
           ],
-          "group": "peer"
+          "group": "peer",
+          "namedFrom": "170"
         },
         {
           "from": "170",
@@ -135,7 +143,8 @@
           "types": [
             "PeerOf"
           ],
-          "group": "peer"
+          "group": "peer",
+          "namedFrom": "170"
         },
         {
           "from": "170",
@@ -143,7 +152,8 @@
           "types": [
             "PeerOf"
           ],
-          "group": "peer"
+          "group": "peer",
+          "namedFrom": "170"
         },
         {
           "from": "170",
@@ -151,7 +161,8 @@
           "types": [
             "PeerOf"
           ],
-          "group": "peer"
+          "group": "peer",
+          "namedFrom": "170"
         }
       ],
       "overflow": null,
@@ -237,7 +248,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "170"
         },
         {
           "from": "170",
@@ -245,7 +257,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "170"
         },
         {
           "from": "20",
@@ -253,7 +266,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "20"
         },
         {
           "from": "170",
@@ -261,7 +275,8 @@
           "types": [
             "CanPrecede"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "170"
         },
         {
           "from": "170",
@@ -269,7 +284,8 @@
           "types": [
             "CanPrecede"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "170"
         },
         {
           "from": "193",
@@ -277,7 +293,8 @@
           "types": [
             "CanFollow"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "170"
         },
         {
           "from": "682",
@@ -285,7 +302,8 @@
           "types": [
             "CanFollow"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "170"
         },
         {
           "from": "170",
@@ -293,7 +311,8 @@
           "types": [
             "CanAlsoBe"
           ],
-          "group": "peer"
+          "group": "peer",
+          "namedFrom": "170"
         },
         {
           "from": "170",
@@ -301,7 +320,8 @@
           "types": [
             "PeerOf"
           ],
-          "group": "peer"
+          "group": "peer",
+          "namedFrom": "170"
         },
         {
           "from": "170",
@@ -309,7 +329,8 @@
           "types": [
             "PeerOf"
           ],
-          "group": "peer"
+          "group": "peer",
+          "namedFrom": "170"
         },
         {
           "from": "170",
@@ -317,7 +338,8 @@
           "types": [
             "PeerOf"
           ],
-          "group": "peer"
+          "group": "peer",
+          "namedFrom": "170"
         }
       ],
       "overflow": null,
@@ -413,7 +435,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "73"
         },
         {
           "from": "73",
@@ -421,7 +444,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "73"
         },
         {
           "from": "73",
@@ -429,7 +453,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "73"
         },
         {
           "from": "20",
@@ -437,7 +462,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "20"
         },
         {
           "from": "610",
@@ -445,7 +471,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "610"
         },
         {
           "from": "642",
@@ -453,7 +480,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "642"
         },
         {
           "from": "114",
@@ -461,7 +489,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "114"
         },
         {
           "from": "73",
@@ -469,7 +498,8 @@
           "types": [
             "CanPrecede"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "73"
         },
         {
           "from": "73",
@@ -477,7 +507,8 @@
           "types": [
             "CanPrecede"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "73"
         },
         {
           "from": "73",
@@ -485,7 +516,8 @@
           "types": [
             "CanPrecede"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "73"
         },
         {
           "from": "73",
@@ -493,7 +525,8 @@
           "types": [
             "CanPrecede"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "73"
         },
         {
           "from": "73",
@@ -501,7 +534,8 @@
           "types": [
             "CanAlsoBe (inverse)"
           ],
-          "group": "peer"
+          "group": "peer",
+          "namedFrom": "73"
         }
       ],
       "overflow": null,
@@ -632,7 +666,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "119"
         },
         {
           "from": "119",
@@ -640,7 +675,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "119"
         },
         {
           "from": "20",
@@ -648,7 +684,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "20"
         },
         {
           "from": "118",
@@ -656,7 +693,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "118"
         },
         {
           "from": "787",
@@ -664,7 +702,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "787"
         },
         {
           "from": "788",
@@ -672,7 +711,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "788"
         },
         {
           "from": "125",
@@ -680,7 +720,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "125"
         },
         {
           "from": "786",
@@ -688,7 +729,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "786"
         },
         {
           "from": "825",
@@ -696,7 +738,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "825"
         },
         {
           "from": "805",
@@ -704,7 +747,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "805"
         },
         {
           "from": "120",
@@ -712,7 +756,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "120"
         },
         {
           "from": "123",
@@ -720,7 +765,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "123"
         },
         {
           "from": "130",
@@ -728,7 +774,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "130"
         },
         {
           "from": "466",
@@ -736,7 +783,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "466"
         },
         {
           "from": "20",
@@ -744,7 +792,8 @@
           "types": [
             "CanFollow"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "119"
         },
         {
           "from": "128",
@@ -752,7 +801,8 @@
           "types": [
             "CanFollow"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "119"
         },
         {
           "from": "129",
@@ -760,7 +810,8 @@
           "types": [
             "CanFollow"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "119"
         },
         {
           "from": "131",
@@ -768,7 +819,8 @@
           "types": [
             "CanFollow"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "119"
         },
         {
           "from": "190",
@@ -776,7 +828,8 @@
           "types": [
             "CanFollow"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "119"
         }
       ],
       "overflow": {
@@ -894,7 +947,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "120"
         },
         {
           "from": "120",
@@ -902,7 +956,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "120"
         },
         {
           "from": "120",
@@ -910,7 +965,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "120"
         },
         {
           "from": "20",
@@ -918,7 +974,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "20"
         },
         {
           "from": "119",
@@ -926,7 +983,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "119"
         },
         {
           "from": "119",
@@ -934,7 +992,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "119"
         },
         {
           "from": "787",
@@ -942,7 +1001,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "787"
         },
         {
           "from": "120",
@@ -950,7 +1010,8 @@
           "types": [
             "CanPrecede"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "120"
         },
         {
           "from": "170",
@@ -958,7 +1019,8 @@
           "types": [
             "CanFollow"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "120"
         },
         {
           "from": "231",
@@ -966,7 +1028,8 @@
           "types": [
             "CanFollow"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "120"
         },
         {
           "from": "416",
@@ -974,7 +1037,8 @@
           "types": [
             "CanFollow"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "120"
         },
         {
           "from": "456",
@@ -982,7 +1046,8 @@
           "types": [
             "CanFollow"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "120"
         }
       ],
       "overflow": null,
@@ -1053,7 +1118,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "476"
         },
         {
           "from": "476",
@@ -1061,7 +1127,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "476"
         },
         {
           "from": "754",
@@ -1069,7 +1136,8 @@
           "types": [
             "ChildOf"
           ],
-          "group": "hierarchy"
+          "group": "hierarchy",
+          "namedFrom": "754"
         },
         {
           "from": "252",
@@ -1077,7 +1145,8 @@
           "types": [
             "CanFollow"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "476"
         },
         {
           "from": "362",
@@ -1085,7 +1154,8 @@
           "types": [
             "CanFollow"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "476"
         },
         {
           "from": "789",
@@ -1093,7 +1163,8 @@
           "types": [
             "CanFollow"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "476"
         },
         {
           "from": "1325",
@@ -1101,7 +1172,8 @@
           "types": [
             "CanFollow"
           ],
-          "group": "sequence"
+          "group": "sequence",
+          "namedFrom": "476"
         }
       ],
       "overflow": null,

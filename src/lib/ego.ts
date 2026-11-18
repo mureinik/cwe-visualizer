@@ -1,4 +1,5 @@
-import { compareIds, type Graph } from './graph';
+import type { TypedDimensions } from './dimensions';
+import { compareIds, relationDimensions, type Graph } from './graph';
 import { baseRelationType, isInverse, relationGroup, type EdgeGroup } from './relations';
 
 export type Band = -2 | -1 | 0 | 1;
@@ -27,11 +28,24 @@ export interface EgoEdge {
    */
   types: string[];
   group: EdgeGroup;
+  /**
+   * The end `types` are named from: the child for a hierarchy edge, the centre
+   * for a lateral, including one drawn reversed.
+   */
+  namedFrom: string;
 }
 
 /** The relations an edge stands for, as its label and tooltip name them. */
 export function relationLabel(edge: Pick<EgoEdge, 'types'>): string {
   return edge.types.join(', ');
+}
+
+/** The dimensions MITRE states on each of an edge's relations, leaving out the ones with none. */
+export function edgeDimensions(graph: Graph, edge: EgoEdge): TypedDimensions[] {
+  const other = edge.from === edge.namedFrom ? edge.to : edge.from;
+  return edge.types
+    .map((type) => ({ type, dimensions: relationDimensions(graph, edge.namedFrom, other, type) }))
+    .filter((group) => group.dimensions.length > 0);
 }
 
 /**
@@ -140,7 +154,7 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
         if (add(parentId, band, 'center')) {
           next.push(parentId);
         }
-        edges.push({ from: childId, to: parentId, types: ['ChildOf'], group: 'hierarchy' });
+        edges.push({ from: childId, to: parentId, types: ['ChildOf'], group: 'hierarchy', namedFrom: childId });
       }
     }
     frontier = next;
@@ -162,7 +176,7 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
 
   for (const childId of allChildren.slice(0, childCap)) {
     add(childId, 1, 'center');
-    edges.push({ from: childId, to: centerId, types: ['ChildOf'], group: 'hierarchy' });
+    edges.push({ from: childId, to: centerId, types: ['ChildOf'], group: 'hierarchy', namedFrom: childId });
   }
 
   const hiddenCount = allChildren.length - Math.min(allChildren.length, childCap);
@@ -230,6 +244,7 @@ export function buildEgoGraph(graph: Graph, centerId: string, options?: EgoOptio
       to: inbound ? centerId : edge.to,
       types: edge.types,
       group: edge.group,
+      namedFrom: centerId,
     };
 
     // Already on the canvas as a parent, child or earlier relation: record

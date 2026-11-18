@@ -615,3 +615,34 @@ describe('GraphStage filter fade', () => {
     expect(container.querySelector('.graph-node--unmatched, .graph-edge-group--unmatched')).toBeNull();
   });
 });
+
+describe('GraphStage edge tooltips with dimensions', () => {
+  const exposure = [
+    { type: 'Behavior-Type', value: 'Exposure' },
+    { type: 'Other', value: 'to an Unauthorized Actor' },
+  ];
+  const withDimensions = buildGraph({
+    meta: data.meta,
+    nodes: { '200': node('200', 'Exposure of Sensitive Information'), '201': node('201', 'Insertion of Sensitive Information') },
+    edges: [{ from: '201', to: '200', type: 'ChildOf', dimensions: exposure }],
+  });
+  const title = (selectedId: string, g = withDimensions) => {
+    const { container } = render(
+      <GraphStage graph={g} selectedId={selectedId} onSelect={() => {}} onShowChildren={() => {}} onShowRelations={() => {}} hops={2} />,
+    );
+    return container.querySelector('.graph-edge title')?.textContent;
+  };
+  const expected = 'ChildOf\nBehavior type: Exposure\nOther: to an Unauthorized Actor';
+
+  it('adds the dimensions under the relation, from the child', () => {
+    expect(title('201')).toBe(expected);
+  });
+
+  it('adds the same from the parent', () => {
+    expect(title('200')).toBe(expected);
+  });
+
+  it('keeps the bare relation for an edge without dimensions', () => {
+    expect(title('79', graph)).toBe('ChildOf');
+  });
+});
