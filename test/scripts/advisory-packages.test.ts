@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { advisoryIds, advisoryPackages, isGhsaId } from '../../scripts/advisory-packages.ts';
+import { advisoryIds, advisoryPackages, isGhsaId, packagesToUpdate } from '../../scripts/advisory-packages.ts';
 
 const fixture = new URL('../fixtures/npm-audit.json', import.meta.url);
 const report: unknown = JSON.parse(readFileSync(fixture, 'utf8'));
@@ -61,6 +61,65 @@ describe('advisoryPackages', () => {
   });
 });
 
+describe('packagesToUpdate', () => {
+  const url = 'https://github.com/advisories/GHSA-gg6h-894w-4m9c';
+
+  // The fixture is a real report: the vulnerable package is pinned to an
+  // exact version by its dependent, which its own dependent pins in turn, so
+  // only updating the whole chain moves it.
+  it('adds the dependents that pin the vulnerable package, transitively', () => {
+    expect(packagesToUpdate(report, 'GHSA-gg6h-894w-4m9c')).toEqual(['markdownlint', 'markdownlint-cli2', 're2js']);
+  });
+
+  it('returns nothing for an advisory the report lacks', () => {
+    expect(packagesToUpdate(report, 'GHSA-mrhx-c7xc-m3w5')).toEqual([]);
+  });
+
+  it("follows only the advisory's own chain", () => {
+    const other = 'https://github.com/advisories/GHSA-mrhx-c7xc-m3w5';
+    const two = {
+      auditReportVersion: 2,
+      vulnerabilities: {
+        a: { via: [{ name: 'a', url }], effects: ['b'] },
+        b: { via: ['a', 'c'], effects: ['d'] },
+        c: { via: [{ name: 'c', url: other }], effects: ['b', 'e'] },
+        d: { via: ['b'], effects: [] },
+        e: { via: ['c'], effects: [] },
+      },
+    };
+    expect(packagesToUpdate(two, 'GHSA-gg6h-894w-4m9c')).toEqual(['a', 'b', 'd']);
+  });
+
+  // npm allows dependency cycles, so effects can loop back.
+  it('stops at a cycle', () => {
+    const cycle = {
+      auditReportVersion: 2,
+      vulnerabilities: {
+        a: { via: [{ name: 'a', url }, 'b'], effects: ['b'] },
+        b: { via: ['a'], effects: ['a'] },
+      },
+    };
+    expect(packagesToUpdate(cycle, 'GHSA-gg6h-894w-4m9c')).toEqual(['a', 'b']);
+  });
+
+  // Outside our control: npm's report format could change.
+  it('skips effects it cannot read', () => {
+    const odd = {
+      auditReportVersion: 2,
+      vulnerabilities: {
+        a: { via: [{ name: 'a', url }], effects: ['b', 7, 'missing'] },
+        b: { via: ['a'], effects: 'c' },
+        c: { via: ['b'] },
+      },
+    };
+    expect(packagesToUpdate(odd, 'GHSA-gg6h-894w-4m9c')).toEqual(['a', 'b', 'missing']);
+  });
+
+  it('refuses an npm error report', () => {
+    expect(() => packagesToUpdate({ error: { code: 'ENOLOCK', summary: 'x' } }, 'GHSA-gg6h-894w-4m9c')).toThrow();
+  });
+});
+
 describe('advisoryIds', () => {
   it("lists the report's advisories", () => {
     expect(advisoryIds(report)).toEqual(['GHSA-gg6h-894w-4m9c']);
@@ -103,10 +162,10 @@ describe('the command line', () => {
     expect(stdout).toBe('GHSA-gg6h-894w-4m9c\n');
   });
 
-  it('prints the packages for a GHSA ID', () => {
+  it('prints the packages to update for a GHSA ID', () => {
     const { status, stdout } = run(['GHSA-gg6h-894w-4m9c'], readFileSync(fixture, 'utf8'));
     expect(status).toBe(0);
-    expect(stdout).toBe('re2js\n');
+    expect(stdout).toBe('markdownlint\nmarkdownlint-cli2\nre2js\n');
   });
 
   it('fails on an error report', () => {

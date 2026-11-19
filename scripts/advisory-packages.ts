@@ -64,6 +64,35 @@ export function advisoryPackages(report: unknown, ghsa: string): string[] {
 }
 
 /**
+ * Names the packages `npm update` has to move to get rid of the advisory:
+ * the ones that carry it, and every package npm audit says is affected
+ * through them, transitively. npm audit lists a dependent in a package's
+ * `effects` only when no version in the dependent's range for it is fixed,
+ * so updating the vulnerable package alone can't move it: a newer version
+ * of the dependent has to. Throws on anything that isn't a successful
+ * report.
+ */
+export function packagesToUpdate(report: unknown, ghsa: string): string[] {
+  const vulnerabilities = vulnerabilitiesOf(report);
+  const names = new Set(advisoryPackages(report, ghsa));
+  // A Set's iterator also visits what is added during the loop, and adding
+  // a name twice does nothing, so this walks the whole chain, cycles
+  // included, once.
+  for (const name of names) {
+    const vulnerability = Object.hasOwn(vulnerabilities, name) ? vulnerabilities[name] : undefined;
+    if (!isRecord(vulnerability) || !Array.isArray(vulnerability.effects)) {
+      continue;
+    }
+    for (const effect of vulnerability.effects as unknown[]) {
+      if (typeof effect === 'string') {
+        names.add(effect);
+      }
+    }
+  }
+  return [...names].sort();
+}
+
+/**
  * Lists the GHSA IDs of every advisory an npm audit report names, in
  * GitHub's form (`GHSA-` and lower case), sorted and deduplicated. Throws on
  * anything that isn't a successful report.
@@ -95,7 +124,7 @@ function main(args: string[]): void {
   }
   try {
     const report: unknown = JSON.parse(readFileSync(0, 'utf8'));
-    const lines = arg === '--ids' ? advisoryIds(report) : advisoryPackages(report, arg);
+    const lines = arg === '--ids' ? advisoryIds(report) : packagesToUpdate(report, arg);
     for (const line of lines) {
       console.log(line);
     }

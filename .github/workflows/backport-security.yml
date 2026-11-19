@@ -208,7 +208,10 @@ jobs:
           set -euo pipefail
           # npm audit exits non-zero when it finds anything, so its status
           # can't tell a finding from a failure. The script can: it exits
-          # non-zero on a report that is an error or isn't a report.
+          # non-zero on a report that is an error or isn't a report. It names
+          # the packages that carry the advisory and, transitively, the
+          # dependents whose ranges pin them to a vulnerable version, since
+          # updating only the former can't move a pinned one.
           npm audit --json --package-lock-only > "$RUNNER_TEMP/audit.json" || true
           found=$(node ../tools/scripts/advisory-packages.ts "$GHSA" < "$RUNNER_TEMP/audit.json")
           packages=()

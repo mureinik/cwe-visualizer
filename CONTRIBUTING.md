@@ -605,7 +605,10 @@ branch (every branch named `vN` or `vN.M`):
 
 1. `backport` runs `npm audit` on the branch. If the advisory doesn't
    affect it, the run says so and stops. Otherwise it runs `npm update` on
-   the affected packages, audits again and runs CI's checks.
+   the packages that carry the advisory and on every dependent that pins
+   them to a vulnerable version (npm audit's `effects`, followed up the
+   chain), since a pinned package moves only when its dependent does. Then
+   it audits again and runs CI's checks.
 2. `open` pushes `backport/<branch>/<GHSA>` and opens an issue,
    `Backport <GHSA> to <branch>`, and a PR into the release branch whose
    body starts `Closes #<issue>`. If no update fits the branch's ranges, or
@@ -663,8 +666,11 @@ workflow can't handle:
   `BACKPORT_TOKEN`, though `resolve` names the advisories it fixed.
 
 Open an issue for the advisory, then, on a branch off `vX.Y`, run
-`npm update <package>`, check that `npm audit` no longer lists the
-advisory, and open a PR into `vX.Y` that closes the issue.
+`npm update <package>`, adding the dependents that `npm audit` lists as
+affected through it (`node scripts/advisory-packages.ts <GHSA> <
+audit.json`, with `audit.json` from `npm audit --json`, prints them all),
+check that `npm audit` no longer lists the advisory, and open a PR into
+`vX.Y` that closes the issue.
 
 #### One-time setup: the `BACKPORT_TOKEN` secret
 
