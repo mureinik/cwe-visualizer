@@ -238,6 +238,18 @@ Advisories against dev dependencies get the Dependabot PR but no failed
 run, since none of them ship in the app. The audit isn't a PR check, so a
 new advisory never blocks unrelated work.
 
+Since auditing has its own workflow, you can skip the audit (and the
+funding message) that `npm install` and `npm ci` run on their own:
+`npm ci --no-audit --no-fund`. This may speed up local installs, which
+otherwise wait on the registry's audit endpoint once the packages are in,
+and can look stuck after the `prepare` script's `husky` line while they
+do. To skip them on every install instead of typing the flags each time,
+add them to your own user `.npmrc` with
+`npm config set audit=false fund=false --location=user`. Don't commit an
+`.npmrc` to the repo for this: `semgrep` fails on one that doesn't also
+set `min-release-age`. Neither setting affects `npm audit` itself, which
+`audit.yml` runs.
+
 "Production" here means what the deployed site runs, which is only React.
 Updating the CWE data is a build phase, not a production one:
 `scripts/prepare-data.ts` runs at build time, and the site only serves the
