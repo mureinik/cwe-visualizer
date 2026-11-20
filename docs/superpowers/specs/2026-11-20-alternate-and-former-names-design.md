@@ -217,10 +217,11 @@ The build fails, naming the CWE or view, on any of these:
 - more than one `Alternate_Terms` element, or an `Alternate_Terms` with no
   `Alternate_Term`.
 
-None of these happen in 5.0 or in 4.20, the newest 4.x. Both were
-checked: 4.20 has 189 alternate terms (105 with a description, whose only
-markup is two `xhtml:p`, the same as 5.0) and 774 weakness and 17 view
-former names, all with valid dates and non-empty text. The schema forbids
+None of these happen in 5.0, nor in 4.20 and 4.21, the 4.x versions the
+`v1` and `v1.1` branches pin. 4.21 has 222 alternate terms (111 with a
+description, whose only markup is two `xhtml:p`, the same as 5.0) and 774
+weakness and 17 view former names, all with valid dates and non-empty
+text; 4.20 has 189 terms and is otherwise alike. The schema forbids
 the missing `Term` and `Date`; the others are guards, for consistency
 with the build's other strict checks.
 
