@@ -93,13 +93,15 @@ export function SearchBox({ graph, onSelect, matches = null }: SearchBoxProps) {
               {matches === null ? 'No matches' : 'No matches within the filter'}
             </li>
           ) : (
-            results.map(({ node }, index) => (
+            results.map(({ node, via }, index) => (
               <li
                 key={node.id}
                 id={optionId(index)}
                 role="option"
                 aria-selected={index === active}
-                aria-label={`CWE-${node.id}: ${node.name}`}
+                aria-label={`CWE-${node.id}: ${node.name}${
+                  via ? (via.kind === 'term' ? `, also called ${via.name}` : `, formerly ${via.name}`) : ''
+                }`}
                 className={`search-result${index === active ? ' search-result--active' : ''}`}
                 onMouseDown={(e) => {
                   // Select before the input can blur and close the list.
@@ -109,7 +111,14 @@ export function SearchBox({ graph, onSelect, matches = null }: SearchBoxProps) {
               >
                 <Glyph abstraction={node.abstraction} size={12} deprecated={isDeprecated(node)} />
                 <span className="search-result__id">CWE-{node.id}</span>
-                <span className="search-result__name">{node.name}</span>
+                <span className="search-result__text">
+                  <span className="search-result__name">{node.name}</span>
+                  {via && (
+                    <span className="search-result__via">
+                      {via.kind === 'term' ? 'also called' : 'formerly'}: {via.name}
+                    </span>
+                  )}
+                </span>
               </li>
             ))
           )}

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SearchBox } from '../../src/components/SearchBox';
 import { buildGraph, type CweData } from '../../src/lib/graph';
@@ -14,8 +14,14 @@ vi.mock('../../src/lib/search', async (importOriginal) => {
 const data: CweData = {
   meta: { cweVersion: '4.15', catalogDate: '2025-12-01', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
   nodes: {
-    '79': { id: '79', name: 'Cross-site Scripting', abstraction: 'Base', status: 'Stable', description: '', url: '' },
-    '89': { id: '89', name: 'SQL Injection', abstraction: 'Base', status: 'Stable', description: '', url: '' },
+    '79': {
+      id: '79', name: 'Cross-site Scripting', abstraction: 'Base', status: 'Stable', description: '', url: '',
+      alternateTerms: [{ term: 'XSS' }],
+    },
+    '89': {
+      id: '89', name: 'SQL Injection', abstraction: 'Base', status: 'Stable', description: '', url: '',
+      previousNames: [{ name: 'Improper Neutralization of SQL', date: '2020-01-01' }],
+    },
   },
   edges: [],
 };
@@ -150,5 +156,29 @@ describe('SearchBox with a filter', () => {
     await userEvent.type(screen.getByLabelText('Search CWEs'), 'i');
     expect(screen.getByRole('option', { name: 'CWE-89: SQL Injection' })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: /CWE-79/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('SearchBox when another name matched', () => {
+  it('says which alternate term matched', async () => {
+    render(<SearchBox graph={buildGraph(data)} onSelect={() => {}} />);
+    await userEvent.type(screen.getByLabelText('Search CWEs'), 'xss');
+    const option = screen.getByRole('option', { name: 'CWE-79: Cross-site Scripting, also called XSS' });
+    expect(within(option).getByText('also called: XSS')).toBeInTheDocument();
+  });
+
+  it('says which former name matched', async () => {
+    render(<SearchBox graph={buildGraph(data)} onSelect={() => {}} />);
+    await userEvent.type(screen.getByLabelText('Search CWEs'), 'neutralization of sql');
+    const option = screen.getByRole('option', { name: 'CWE-89: SQL Injection, formerly Improper Neutralization of SQL' });
+    expect(within(option).getByText('formerly: Improper Neutralization of SQL')).toBeInTheDocument();
+  });
+
+  it('shows no extra line when the ID matched', async () => {
+    render(<SearchBox graph={buildGraph(data)} onSelect={() => {}} />);
+    await userEvent.type(screen.getByLabelText('Search CWEs'), '79');
+    const option = screen.getByRole('option', { name: 'CWE-79: Cross-site Scripting' });
+    expect(option).not.toHaveTextContent('also called');
+    expect(option).not.toHaveTextContent('formerly');
   });
 });
