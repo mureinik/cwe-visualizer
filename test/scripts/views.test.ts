@@ -95,6 +95,26 @@ describe('readViews', () => {
     expect(views).toEqual([{ id: '919', name: 'View 919', groupIds: [], memberIds: ['79'] }]);
   });
 
+  it('carries a view\'s former names, oldest first, and no key without any', () => {
+    const { views } = readViews(
+      [
+        view('1435', [['79', '1435']], {
+          Content_History: {
+            Previous_Entry_Name: [
+              { '#text': 'Old', '@_Date': '2020-01-01' },
+              { '#text': 'Older', '@_Date': '2021-01-01' },
+            ],
+          },
+        }),
+        view('699', [['79', '699']]),
+      ],
+      [],
+      WEAKNESSES,
+    );
+    expect(views.find((v) => v.id === '1435')?.previousNames).toEqual(['Old', 'Older']);
+    expect(views.find((v) => v.id === '699')).not.toHaveProperty('previousNames');
+  });
+
   it('writes view 1000 first, without members', () => {
     const { views } = readViews(
       [view('1435', [['79', '1435']]), view('1000', [['79', '1000']], { '@_Name': 'Complete Weakness Hierarchy' })],

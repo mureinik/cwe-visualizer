@@ -213,6 +213,20 @@ describe('FilterPanel', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Close filters' }));
     expect(onClose).toHaveBeenCalledOnce();
   });
+
+  it('finds a view by a former name', async () => {
+    const renamed = buildGraph({
+      ...viewsData,
+      views: viewsData.views?.map((view) => (view.id === '1000' ? { ...view, previousNames: ['Research Concepts'] } : view)),
+    });
+    render(<FilterPanel graph={renamed} filter={DEFAULT_FILTER} onChange={vi.fn()} narrow={false} onClose={vi.fn()} />);
+    const view = screen.getByRole('combobox', { name: 'View' });
+    await userEvent.clear(view);
+    await userEvent.type(view, 'research');
+    const listed = within(screen.getByRole('listbox', { name: 'View' })).getAllByRole('option');
+    expect(listed).toHaveLength(1);
+    expect(listed[0]).toHaveAccessibleName('Complete Weakness Hierarchy (1000), formerly Research Concepts');
+  });
 });
 
 describe('FilterPanel with a graph that has no views', { tags: ['theoretical'] }, () => {

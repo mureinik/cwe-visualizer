@@ -49,10 +49,22 @@
   flex: none;
 }
 
-.search-result__name {
+.search-result__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.search-result__name,
+.search-result__via {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.search-result__via {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 
 .search-results__empty {

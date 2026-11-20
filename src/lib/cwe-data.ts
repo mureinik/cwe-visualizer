@@ -10,6 +10,7 @@ export interface NuanceRun {
 
 export type NuanceLine = NuanceRun[];
 
+/** A block of MITRE's structured text (Technical_Nuance, an alternate term's Description). */
 export type NuanceBlock =
   | { kind: 'paragraph'; lines: NuanceLine[] }
   | { kind: 'list'; items: NuanceLine[][] };
@@ -26,6 +27,8 @@ export interface CweView {
   name: string;
   groupIds: string[];
   memberIds: string[];
+  /** Present only when non-empty. Names only, as nothing shows the dates. */
+  previousNames?: string[];
 }
 
 /** A grouping (category) and the weaknesses beneath it, within each view that reaches it. */
@@ -40,7 +43,7 @@ export interface CweGroup {
  * The version of cwe.json's shape. Bump it whenever the build starts writing
  * something a cached file would lack, so a stale file is regenerated.
  */
-export const DATA_FORMAT = 2;
+export const DATA_FORMAT = 3;
 
 /** One part MITRE built a weakness's name from (CWE 5.0 Dimensions). */
 export interface CweDimension {
@@ -48,6 +51,20 @@ export interface CweDimension {
   type: string;
   /** MITRE's text, whitespace-collapsed and trimmed, otherwise verbatim. */
   value: string;
+}
+
+export interface CweAlternateTerm {
+  /** MITRE's Term, whitespace-collapsed and trimmed, otherwise verbatim. */
+  term: string;
+  /** MITRE's Description, converted like Technical_Nuance. Present only when non-empty. */
+  description?: NuanceBlock[];
+}
+
+export interface CwePreviousName {
+  /** MITRE's Previous_Entry_Name text, whitespace-collapsed and trimmed. */
+  name: string;
+  /** The Date attribute (YYYY-MM-DD): when MITRE stopped using the name. */
+  date: string;
 }
 
 export interface CweNode {
@@ -70,6 +87,10 @@ export interface CweNode {
   phases?: CwePhase[];
   /** Present only when non-empty. In schema type order. */
   dimensions?: CweDimension[];
+  /** Present only when non-empty. In MITRE's order. */
+  alternateTerms?: CweAlternateTerm[];
+  /** Present only when non-empty. In MITRE's order (oldest first). */
+  previousNames?: CwePreviousName[];
 }
 
 export interface CweEdge {

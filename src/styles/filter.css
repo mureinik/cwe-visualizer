@@ -272,6 +272,20 @@
   font-size: var(--text-md);
 }
 
+.picker__option-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.picker__option-via {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
 .picker__option--active,
 .picker__option:hover {
   background: var(--surface);

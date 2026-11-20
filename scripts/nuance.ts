@@ -1,13 +1,16 @@
-// Converts the inner XML of a weakness's Technical_Nuance into the blocks the
-// detail panel renders. Strict on purpose: markup it doesn't know fails the
-// build, so a MITRE format change is noticed instead of silently mangled.
+// Converts the inner XML of one of MITRE's structured-text elements (a
+// weakness's Technical_Nuance, an Alternate_Term's Description) into the
+// blocks the detail panel renders. Strict on purpose: markup it doesn't know
+// fails the build, so a MITRE format change is noticed instead of silently
+// mangled.
 
 import { XMLParser } from 'fast-xml-parser';
 import type { NuanceBlock, NuanceLine, NuanceRun } from '../src/lib/cwe-data.ts';
 
 type XmlNode = Record<string, unknown>;
 
-const ROOT = 'Technical_Nuance';
+// The tag the parser wraps around the input; errors name the real element.
+const ROOT = 'Root';
 const ATTRIBUTES = ':@';
 const ATTRIBUTE_PREFIX = '@_';
 const TEXT = '#text';
@@ -173,8 +176,8 @@ function isEmpty(block: NuanceBlock): boolean {
   return block.kind === 'list' ? block.items.length === 0 : block.lines.length === 0;
 }
 
-export function parseNuance(raw: string, cweId: string): NuanceBlock[] {
-  const root = [ROOT];
+export function parseNuance(raw: string, cweId: string, element = 'Technical_Nuance'): NuanceBlock[] {
+  const root = [element];
   const tree = parser.parse(`<${ROOT}>${raw}</${ROOT}>`) as XmlNode[];
   const blocks: NuanceBlock[] = [];
   for (const node of childrenOf(tree[0])) {

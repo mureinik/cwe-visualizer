@@ -17,6 +17,25 @@
     </Weakness>
     <Weakness ID="79" Name="Cross-site Scripting" Abstraction="Base" Status="Stable">
       <Description>The product does not neutralize user-controllable input before it is placed in output.</Description>
+      <Alternate_Terms>
+        <Alternate_Term>
+          <Term>XSS</Term>
+          <Role>Acronym</Role>
+          <Description>A common abbreviation/acronym for Cross-Site Scripting.</Description>
+        </Alternate_Term>
+        <Alternate_Term>
+          <Term>CSS</Term>
+          <Role>Acronym</Role>
+          <Role>Legacy</Role>
+          <Description>
+            <xhtml:p>Formerly used for Cross-Site Scripting.</xhtml:p>
+            <xhtml:p>Now ambiguous with Cascading Style Sheets.</xhtml:p>
+          </Description>
+        </Alternate_Term>
+        <Alternate_Term>
+          <Term>Cross-site Scripting</Term>
+        </Alternate_Term>
+      </Alternate_Terms>
       <Applicable_Platforms>
         <Language Name="C" Prevalence="Often"/>
         <Language Class="Not Language-Specific" Prevalence="Undetermined"/>
@@ -50,6 +69,9 @@
         <Related_Weakness Nature="ChildOf" CWE_ID="74" View_ID="1003"/>
         <Related_Weakness Nature="PeerOf" CWE_ID="80" View_ID="1000"/>
       </Related_Weaknesses>
+      <Content_History>
+        <Previous_Entry_Name Date="2008-04-11">Cross-site Scripting (XSS)</Previous_Entry_Name>
+      </Content_History>
     </Weakness>
     <Weakness ID="80" Name="Improper Neutralization of Script-Related HTML Tags" Abstraction="Base" Structure="Composite" Status="Stable">
       <Description>The product receives input and neutralizes special characters, but the neutralization is incomplete.</Description>
@@ -72,6 +94,11 @@
     </Weakness>
     <Weakness ID="89" Name="SQL Injection" Abstraction="Base" Status="Stable">
       <Description>The product constructs SQL commands using externally-influenced input.</Description>
+      <Alternate_Terms>
+        <Alternate_Term>
+          <Term>SQLi</Term>
+        </Alternate_Term>
+      </Alternate_Terms>
       <Applicable_Platforms>
         <Language Name="SQL" Prevalence="Often"/>
         <Language Class="Memory-Unsafe" Prevalence="Undetermined"/>
@@ -93,6 +120,10 @@
         <Related_Weakness Nature="ChildOf" CWE_ID="74" View_ID="1000"/>
         <Related_Weakness Nature="CanFollow" CWE_ID="20" View_ID="1000"/>
       </Related_Weaknesses>
+      <Content_History>
+        <Previous_Entry_Name Date="2008-04-11">SQL Injection Flaw</Previous_Entry_Name>
+        <Previous_Entry_Name Date="2020-02-24" Version="4.0">Improper Neutralization in SQL</Previous_Entry_Name>
+      </Content_History>
     </Weakness>
   </Weaknesses>
   <Groupings>
@@ -119,11 +150,17 @@
       <Members>
         <Has_Member CWE_ID="74" View_ID="1000"/>
       </Members>
+      <Content_History>
+        <Previous_Entry_Name Date="2008-09-09">Natural Hierarchy</Previous_Entry_Name>
+      </Content_History>
     </View>
     <View ID="699" Name="Software Development" Type="Graph" Status="Draft">
       <Members>
         <Has_Member CWE_ID="100" View_ID="699"/>
       </Members>
+      <Content_History>
+        <Previous_Entry_Name Date="2020-02-24">Development Concepts</Previous_Entry_Name>
+      </Content_History>
     </View>
     <View ID="1435" Name="Weaknesses in the 2025 CWE Top 25 Most Dangerous Software Weaknesses" Type="Graph" Status="Draft">
       <Members>

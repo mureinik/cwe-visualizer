@@ -12,6 +12,10 @@ interface SearchBoxProps {
 
 const MAX_RESULTS = 20;
 
+function viaLabel(kind: 'term' | 'former'): string {
+  return kind === 'term' ? 'also called' : 'formerly';
+}
+
 export function SearchBox({ graph, onSelect, matches = null }: SearchBoxProps) {
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(-1);
@@ -28,7 +32,7 @@ export function SearchBox({ graph, onSelect, matches = null }: SearchBoxProps) {
   const optionId = (index: number) => `${listId}-option-${index}`;
 
   function choose(index: number) {
-    const node = results[index];
+    const node = results[index]?.node;
     if (!node) {
       return;
     }
@@ -93,13 +97,13 @@ export function SearchBox({ graph, onSelect, matches = null }: SearchBoxProps) {
               {matches === null ? 'No matches' : 'No matches within the filter'}
             </li>
           ) : (
-            results.map((node, index) => (
+            results.map(({ node, via }, index) => (
               <li
                 key={node.id}
                 id={optionId(index)}
                 role="option"
                 aria-selected={index === active}
-                aria-label={`CWE-${node.id}: ${node.name}`}
+                aria-label={`CWE-${node.id}: ${node.name}${via ? `, ${viaLabel(via.kind)} ${via.name}` : ''}`}
                 className={`search-result${index === active ? ' search-result--active' : ''}`}
                 onMouseDown={(e) => {
                   // Select before the input can blur and close the list.
@@ -109,7 +113,14 @@ export function SearchBox({ graph, onSelect, matches = null }: SearchBoxProps) {
               >
                 <Glyph abstraction={node.abstraction} size={12} deprecated={isDeprecated(node)} />
                 <span className="search-result__id">CWE-{node.id}</span>
-                <span className="search-result__name">{node.name}</span>
+                <span className="search-result__text">
+                  <span className="search-result__name">{node.name}</span>
+                  {via && (
+                    <span className="search-result__via">
+                      {viaLabel(via.kind)}: {via.name}
+                    </span>
+                  )}
+                </span>
               </li>
             ))
           )}

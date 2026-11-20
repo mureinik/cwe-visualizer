@@ -31,7 +31,7 @@ export function FilterPanel({ id, graph, filter, onChange, narrow, onClose }: Fi
     onChange(next);
     focusTo.current?.focus();
   };
-  const viewOptions: PickerOption[] = graph.views.map((view) => ({ id: view.id, label: `${view.name} (${view.id})` }));
+  const viewOptions: PickerOption[] = graph.views.map((view) => ({ id: view.id, label: `${view.name} (${view.id})`, formerLabels: view.previousNames }));
   const groupOptions: PickerOption[] = (graph.views.find((view) => view.id === filter.viewId)?.groupIds ?? [])
     .map((groupId) => graph.groups[groupId])
     .map((group) => ({ id: group.id, label: group.name, deprecated: isDeprecated(group) }));
