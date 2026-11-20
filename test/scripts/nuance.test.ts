@@ -3,6 +3,11 @@ import { describe, it, expect } from 'vitest';
 import { parseNuance } from '../../scripts/nuance.ts';
 
 describe('parseNuance', () => {
+  it('names the element it converts in an error', () => {
+    expect(() => parseNuance('<xhtml:table/>', '191', 'Alternate_Term Description'))
+      .toThrow('CWE-191: unsupported <xhtml:table> in Alternate_Term Description');
+  });
+
   it('keeps plain text as one paragraph', () => {
     const input = '\n\t   For example, a "." in SMTP signifies the end of mail message data, whereas a null character can be used for the end of a string.\n\t ';
     expect(parseNuance(input, '147')).toEqual([
