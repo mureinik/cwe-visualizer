@@ -128,4 +128,54 @@ describe('Picker', () => {
     render(<Picker label="Group" options={[]} value={null} onChange={() => {}} disabled />);
     expect(screen.getByRole('combobox', { name: 'Group' })).toBeDisabled();
   });
+
+  describe('former labels', () => {
+    const withFormer = [
+      { id: '1000', label: 'Complete Weakness Hierarchy (1000)', formerLabels: ['Natural Hierarchy', 'Research Concepts'] },
+      { id: '699', label: 'Software Development (699)' },
+    ];
+
+    async function typeInto(text: string) {
+      render(<Picker label="View" options={withFormer} value={null} onChange={() => {}} />);
+      await userEvent.type(screen.getByRole('combobox', { name: 'View' }), text);
+    }
+
+    it('lists an option found by a former label, with the newest matching one', async () => {
+      await typeInto('research');
+      const listed = screen.getAllByRole('option');
+      expect(listed).toHaveLength(1);
+      expect(listed[0]).toHaveTextContent('formerly: Research Concepts');
+      expect(listed[0]).toHaveAccessibleName('Complete Weakness Hierarchy (1000), formerly Research Concepts');
+    });
+
+    it('shows the last former label when several match', async () => {
+      render(
+        <Picker label="View" options={[{ id: '1000', label: 'Hierarchy', formerLabels: ['Research Basics', 'Research Concepts'] }]} value={null} onChange={() => {}} />,
+      );
+      await userEvent.type(screen.getByRole('combobox', { name: 'View' }), 'research');
+      expect(screen.getByRole('option')).toHaveTextContent('formerly: Research Concepts');
+    });
+
+    it('shows no former label when the option matched by its own label', async () => {
+      await typeInto('hierarchy');
+      const listed = screen.getAllByRole('option');
+      expect(listed).toHaveLength(1);
+      expect(listed[0]).toHaveTextContent(/^Complete Weakness Hierarchy \(1000\)$/);
+      expect(listed[0]).toHaveAccessibleName('Complete Weakness Hierarchy (1000)');
+    });
+
+    it('says deprecated after the former label', async () => {
+      render(
+        <Picker label="Group" options={[{ id: '320', label: 'Key Management Errors', deprecated: true, formerLabels: ['Old Keys'] }]} value={null} onChange={() => {}} />,
+      );
+      await userEvent.type(screen.getByRole('combobox', { name: 'Group' }), 'old');
+      expect(screen.getByRole('option')).toHaveAccessibleName('Key Management Errors, formerly Old Keys, deprecated');
+    });
+
+    it('says no matches when nothing matches', async () => {
+      await typeInto('nothing');
+      expect(screen.queryByRole('option')).not.toBeInTheDocument();
+      expect(screen.getByText('No matches')).toBeInTheDocument();
+    });
+  });
 });

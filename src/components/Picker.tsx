@@ -5,6 +5,8 @@ export interface PickerOption {
   id: string;
   label: string;
   deprecated?: boolean;
+  /** Other names the option is found by, oldest first. */
+  formerLabels?: string[];
 }
 
 interface PickerProps {
@@ -35,9 +37,14 @@ export function Picker({ label, options, value, onChange, placeholder, disabled 
 
   const shown = useMemo(() => {
     const needle = (query ?? '').trim().toLowerCase();
-    return needle === ''
-      ? options
-      : options.filter((option) => option.label.toLowerCase().includes(needle) || option.id.toLowerCase().includes(needle));
+    return options.flatMap((option): { option: PickerOption; former?: string }[] => {
+      if (needle === '' || option.label.toLowerCase().includes(needle) || option.id.toLowerCase().includes(needle)) {
+        return [{ option }];
+      }
+      // Only a former label matched; the newest of those is shown.
+      const former = option.formerLabels?.filter((name) => name.toLowerCase().includes(needle)).pop();
+      return former === undefined ? [] : [{ option, former }];
+    });
   }, [options, query]);
   const current = options.find((option) => option.id === value);
   const optionId = (index: number) => `${listId}-option-${index}`;
@@ -49,7 +56,7 @@ export function Picker({ label, options, value, onChange, placeholder, disabled 
   }
 
   function choose(index: number) {
-    onChange(shown[index].id);
+    onChange(shown[index].option.id);
     close();
   }
 
@@ -121,14 +128,14 @@ export function Picker({ label, options, value, onChange, placeholder, disabled 
           {shown.length === 0 ? (
             <li className="picker__empty">No matches</li>
           ) : (
-            shown.map((option, index) => (
+            shown.map(({ option, former }, index) => (
               <li
                 key={option.id}
                 id={optionId(index)}
                 role="option"
                 data-id={option.id}
                 aria-selected={index === active}
-                aria-label={option.deprecated ? `${option.label}, deprecated` : option.label}
+                aria-label={`${option.label}${former === undefined ? '' : `, formerly ${former}`}${option.deprecated ? ', deprecated' : ''}`}
                 className={[
                   'picker__option',
                   index === active && 'picker__option--active',
@@ -142,7 +149,10 @@ export function Picker({ label, options, value, onChange, placeholder, disabled 
                 }}
               >
                 {option.deprecated && <Glyph abstraction="Category" size={12} deprecated />}
-                <span className="picker__option-label">{option.label}</span>
+                <span className="picker__option-text">
+                  <span className="picker__option-label">{option.label}</span>
+                  {former !== undefined && <span className="picker__option-via">formerly: {former}</span>}
+                </span>
               </li>
             ))
           )}
