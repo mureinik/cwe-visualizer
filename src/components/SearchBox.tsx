@@ -12,6 +12,10 @@ interface SearchBoxProps {
 
 const MAX_RESULTS = 20;
 
+function viaLabel(kind: 'term' | 'former'): string {
+  return kind === 'term' ? 'also called' : 'formerly';
+}
+
 export function SearchBox({ graph, onSelect, matches = null }: SearchBoxProps) {
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(-1);
@@ -99,9 +103,7 @@ export function SearchBox({ graph, onSelect, matches = null }: SearchBoxProps) {
                 id={optionId(index)}
                 role="option"
                 aria-selected={index === active}
-                aria-label={`CWE-${node.id}: ${node.name}${
-                  via ? (via.kind === 'term' ? `, also called ${via.name}` : `, formerly ${via.name}`) : ''
-                }`}
+                aria-label={`CWE-${node.id}: ${node.name}${via ? `, ${viaLabel(via.kind)} ${via.name}` : ''}`}
                 className={`search-result${index === active ? ' search-result--active' : ''}`}
                 onMouseDown={(e) => {
                   // Select before the input can blur and close the list.
@@ -115,7 +117,7 @@ export function SearchBox({ graph, onSelect, matches = null }: SearchBoxProps) {
                   <span className="search-result__name">{node.name}</span>
                   {via && (
                     <span className="search-result__via">
-                      {via.kind === 'term' ? 'also called' : 'formerly'}: {via.name}
+                      {viaLabel(via.kind)}: {via.name}
                     </span>
                   )}
                 </span>

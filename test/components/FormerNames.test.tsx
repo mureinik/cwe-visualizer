@@ -24,6 +24,11 @@ describe('FormerNames', () => {
     expect(items[1]).toHaveTextContent('until 2008-04-11');
   });
 
+  it('separates the name from its date in the text', () => {
+    const { container } = render(<FormerNames names={names} />);
+    expect(container.querySelectorAll('li')[1].textContent).toBe('SQL Injection until 2008-04-11');
+  });
+
   it("reverses MITRE's order on a tie", () => {
     const tied = [
       { name: 'First', date: '2010-06-21' },

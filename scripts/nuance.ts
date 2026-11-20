@@ -1,7 +1,8 @@
 // Converts the inner XML of one of MITRE's structured-text elements (a
 // weakness's Technical_Nuance, an Alternate_Term's Description) into the
-// blocks the detail panel renders. Strict on purpose: markup it doesn't know fails the
-// build, so a MITRE format change is noticed instead of silently mangled.
+// blocks the detail panel renders. Strict on purpose: markup it doesn't know
+// fails the build, so a MITRE format change is noticed instead of silently
+// mangled.
 
 import { XMLParser } from 'fast-xml-parser';
 import type { NuanceBlock, NuanceLine, NuanceRun } from '../src/lib/cwe-data.ts';

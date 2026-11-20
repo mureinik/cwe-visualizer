@@ -105,6 +105,9 @@ describe('searchNodes with other names', () => {
       '256': node('256', 'Plaintext Storage of a Password', 'Stable', {
         previousNames: [{ name: 'Plaintext Storage of a Password', date: '2018-03-27' }],
       }),
+      '1004': node('1004', 'Improper Neutralization Example', 'Stable', {
+        alternateTerms: [{ term: 'Neutralization Bypass' }],
+      }),
       '1001': node('1001', 'Failure-Prone Example'),
       '1002': node('1002', 'Unrelated Name', 'Stable', {
         previousNames: [
@@ -163,6 +166,15 @@ describe('searchNodes with other names', () => {
 
   it('reports nothing when the name itself matched', () => {
     expect(searchNodes(otherGraph, 'plaintext')[0].via).toBeUndefined();
+  });
+
+  it('reports nothing when a former name equals the name that matched', () => {
+    expect(searchNodes(otherGraph, 'storage')[0]).toEqual({ node: otherGraph.nodes['256'] });
+  });
+
+  it('reports nothing when the name contains the query and a term only starts with it', () => {
+    const hit = searchNodes(otherGraph, 'neutralization').find((h) => h.node.id === '1004');
+    expect(hit?.via).toBeUndefined();
   });
 
   it('finds no term match outside the filter', () => {

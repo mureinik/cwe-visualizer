@@ -14,7 +14,7 @@ export function FormerNames({ names }: { names: CwePreviousName[] }) {
       <ul className="former-names__list">
         {newestFirst(names).map((entry, i) => (
           <li key={i}>
-            {entry.name}
+            <span className="former-names__name">{entry.name}</span>{' '}
             <span className="former-names__until">until {entry.date}</span>
           </li>
         ))}

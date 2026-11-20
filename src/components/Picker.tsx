@@ -135,7 +135,9 @@ export function Picker({ label, options, value, onChange, placeholder, disabled 
                 role="option"
                 data-id={option.id}
                 aria-selected={index === active}
-                aria-label={`${option.label}${former === undefined ? '' : `, formerly ${former}`}${option.deprecated ? ', deprecated' : ''}`}
+                aria-label={[option.label, former !== undefined && `formerly ${former}`, option.deprecated && 'deprecated']
+                  .filter(Boolean)
+                  .join(', ')}
                 className={[
                   'picker__option',
                   index === active && 'picker__option--active',

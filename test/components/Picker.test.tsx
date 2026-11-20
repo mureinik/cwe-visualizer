@@ -164,12 +164,16 @@ describe('Picker', () => {
       expect(listed[0]).toHaveAccessibleName('Complete Weakness Hierarchy (1000)');
     });
 
-    it('says deprecated after the former label', async () => {
-      render(
-        <Picker label="Group" options={[{ id: '320', label: 'Key Management Errors', deprecated: true, formerLabels: ['Old Keys'] }]} value={null} onChange={() => {}} />,
-      );
-      await userEvent.type(screen.getByRole('combobox', { name: 'Group' }), 'old');
-      expect(screen.getByRole('option')).toHaveAccessibleName('Key Management Errors, formerly Old Keys, deprecated');
+    // FilterPanel passes formerLabels only for views, and retired views are
+    // excluded, so no option is both deprecated and has a former label today.
+    describe('a deprecated option with a former label', { tags: ['theoretical'] }, () => {
+      it('says deprecated after the former label', async () => {
+        render(
+          <Picker label="Group" options={[{ id: '320', label: 'Key Management Errors', deprecated: true, formerLabels: ['Old Keys'] }]} value={null} onChange={() => {}} />,
+        );
+        await userEvent.type(screen.getByRole('combobox', { name: 'Group' }), 'old');
+        expect(screen.getByRole('option')).toHaveAccessibleName('Key Management Errors, formerly Old Keys, deprecated');
+      });
     });
 
     it('says no matches when nothing matches', async () => {

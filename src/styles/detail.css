@@ -159,7 +159,7 @@
   margin: 0 0 0 var(--space-3);
 }
 
-.alternate-terms__list dt:not(:first-child) {
+.alternate-terms__list > div + div {
   margin-top: var(--space-2);
 }
 

@@ -90,7 +90,10 @@ function score(node: CweNode, other: Lowered | undefined, query: string): Search
     let formerName = '';
     node.previousNames?.forEach((p, i) => {
       const { lower, date } = other.formers[i];
-      const r = lower.startsWith(query) ? 8 : lower.includes(query) ? 9 : Number.POSITIVE_INFINITY;
+      if (!lower.includes(query)) {
+        return;
+      }
+      const r = lower.startsWith(query) ? 8 : 9;
       if (r < formerRank || (r === formerRank && date >= formerDate)) {
         formerRank = r;
         formerDate = date;
