@@ -38,7 +38,7 @@ Measured on the CWE 5.0 archive (`cwec_v5.0.xml`) and schema
 - 222 `Alternate_Term` elements on 129 weaknesses. No category or view has
   any.
 - Each has a required `Term` (`xs:string`), optional `Role` elements
-  (#361's, not read here), and an optional `Description` of type
+  ([#361](https://github.com/mureinik/cwe-visualizer/issues/361)'s, not read here), and an optional `Description` of type
   `StructuredTextType`, the same type as `Technical_Nuance`.
 - 111 terms have a description, 22 to 664 characters long. All are a
   plain sentence except CWE-191's "Integer underflow", which is two
@@ -93,7 +93,7 @@ Scripting") or part of the weakness's name ("(SoC)", "Amplification").
 
 ## Non-goals
 
-- Term roles (#361).
+- Term roles ([#361](https://github.com/mureinik/cwe-visualizer/issues/361)).
 - Searching dimension values.
 - Former names of categories (there are none) or of views the picker
   doesn't offer.
@@ -149,12 +149,12 @@ Scripting") or part of the weakness's name ("(SoC)", "Amplification").
 
 Scope and display were settled in the same conversation:
 
-- **Former names in scope:** chosen, one design for #345 and #358, as
+- **Former names in scope:** chosen, one design for [#345](https://github.com/mureinik/cwe-visualizer/issues/345) and [#358](https://github.com/mureinik/cwe-visualizer/issues/358), as
   both are other names for the same entry. The maintainer reserved the
-  right to split #358 out if it turned complicated; it didn't.
+  right to split [#358](https://github.com/mureinik/cwe-visualizer/issues/358) out if it turned complicated; it didn't.
 - **Ranking:** chosen, an alternate term equal to the whole query ranks
   just below a name prefix match. Rejected: every name match above every
-  term match, as #345 first said, which lists CWE-85 and 87 before 79 for
+  term match, as [#345](https://github.com/mureinik/cwe-visualizer/issues/345) first said, which lists CWE-85 and 87 before 79 for
   "xss".
 - **Detail panel:** chosen, both lists, each in its own closed disclosure.
   Rejected: alternate terms only, with former names in search alone.
@@ -217,13 +217,12 @@ The build fails, naming the CWE or view, on any of these:
 - more than one `Alternate_Terms` element, or an `Alternate_Terms` with no
   `Alternate_Term`.
 
-None of these happen in 5.0, nor in 4.20 and 4.21, the 4.x versions the
-`v1` and `v1.1` branches pin. 4.21 has 222 alternate terms (111 with a
-description, whose only markup is two `xhtml:p`, the same as 5.0) and 774
-weakness and 17 view former names, all with valid dates and non-empty
-text; 4.20 has 189 terms and is otherwise alike. The schema forbids
-the missing `Term` and `Date`; the others are guards, for consistency
-with the build's other strict checks.
+None of these happen in 5.0 or in 4.21, the newest 4.x (pinned by
+`v1.1`). 4.21 has 222 alternate terms (111 with a description, whose
+only markup is two `xhtml:p`, the same as 5.0) and 774 weakness and 17
+view former names, all with valid dates and non-empty text. The schema
+forbids the missing `Term` and `Date`; the others are guards, for
+consistency with the build's other strict checks.
 
 The structured-text converter in `scripts/nuance.ts` is generalised to
 take the element it is converting, so its error messages say
