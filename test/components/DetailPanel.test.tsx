@@ -445,3 +445,56 @@ describe('DetailPanel with a relation to a CWE outside the corpus', { tags: ['th
     expect(chip.querySelector('.relation-chip__name')).toBeNull();
   });
 });
+
+describe('DetailPanel alternate terms and former names', () => {
+  const para = (text: string) => ({ kind: 'paragraph' as const, lines: [[{ text }]] });
+  const withNames = buildGraph({
+    ...data,
+    nodes: {
+      ...data.nodes,
+      '79': {
+        ...data.nodes['79'],
+        alternateTerms: [{ term: 'XSS', description: [para('An abbreviation.')] }],
+        previousNames: [{ name: 'XSS (old)', date: '2008-04-11' }],
+        dimensions: [{ type: 'Code-Type', value: 'Code' }],
+      },
+      '20': {
+        ...data.nodes['20'],
+        alternateTerms: [{ term: 'Input checking' }],
+        previousNames: [{ name: 'Input Validation', date: '2010-06-21' }],
+      },
+    },
+  });
+
+  it('orders description, alternate terms, dimensions, nuance, former names, link', () => {
+    render(<DetailPanel graph={withNames} selectedId="79" onSelect={() => {}} />);
+    const parts = [
+      screen.getByText('XSS description'),
+      screen.getByText('Alternate terms (1)'),
+      screen.getByText('Dimensions'),
+      screen.getByText('Technical nuance'),
+      screen.getByText('Former names (1)'),
+      screen.getByRole('link', { name: 'View on cwe.mitre.org' }),
+    ];
+    for (let i = 0; i < parts.length - 1; i++) {
+      expect(parts[i].compareDocumentPosition(parts[i + 1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+
+  it('shows neither disclosure for a CWE without the fields', () => {
+    render(<DetailPanel graph={withNames} selectedId="74" onSelect={() => {}} />);
+    expect(screen.queryByText(/^Alternate terms/)).toBeNull();
+    expect(screen.queryByText(/^Former names/)).toBeNull();
+  });
+
+  it('closes both again when another CWE is selected', async () => {
+    const { rerender } = render(<DetailPanel graph={withNames} selectedId="79" onSelect={() => {}} />);
+    await userEvent.click(screen.getByText(/^Alternate terms/));
+    await userEvent.click(screen.getByText(/^Former names/));
+    expect(screen.getByText(/^Alternate terms/).closest('details')).toHaveAttribute('open');
+    expect(screen.getByText(/^Former names/).closest('details')).toHaveAttribute('open');
+    rerender(<DetailPanel graph={withNames} selectedId="20" onSelect={() => {}} />);
+    expect(screen.getByText(/^Alternate terms/).closest('details')).not.toHaveAttribute('open');
+    expect(screen.getByText(/^Former names/).closest('details')).not.toHaveAttribute('open');
+  });
+});

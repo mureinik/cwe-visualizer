@@ -132,6 +132,52 @@
   overflow-wrap: anywhere;
 }
 
+.alternate-terms,
+.former-names {
+  margin: 0 0 var(--space-3);
+  max-width: 60ch;
+}
+
+.alternate-terms__summary,
+.former-names__summary {
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.alternate-terms__list,
+.former-names__list {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-md);
+  overflow-wrap: anywhere;
+}
+
+.alternate-terms__list dt {
+  font-weight: 700;
+}
+
+.alternate-terms__list dd {
+  margin: 0 0 0 var(--space-3);
+}
+
+.alternate-terms__list dt:not(:first-child) {
+  margin-top: var(--space-2);
+}
+
+.former-names__list {
+  padding: 0;
+  list-style: none;
+}
+
+.former-names__list li + li {
+  margin-top: var(--space-2);
+}
+
+.former-names__until {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
 .relation-section {
   margin-top: var(--space-4);
 }

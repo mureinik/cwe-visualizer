@@ -13,26 +13,31 @@ function Lines({ lines }: { lines: NuanceLine[] }) {
   return lines.map((line, i) => <Line key={i} line={line} />);
 }
 
+/** Paragraphs and bullet lists, as MITRE writes them in a Technical_Nuance or an alternate term's description. */
+export function NuanceBlocks({ blocks }: { blocks: NuanceBlock[] }) {
+  return blocks.map((block, i) =>
+    block.kind === 'paragraph' ? (
+      <p key={i} className="technical-nuance__paragraph">
+        <Lines lines={block.lines} />
+      </p>
+    ) : (
+      <ul key={i} className="technical-nuance__list">
+        {block.items.map((item, j) => (
+          <li key={j}>
+            <Lines lines={item} />
+          </li>
+        ))}
+      </ul>
+    ),
+  );
+}
+
 /** MITRE's Technical_Nuance, behind a disclosure that starts closed. */
 export function TechnicalNuance({ blocks }: { blocks: NuanceBlock[] }) {
   return (
     <details className="technical-nuance">
       <summary className="technical-nuance__summary">Technical nuance</summary>
-      {blocks.map((block, i) =>
-        block.kind === 'paragraph' ? (
-          <p key={i} className="technical-nuance__paragraph">
-            <Lines lines={block.lines} />
-          </p>
-        ) : (
-          <ul key={i} className="technical-nuance__list">
-            {block.items.map((item, j) => (
-              <li key={j}>
-                <Lines lines={item} />
-              </li>
-            ))}
-          </ul>
-        ),
-      )}
+      <NuanceBlocks blocks={blocks} />
     </details>
   );
 }

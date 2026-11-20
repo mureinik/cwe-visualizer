@@ -6,6 +6,8 @@ import { RELATION_GROUPS, relationGroup, type RelationGroup } from '../lib/relat
 import { Glyph } from './Glyph';
 import { Dimensions } from './Dimensions';
 import { TechnicalNuance } from './TechnicalNuance';
+import { AlternateTerms } from './AlternateTerms';
+import { FormerNames } from './FormerNames';
 
 /** Relations to point out, for the graph's lateral "+N more" chip. */
 export interface RelationFlash {
@@ -223,8 +225,10 @@ export function DetailPanel({ graph, selectedId, onSelect, flash = null, matches
 
       {node.description && <p className="detail-panel__description">{node.description}</p>}
 
+      {node.alternateTerms && <AlternateTerms key={`alternate-terms-${node.id}`} terms={node.alternateTerms} />}
       {node.dimensions && <Dimensions key={`dimensions-${node.id}`} dimensions={node.dimensions} />}
       {node.technicalNuance && <TechnicalNuance key={node.id} blocks={node.technicalNuance} />}
+      {node.previousNames && <FormerNames key={`former-names-${node.id}`} names={node.previousNames} />}
 
       <a className="detail-panel__link" href={node.url} target="_blank" rel="noreferrer">
         View on cwe.mitre.org
