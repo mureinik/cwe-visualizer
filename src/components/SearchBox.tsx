@@ -28,7 +28,7 @@ export function SearchBox({ graph, onSelect, matches = null }: SearchBoxProps) {
   const optionId = (index: number) => `${listId}-option-${index}`;
 
   function choose(index: number) {
-    const node = results[index];
+    const node = results[index]?.node;
     if (!node) {
       return;
     }
@@ -93,7 +93,7 @@ export function SearchBox({ graph, onSelect, matches = null }: SearchBoxProps) {
               {matches === null ? 'No matches' : 'No matches within the filter'}
             </li>
           ) : (
-            results.map((node, index) => (
+            results.map(({ node }, index) => (
               <li
                 key={node.id}
                 id={optionId(index)}
