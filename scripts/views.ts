@@ -3,6 +3,7 @@
 // nuance.ts and phases.ts: a member it can't place fails the build, so a
 // MITRE format change is noticed.
 
+import { readPreviousNames } from './names.ts';
 import type { CweGroup, CweView } from '../src/lib/cwe-data.ts';
 
 /** A Has_Member as fast-xml-parser gives it. */
@@ -26,6 +27,7 @@ export interface RawView {
   /** The XPath of an implicit view; the other views list their members. */
   Filter?: string;
   Members?: { Has_Member?: RawHasMember | RawHasMember[] };
+  Content_History?: unknown;
 }
 
 /** The view the app shows by default: it constrains nothing, so it lists no members. */
@@ -73,6 +75,10 @@ export function readViews(
       continue;
     }
     const view: CweView = { id, name: raw['@_Name'] ?? '', groupIds: [], memberIds: [] };
+    const previousNames = readPreviousNames(raw.Content_History, `View ${id}`).map((p) => p.name);
+    if (previousNames.length > 0) {
+      view.previousNames = previousNames;
+    }
     result.push(view);
     if (implicit !== undefined) {
       view.memberIds = [...implicit];

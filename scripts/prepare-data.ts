@@ -9,6 +9,7 @@ import { orderPhases, readPhases } from './phases.ts';
 import type { RawIntroduction } from './phases.ts';
 import { evaluateImplicitViews } from './implicit-views.ts';
 import { readDimensions } from './dimensions.ts';
+import { readAlternateTerms, readPreviousNames } from './names.ts';
 import { readLanguages } from './languages.ts';
 import type { RawLanguage } from './languages.ts';
 import { readViews } from './views.ts';
@@ -32,6 +33,8 @@ interface RawWeakness {
   Dimensions?: unknown;
   // A stop node, so this is the element's inner XML as a string ('' when empty).
   Technical_Nuance?: string;
+  Alternate_Terms?: unknown;
+  Content_History?: unknown;
   Applicable_Platforms?: { Language?: RawLanguage | RawLanguage[] };
   Modes_Of_Introduction?: { Introduction?: RawIntroduction | RawIntroduction[] };
   Related_Weaknesses?: { Related_Weakness?: RawRelatedWeakness | RawRelatedWeakness[] };
@@ -71,7 +74,10 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
     attributeNamePrefix: '@_',
     // Dimension values such as 1e5 must stay text.
     parseTagValue: false,
-    stopNodes: ['Weakness_Catalog.Weaknesses.Weakness.Technical_Nuance'],
+    stopNodes: [
+      'Weakness_Catalog.Weaknesses.Weakness.Technical_Nuance',
+      'Weakness_Catalog.Weaknesses.Weakness.Alternate_Terms.Alternate_Term.Description',
+    ],
   });
   const doc = parser.parse(xmlText) as RawDocument;
   const catalog = doc.Weakness_Catalog;
@@ -111,6 +117,16 @@ export function parseCatalog(xmlText: string, lastModified: string | null): CweD
     const dimensions = readDimensions(w.Dimensions, `CWE-${id}`);
     if (dimensions.length > 0) {
       nodes[id].dimensions = dimensions;
+    }
+
+    const alternateTerms = readAlternateTerms(w.Alternate_Terms, `CWE-${id}`);
+    if (alternateTerms.length > 0) {
+      nodes[id].alternateTerms = alternateTerms;
+    }
+
+    const previousNames = readPreviousNames(w.Content_History, `CWE-${id}`);
+    if (previousNames.length > 0) {
+      nodes[id].previousNames = previousNames;
     }
 
     const phases = readPhases(toArray(w.Modes_Of_Introduction?.Introduction), id);

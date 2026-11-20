@@ -178,6 +178,51 @@ describe('parseCatalog', () => {
     expect('dimensions' in edges.find((e) => e.viewId === '1003')!).toBe(false);
   });
 
+  it('reads the alternate terms and former name of a weakness', () => {
+    expect(data.nodes['79'].alternateTerms).toEqual([
+      {
+        term: 'XSS',
+        description: [{ kind: 'paragraph', lines: [[{ text: 'A common abbreviation/acronym for Cross-Site Scripting.' }]] }],
+      },
+      {
+        term: 'CSS',
+        description: [
+          { kind: 'paragraph', lines: [[{ text: 'Formerly used for Cross-Site Scripting.' }]] },
+          { kind: 'paragraph', lines: [[{ text: 'Now ambiguous with Cascading Style Sheets.' }]] },
+        ],
+      },
+      { term: 'Cross-site Scripting' },
+    ]);
+    expect(data.nodes['79'].previousNames).toEqual([{ name: 'Cross-site Scripting (XSS)', date: '2008-04-11' }]);
+  });
+
+  it('lists former names oldest first', () => {
+    expect(data.nodes['89'].alternateTerms).toEqual([{ term: 'SQLi' }]);
+    expect(data.nodes['89'].previousNames).toEqual([
+      { name: 'SQL Injection Flaw', date: '2008-04-11' },
+      { name: 'Improper Neutralization in SQL', date: '2020-02-24' },
+    ]);
+  });
+
+  it('leaves out the keys of a weakness without terms or former names', () => {
+    expect(data.nodes['74']).not.toHaveProperty('alternateTerms');
+    expect(data.nodes['74']).not.toHaveProperty('previousNames');
+  });
+
+  it('gives a view its former names, and none the key', () => {
+    expect(data.views!.find((v) => v.id === '1000')!.previousNames).toEqual(['Natural Hierarchy']);
+    expect(data.views!.find((v) => v.id === '699')!.previousNames).toEqual(['Development Concepts']);
+    expect(data.views!.find((v) => v.id === '884')).not.toHaveProperty('previousNames');
+  });
+
+  it('fails naming the weakness when an Alternate_Term Description holds unknown markup', () => {
+    const xml = `<Weakness_Catalog xmlns:xhtml="http://www.w3.org/1999/xhtml" Version="4.15" Date="2024-11-19"><Weaknesses>
+      <Weakness ID="7" Name="A" Abstraction="Base" Status="Draft"><Description>d</Description>
+        <Alternate_Terms><Alternate_Term><Term>T</Term><Description><xhtml:table/></Description></Alternate_Term></Alternate_Terms>
+      </Weakness></Weaknesses></Weakness_Catalog>`;
+    expect(() => parseCatalog(xml, '"x"')).toThrow(/CWE-7.*Alternate_Term Description/);
+  });
+
   it('writes the data format', () => {
     expect(data.dataFormat).toBe(DATA_FORMAT);
   });
