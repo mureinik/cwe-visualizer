@@ -9,7 +9,13 @@ const node = (
   status = 'Stable',
   extra: Pick<CweNode, 'alternateTerms' | 'previousNames'> = {},
 ): CweNode => ({
-  id, name, abstraction: 'Base', status, description: '', url: '', ...extra,
+  id,
+  name,
+  abstraction: 'Base',
+  status,
+  description: '',
+  url: '',
+  ...extra,
 });
 
 const data: CweData = {

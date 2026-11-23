@@ -179,8 +179,8 @@ describe('readViews', () => {
     });
 
     it('names a grouping member that is not in the catalog', () => {
-      expect(() =>
-        readViews([view('699', [['100', '699']])], [grouping('100', [['12345', '699']])], WEAKNESSES),
+      expect(
+        () => readViews([view('699', [['100', '699']])], [grouping('100', [['12345', '699']])], WEAKNESSES),
       ).toThrow('Grouping 100 (view 699): member CWE-12345 is not in the catalog');
     });
 

@@ -15,11 +15,21 @@ const data: CweData = {
   meta: { cweVersion: '4.15', catalogDate: '2025-12-01', lastModified: '"v1"', generatedAt: '2026-01-01T00:00:00.000Z' },
   nodes: {
     '79': {
-      id: '79', name: 'Cross-site Scripting', abstraction: 'Base', status: 'Stable', description: '', url: '',
+      id: '79',
+      name: 'Cross-site Scripting',
+      abstraction: 'Base',
+      status: 'Stable',
+      description: '',
+      url: '',
       alternateTerms: [{ term: 'XSS' }],
     },
     '89': {
-      id: '89', name: 'SQL Injection', abstraction: 'Base', status: 'Stable', description: '', url: '',
+      id: '89',
+      name: 'SQL Injection',
+      abstraction: 'Base',
+      status: 'Stable',
+      description: '',
+      url: '',
       previousNames: [{ name: 'Improper Neutralization of SQL', date: '2020-01-01' }],
     },
   },

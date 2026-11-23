@@ -64,8 +64,8 @@ describe('evaluateImplicitViews', () => {
 
   it('fails on an offered view that is retired or no longer implicit', () => {
     const xml = catalog(weakness('1', true));
-    expect(() =>
-      evaluateImplicitViews(xml, [view('919', MOBILE, 'Implicit', 'Deprecated')], ids('1'), only('919')),
+    expect(
+      () => evaluateImplicitViews(xml, [view('919', MOBILE, 'Implicit', 'Deprecated')], ids('1'), only('919')),
     ).toThrow(/View 919: offered implicit view is Deprecated/);
     expect(() => evaluateImplicitViews(xml, [view('919', MOBILE, 'Graph')], ids('1'), only('919'))).toThrow(
       /View 919: offered implicit view is Graph/,
@@ -73,27 +73,27 @@ describe('evaluateImplicitViews', () => {
   });
 
   it('fails on a filter that does not evaluate', () => {
-    expect(() =>
-      evaluateImplicitViews(catalog(weakness('1')), [view('919', '/Weakness_Catalog[')], ids('1'), only('919')),
+    expect(
+      () => evaluateImplicitViews(catalog(weakness('1')), [view('919', '/Weakness_Catalog[')], ids('1'), only('919')),
     ).toThrow(/View 919: filter does not evaluate/);
   });
 
   it('fails on a filter that matches nothing', () => {
-    expect(() =>
-      evaluateImplicitViews(catalog(weakness('1')), [view('919', MOBILE)], ids('1'), only('919')),
+    expect(
+      () => evaluateImplicitViews(catalog(weakness('1')), [view('919', MOBILE)], ids('1'), only('919')),
     ).toThrow(/View 919: filter matches no weaknesses/);
   });
 
   it('fails on a match that is not a known weakness', () => {
     const filter = '/Weakness_Catalog/Categories/Category';
-    expect(() =>
-      evaluateImplicitViews(catalog(weakness('1')), [view('919', filter)], ids('1'), only('919')),
+    expect(
+      () => evaluateImplicitViews(catalog(weakness('1')), [view('919', filter)], ids('1'), only('919')),
     ).toThrow(/View 919: filter matches .* which is not a weakness/);
   });
 
   it('fails on a weakness the catalog does not list', () => {
-    expect(() =>
-      evaluateImplicitViews(catalog(weakness('1', true) + weakness('2', true)), [view('919', MOBILE)], ids('1'), only('919')),
+    expect(
+      () => evaluateImplicitViews(catalog(weakness('1', true) + weakness('2', true)), [view('919', MOBILE)], ids('1'), only('919')),
     ).toThrow(/View 919: filter matches .* which is not a weakness/);
   });
 });

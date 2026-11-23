@@ -85,8 +85,8 @@ export function elideSharedPrefix(names: string[]): string[] {
     return names;
   }
 
-  const elided = names.map((name) =>
-    name.startsWith(prefix) && name.length > prefix.length ? `…${name.slice(prefix.length)}` : name,
+  const elided = names.map(
+    (name) => name.startsWith(prefix) && name.length > prefix.length ? `…${name.slice(prefix.length)}` : name,
   );
   return elided.every((label) => label !== '…') ? elided : names;
 }

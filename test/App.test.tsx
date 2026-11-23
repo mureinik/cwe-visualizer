@@ -193,7 +193,13 @@ describe('App', () => {
 
   describe('filter parameters', () => {
     const node = (id: string, name: string, phases?: { name: string }[]) => ({
-      id, name, abstraction: 'Base', status: 'Draft', description: '', url: '', ...(phases && { phases }),
+      id,
+      name,
+      abstraction: 'Base',
+      status: 'Draft',
+      description: '',
+      url: '',
+      ...(phases && { phases }),
     });
     const filtered = {
       meta: sampleData.meta,
