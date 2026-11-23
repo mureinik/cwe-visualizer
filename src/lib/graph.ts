@@ -189,8 +189,20 @@ export function buildGraph(data: CweData, options?: BuildGraphOptions): Graph {
   const languageAgnosticIds = data.languageAgnosticIds ?? [];
 
   return {
-    meta: data.meta, nodes, childrenOf, parentsOf, relatedTo, roots, deprecatedRoots, all, views, groups, phases,
-    languages, languageAgnosticIds, relationDimensions: relationDimensionsMap,
+    meta: data.meta,
+    nodes,
+    childrenOf,
+    parentsOf,
+    relatedTo,
+    roots,
+    deprecatedRoots,
+    all,
+    views,
+    groups,
+    phases,
+    languages,
+    languageAgnosticIds,
+    relationDimensions: relationDimensionsMap,
   };
 }
 

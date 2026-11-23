@@ -774,8 +774,7 @@ describe('lines to parents and lateral arcs', () => {
         const [p0, q0] = [a[i], b[j]];
         const hit = (side(q0, q, p0) !== side(q0, q, p) && side(p0, p, q0) !== side(p0, p, q)) || gap(p, q0, q) < 3;
         return hit && Math.hypot(p.x - centre.x, p.y - centre.y) > 28;
-      }),
-    );
+      }));
 
   // Real views from CWE 5.0 whose arcs crossed a line to a parent, or passed
   // close enough to look as if they did (issue #290). 864×693 is the stage on

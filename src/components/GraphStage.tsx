@@ -264,8 +264,7 @@ export function GraphStage({
                     >
                       <path d={`M 0 0 L ${ARROW_SIZE} ${ARROW_SIZE / 2} L 0 ${ARROW_SIZE} z`} fill={`var(${line.token})`} />
                     </marker>
-                  )),
-                )}
+                  )))}
             </defs>
             {layout.edges.map((edge) => {
               const key = edgeKey(edge);

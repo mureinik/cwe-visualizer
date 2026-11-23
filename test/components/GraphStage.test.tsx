@@ -5,7 +5,12 @@ import { GraphStage } from '../../src/components/GraphStage';
 import { buildGraph, type CweData } from '../../src/lib/graph';
 
 const node = (id: string, name: string) => ({
-  id, name, abstraction: 'Base', status: 'Draft', description: '', url: '',
+  id,
+  name,
+  abstraction: 'Base',
+  status: 'Draft',
+  description: '',
+  url: '',
 });
 
 const data: CweData = {

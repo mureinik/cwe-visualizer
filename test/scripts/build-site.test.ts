@@ -36,8 +36,7 @@ function fakeFetch(zip: Buffer, status = 200) {
       status === 200
         ? { ok: true, status, arrayBuffer: () => Promise.resolve(zip.buffer.slice(zip.byteOffset, zip.byteOffset + zip.byteLength)) }
         : { ok: false, status },
-    ),
-  );
+    ));
 }
 
 // Writes the data/meta.json a real build of main would, when given a version.

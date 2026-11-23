@@ -84,20 +84,20 @@ describe('readLanguages', () => {
   });
 
   it('fails on an unknown language name', () => {
-    expect(() =>
-      readLanguages([{ id: '1', languages: [named('Kotlin')] }]),
+    expect(
+      () => readLanguages([{ id: '1', languages: [named('Kotlin')] }]),
     ).toThrow(/CWE-1: unknown language "Kotlin"/);
   });
 
   it('fails on an unknown class', () => {
-    expect(() =>
-      readLanguages([{ id: '1', languages: [classed('Functional')] }]),
+    expect(
+      () => readLanguages([{ id: '1', languages: [classed('Functional')] }]),
     ).toThrow(/CWE-1: unknown language class "Functional"/);
   });
 
   it('fails on a Language with neither Name nor Class', () => {
-    expect(() =>
-      readLanguages([{ id: '1', languages: [{ '@_Prevalence': 'Often' }] }]),
+    expect(
+      () => readLanguages([{ id: '1', languages: [{ '@_Prevalence': 'Often' }] }]),
     ).toThrow(/CWE-1: a Language has no Name or Class/);
   });
 

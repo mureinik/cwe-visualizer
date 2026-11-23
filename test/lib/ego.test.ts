@@ -3,7 +3,12 @@ import { buildGraph, type CweData } from '../../src/lib/graph';
 import { buildEgoGraph, edgeDimensions } from '../../src/lib/ego';
 
 const node = (id: string) => ({
-  id, name: `Name ${id}`, abstraction: 'Base', status: 'Draft', description: '', url: '',
+  id,
+  name: `Name ${id}`,
+  abstraction: 'Base',
+  status: 'Draft',
+  description: '',
+  url: '',
 });
 
 const data: CweData = {

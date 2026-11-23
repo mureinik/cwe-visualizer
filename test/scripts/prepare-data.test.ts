@@ -95,9 +95,7 @@ describe('parseCatalog', () => {
   });
 
   it('lists the included views, 1000 first and the rest by name', () => {
-    expect(data.views!.map((v) => v.id)).toEqual([
-      '1000', '678', '884', '709', '1040', '699', '1424', '919', '1435',
-    ]);
+    expect(data.views!.map((v) => v.id)).toEqual(['1000', '678', '884', '709', '1040', '699', '1424', '919', '1435']);
   });
 
   it('offers the implicit views with the members their filters match', () => {

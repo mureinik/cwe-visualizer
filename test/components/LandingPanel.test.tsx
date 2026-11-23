@@ -5,7 +5,12 @@ import { LandingPanel } from '../../src/components/LandingPanel';
 import { buildGraph, type CweData } from '../../src/lib/graph';
 
 const node = (id: string, name: string, abstraction: string, status = 'Draft') => ({
-  id, name, abstraction, status, description: '', url: '',
+  id,
+  name,
+  abstraction,
+  status,
+  description: '',
+  url: '',
 });
 
 const data: CweData = {

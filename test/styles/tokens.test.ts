@@ -14,9 +14,19 @@ const THEMES = [
 
 const TEXT_ON_BG = ['--text', '--text-secondary', '--text-muted'];
 const GRAPHICS = [
-  '--abs-pillar', '--abs-class', '--abs-base', '--abs-variant', '--abs-compound',
-  '--status-stable', '--status-draft', '--status-incomplete', '--status-deprecated',
-  '--rel-hierarchy', '--rel-peer', '--rel-sequence', '--rel-requires',
+  '--abs-pillar',
+  '--abs-class',
+  '--abs-base',
+  '--abs-variant',
+  '--abs-compound',
+  '--status-stable',
+  '--status-draft',
+  '--status-incomplete',
+  '--status-deprecated',
+  '--rel-hierarchy',
+  '--rel-peer',
+  '--rel-sequence',
+  '--rel-requires',
 ];
 
 describe.each(THEMES)('$name theme tokens', ({ selector }) => {

@@ -28,8 +28,7 @@ export function NuanceBlocks({ blocks }: { blocks: NuanceBlock[] }) {
           </li>
         ))}
       </ul>
-    ),
-  );
+    ));
 }
 
 /** MITRE's Technical_Nuance, behind a disclosure that starts closed. */

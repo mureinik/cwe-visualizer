@@ -114,8 +114,8 @@ export function readLanguages(
   const languages = [...members]
     .map(([name, ids]) => ({
       name,
-      classes: Object.keys(LANGUAGE_CLASSES).filter((cls) =>
-        LANGUAGE_CLASSES[cls].includes(name),
+      classes: Object.keys(LANGUAGE_CLASSES).filter(
+        (cls) => LANGUAGE_CLASSES[cls].includes(name),
       ),
       memberIds: [...ids].sort(numerically),
     }))

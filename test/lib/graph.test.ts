@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildGraph, ancestorsOf, compareIds, countDescendants, isDeprecated, relationDimensions, type CweData,
+  buildGraph,
+  ancestorsOf,
+  compareIds,
+  countDescendants,
+  isDeprecated,
+  relationDimensions,
+  type CweData,
 } from '../../src/lib/graph';
 
 const sampleData: CweData = {
@@ -480,7 +486,11 @@ describe('buildGraph catalog fields', () => {
 
 describe('relation dimensions', () => {
   const node = (id: string) => ({
-    id, name: `CWE ${id}`, abstraction: 'Base', status: 'Stable', description: `d${id}`,
+    id,
+    name: `CWE ${id}`,
+    abstraction: 'Base',
+    status: 'Stable',
+    description: `d${id}`,
     url: `https://cwe.mitre.org/data/definitions/${id}.html`,
   });
   const exposure = [
