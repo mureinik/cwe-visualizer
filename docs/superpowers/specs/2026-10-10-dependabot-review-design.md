@@ -14,8 +14,8 @@ human- and agent-authored PRs are still reviewed by hand.
 
 ## Requirements
 
-- When the merge candidate, the Dependabot PR that is the riskiest to
-  rebase, is behind `main`, ask Dependabot to rebase it by commenting
+- When the merge candidate, a security fix or else the Dependabot PR that
+  is the riskiest to rebase, is behind `main`, ask Dependabot to rebase it by commenting
   `@dependabot rebase`. (Originally every PR that was behind; see the
   [merge candidate design](2026-11-25-dependabot-merge-candidate-design.md),
   [#392](https://github.com/mureinik/cwe-visualizer/issues/392).)
@@ -47,9 +47,9 @@ Two workflows, both new files, plus one job added to `ci.yml`:
 - **No LLM.** A shell step; the job's `GITHUB_TOKEN` (`contents: read`,
   `pull-requests: read`) does every lookup:
   1. List open PRs authored by `dependabot[bot]` (up to 100), and choose
-     the merge candidate: the one that changes the most lines in
-     `package.json` (added, then removed), then in `package-lock.json`
-     (likewise), the lowest number breaking ties.
+     the merge candidate: a security fix first, then the one that changes
+     the most lines in `package.json` (added, then removed), then in
+     `package-lock.json` (likewise), the lowest number breaking ties.
   2. For that PR alone, read `behind_by` from the compare API
      (`main...<head sha>`), failing the run if it isn't a number.
   3. If `behind_by > 0`, comment `@dependabot rebase`, unless the last

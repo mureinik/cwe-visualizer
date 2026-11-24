@@ -775,18 +775,21 @@ merge candidate, if it fell behind. Branch protection's strict status
 checks won't let a PR that is behind merge, and Dependabot rebases on its
 own only when there is a conflict. Only one PR can merge at a time, though,
 and the merge leaves the others behind again, so rebasing them all would be
-wasted. The candidate is the riskiest PR to rebase, so that it merges as
-soon as possible. It ranks first by these, each only breaking ties in the
-ones before it:
+wasted. The candidate is a security fix if there is one, or else the
+riskiest PR to rebase, so that it merges as soon as possible. It ranks
+first by these, each only breaking ties in the ones before it:
 
-1. most lines added to `package.json`
-2. most lines removed from `package.json`
-3. most lines added to `package-lock.json`
-4. most lines removed from `package-lock.json`
-5. lowest PR number
+1. security fixes first
+2. most lines added to `package.json`
+3. most lines removed from `package.json`
+4. most lines added to `package-lock.json`
+5. most lines removed from `package-lock.json`
+6. lowest PR number
 
-A file the PR doesn't touch counts as 0, so GitHub Actions updates come
-last. A candidate that is already up to date stays the candidate, and so
+A security fix is a PR of the `security-updates` group in
+`.github/dependabot.yml`, recognised by its branch name, so each ecosystem's
+open security fixes share one PR. A file the PR doesn't touch counts as 0,
+so GitHub Actions updates come last, security fixes aside. A candidate that is already up to date stays the candidate, and so
 does one that can't be merged (failing CI, say) until it is fixed or
 closed. To rebase another PR meanwhile, comment `@dependabot rebase` on it
 by hand. The workflow asks again if a request is still unanswered when it

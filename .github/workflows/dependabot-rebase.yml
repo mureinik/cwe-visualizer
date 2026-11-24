@@ -4,8 +4,9 @@ name: Dependabot rebase
 # behind main still can't merge (branch protection's strict status checks
 # require it be up to date). Only one PR can merge at a time, and the merge
 # leaves the others behind again, so ask Dependabot to rebase just one, the
-# merge candidate: the riskiest to rebase, so that it merges first. See
-# "Dependabot reviewer" in CONTRIBUTING.md.
+# merge candidate: a security fix if there is one, or else the riskiest to
+# rebase, so that it merges first. See "Dependabot reviewer" in
+# CONTRIBUTING.md.
 on:
   push:
     branches: [main]
@@ -46,14 +47,18 @@ jobs:
             echo "::error::Secret DEPENDABOT_REBASE_TOKEN is not set (see \"Dependabot reviewer\" in CONTRIBUTING.md)."
             exit 1
           fi
-          # The merge candidate changes the most lines in package.json (added,
-          # then removed), then in package-lock.json (likewise); the lowest
-          # number breaks a tie. Being behind doesn't count: when the candidate
-          # needs no rebase, the next PR doesn't get one in its place.
+          # Security fixes come first, known by their branch, which Dependabot
+          # names after their group in dependabot.yml plus a digest. Then comes
+          # the PR that changes the most lines in package.json (added, then
+          # removed), then in package-lock.json (likewise); the lowest number
+          # breaks a tie. Being behind doesn't count: when the candidate needs
+          # no rebase, the next PR doesn't get one in its place.
           candidate=$(gh pr list --author 'app/dependabot' --state open --base main --limit 100 \
-            --json number,headRefOid,files --jq '
+            --json number,headRefName,headRefOid,files --jq '
               def lines(name; kind): [.files[] | select(.path == name) | kind] | add // 0;
+              def security: .headRefName | test("^dependabot/[^/]+/security-updates-[0-9a-f]{10}$");
               sort_by([
+                (security | not),
                 -lines("package.json"; .additions), -lines("package.json"; .deletions),
                 -lines("package-lock.json"; .additions), -lines("package-lock.json"; .deletions),
                 .number

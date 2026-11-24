@@ -10,7 +10,8 @@ the rebase requester of the
 `main`, so that each is always ready to merge. Only one can merge, though:
 the merge leaves the others behind again, and their rebases and CI runs were
 wasted. Keep one PR ready instead, the riskiest to rebase, so that it merges
-as soon as possible.
+as soon as possible. Security fixes go ahead of everything else: they can be
+tiny, and would otherwise wait behind routine updates.
 
 ## Goals
 
@@ -19,13 +20,14 @@ as soon as possible.
   alone.
 - The candidate ranks first by these keys, each only breaking ties in the ones
   before it:
-  1. lines added to `package.json`, most first
-  2. lines removed from `package.json`, most first
-  3. lines added to `package-lock.json`, most first
-  4. lines removed from `package-lock.json`, most first
-  5. PR number, lowest first
+  1. security fixes first
+  2. lines added to `package.json`, most first
+  3. lines removed from `package.json`, most first
+  4. lines added to `package-lock.json`, most first
+  5. lines removed from `package-lock.json`, most first
+  6. PR number, lowest first
 - A file the PR doesn't touch counts as 0 added and 0 removed, so GitHub
-  Actions updates rank after every npm one.
+  Actions updates rank after every npm one, security fixes aside.
 - Only the root `package.json` and `package-lock.json` count, the only ones
   in the repo.
 - Rank before looking at whether a PR is behind. An up-to-date candidate
@@ -46,6 +48,9 @@ as soon as possible.
 ## Constraints
 
 - The token handling, environment, permissions and triggers don't change.
+- Each ecosystem's open security fixes share one PR, so one bad update
+  holds up the others. Accepted: merges are one at a time anyway, and
+  `backport-security.yml` handles several advisories per merge.
 - No PR may be chosen on missing data: a failed lookup fails the run.
 
 ## Approaches
@@ -60,6 +65,18 @@ What happens when the candidate can't be merged:
   the workflow would have to read check results, and would need another rule
   to rebase the skipped PR once `main` fixes it.
 
+How to recognise a security fix:
+
+- **A. By a `security-updates` group in `dependabot.yml` (picked by the
+  owner).** Dependabot names a group's branch after the group, which is
+  documented, and reading it needs no new permission.
+- **B. By GitHub's link from an alert to its PR.** It would keep the PRs
+  separate, but needs access to alerts: `vulnerability-alerts: read`, which
+  the pinned actionlint 1.7.12 rejects, or a wider owner token.
+- The PR's labels are the same as a routine update's, and the note about
+  security fixes in its body disappears as Dependabot edits it, so neither
+  works.
+
 How to choose the candidate (my call): a `sort_by` in the `--jq` filter of
 the `gh pr list` call that already lists the PRs, with `files` added to its
 fields. It needs no extra request or permission, and the line counts are
@@ -68,6 +85,13 @@ separate script in `.github/scripts/` would be more code for a sort, and
 fetching each PR's files one by one would be more requests.
 
 ## Design
+
+`dependabot.yml` gets a `security-updates` group (`applies-to:
+security-updates`, pattern `*`) in both ecosystems. A PR is a security fix if
+its branch matches `^dependabot/[^/]+/security-updates-[0-9a-f]{10}$`, the
+group's name and the digest Dependabot appends. If that doesn't hold for a
+PR, it ranks by its size, like a routine update. The next security PR is the
+first chance to confirm the branch name.
 
 `gh pr list` prints at most one PR, the first by the keys above. With none,
 the run says so and ends. Otherwise the existing steps (compare with `main`,

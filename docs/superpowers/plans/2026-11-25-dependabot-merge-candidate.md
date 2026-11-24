@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Ranking, each key only breaking ties in the ones before it: `package.json` additions (desc), `package.json` deletions (desc), `package-lock.json` additions (desc), `package-lock.json` deletions (desc), PR number (asc). An untouched file counts as 0.
+- Ranking, each key only breaking ties in the ones before it: security fixes first, `package.json` additions (desc), `package.json` deletions (desc), `package-lock.json` additions (desc), `package-lock.json` deletions (desc), PR number (asc). An untouched file counts as 0.
 - Rank before checking whether a PR is behind; never fall through to the next PR.
 - A failed lookup fails the run. Token handling, environment, permissions and triggers don't change.
 - Rebase command text is exactly `@dependabot rebase`.
@@ -62,3 +62,19 @@
 - [ ] **Step 3: The original design.** Update what it says about rebasing every PR, linking the new design.
 - [ ] **Step 4: Verify.** `npm run lint:md && npm run lint && npx tsc --noEmit && npm test`, and `grep -rn 'rebase'` over the changed files finds no claim that every PR is rebased.
 - [ ] **Step 5: Commit** as `docs: describe the Dependabot merge candidate`.
+
+### Task 3: Rank security fixes first
+
+Added after Tasks 1 and 2, when the owner asked for it.
+
+**Files:**
+
+- Modify: `.github/dependabot.yml` (a `security-updates` group in both ecosystems)
+- Modify: `.github/workflows/dependabot-rebase.yml` (the first sort key, on `headRefName`)
+- Modify: `CONTRIBUTING.md` and both designs
+
+- [ ] **Step 1: Add scratch checks.** A security PR beats an npm PR with more lines, including when it only changes Actions; the other keys break ties between two security PRs; an up-to-date or pending security candidate doesn't fall through; a package called `security-updates`, another group, and a longer name ending in `security-updates` aren't security fixes.
+- [ ] **Step 2: Run them.** Expected: the ones where a security PR has to win fail.
+- [ ] **Step 3: Implement**, matching `^dependabot/[^/]+/security-updates-[0-9a-f]{10}$`.
+- [ ] **Step 4: Verify.** All scratch checks pass; `dependabot.yml` validates against its JSON schema; actionlint, zizmor, `npm run lint`, `npm run lint:md`, `npx tsc --noEmit` and `npm test` are clean.
+- [ ] **Step 5: Commit** as `ci: rank Dependabot security fixes first`.
