@@ -2,8 +2,10 @@ name: Dependabot rebase
 
 # Dependabot rebases its own PRs only when they conflict. A PR that is merely
 # behind main still can't merge (branch protection's strict status checks
-# require it be up to date), so ask Dependabot to rebase every one that fell
-# behind. See "Dependabot reviewer" in CONTRIBUTING.md.
+# require it be up to date). Only one PR can merge at a time, and the merge
+# leaves the others behind again, so ask Dependabot to rebase just one, the
+# merge candidate: the riskiest to rebase, so that it merges first. See
+# "Dependabot reviewer" in CONTRIBUTING.md.
 on:
   push:
     branches: [main]
@@ -11,7 +13,7 @@ on:
 
 permissions: {}
 
-# A newer push supersedes a sweep in progress; the next sweep sees everything.
+# A newer push supersedes a run in progress; the next run sees everything.
 concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: true
@@ -29,7 +31,7 @@ jobs:
       contents: read # compare and commit lookups
       pull-requests: read # gh pr list
     steps:
-      - name: Ask Dependabot to rebase PRs that are behind main
+      - name: Ask Dependabot to rebase the merge candidate if it is behind main
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -44,29 +46,42 @@ jobs:
             echo "::error::Secret DEPENDABOT_REBASE_TOKEN is not set (see \"Dependabot reviewer\" in CONTRIBUTING.md)."
             exit 1
           fi
-          gh pr list --author 'app/dependabot' --state open --base main --limit 100 \
-            --json number,headRefOid --jq '.[] | "\(.number) \(.headRefOid)"' |
-          while read -r pr sha; do
-            behind=$(gh api "repos/$GH_REPO/compare/main...$sha" --jq .behind_by)
-            [[ $behind =~ ^[0-9]+$ ]] || { echo "::error::unexpected behind_by '$behind' for #$pr"; exit 1; }
-            if [ "$behind" -eq 0 ]; then
-              echo "#$pr is up to date with main."
-              continue
-            fi
-            # Don't repeat a request Dependabot hasn't acted on yet: skip if
-            # the last one, ours or a manual one, is newer than the PR's head
-            # commit. Ask again once it is a day old, in case Dependabot
-            # dropped it.
-            day_ago=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
-            head_date=$(gh api "repos/$GH_REPO/commits/$sha" --jq .commit.committer.date)
-            last_request=$(gh api --paginate "repos/$GH_REPO/issues/$pr/comments" \
-              --jq '.[] | select(.body | ascii_downcase | startswith("@dependabot rebase")) | .created_at' |
-              tail -n 1)
-            if [ -n "$last_request" ] && [[ "$last_request" > "$head_date" ]] &&
-              [[ "$last_request" > "$day_ago" ]]; then
-              echo "#$pr is $behind behind main; rebase already requested at $last_request."
-              continue
-            fi
-            echo "#$pr is $behind behind main; requesting a rebase."
-            GH_TOKEN="$REBASE_TOKEN" gh pr comment "$pr" --body '@dependabot rebase'
-          done
+          # The merge candidate changes the most lines in package.json (added,
+          # then removed), then in package-lock.json (likewise); the lowest
+          # number breaks a tie. Being behind doesn't count: when the candidate
+          # needs no rebase, the next PR doesn't get one in its place.
+          candidate=$(gh pr list --author 'app/dependabot' --state open --base main --limit 100 \
+            --json number,headRefOid,files --jq '
+              def lines(name; kind): [.files[] | select(.path == name) | kind] | add // 0;
+              sort_by([
+                -lines("package.json"; .additions), -lines("package.json"; .deletions),
+                -lines("package-lock.json"; .additions), -lines("package-lock.json"; .deletions),
+                .number
+              ]) | .[0] // empty | "\(.number) \(.headRefOid)"')
+          if [ -z "$candidate" ]; then
+            echo "No open Dependabot PRs."
+            exit 0
+          fi
+          read -r pr sha <<< "$candidate"
+          echo "The merge candidate is #$pr."
+          behind=$(gh api "repos/$GH_REPO/compare/main...$sha" --jq .behind_by)
+          [[ $behind =~ ^[0-9]+$ ]] || { echo "::error::unexpected behind_by '$behind' for #$pr"; exit 1; }
+          if [ "$behind" -eq 0 ]; then
+            echo "#$pr is up to date with main."
+            exit 0
+          fi
+          # Don't repeat a request Dependabot hasn't acted on yet: skip if the
+          # last one, ours or a manual one, is newer than the PR's head commit.
+          # Ask again once it is a day old, in case Dependabot dropped it.
+          day_ago=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          head_date=$(gh api "repos/$GH_REPO/commits/$sha" --jq .commit.committer.date)
+          last_request=$(gh api --paginate "repos/$GH_REPO/issues/$pr/comments" \
+            --jq '.[] | select(.body | ascii_downcase | startswith("@dependabot rebase")) | .created_at' |
+            tail -n 1)
+          if [ -n "$last_request" ] && [[ "$last_request" > "$head_date" ]] &&
+            [[ "$last_request" > "$day_ago" ]]; then
+            echo "#$pr is $behind behind main; rebase already requested at $last_request."
+            exit 0
+          fi
+          echo "#$pr is $behind behind main; requesting a rebase."
+          GH_TOKEN="$REBASE_TOKEN" gh pr comment "$pr" --body '@dependabot rebase'
