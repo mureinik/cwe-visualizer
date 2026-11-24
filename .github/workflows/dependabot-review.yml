@@ -103,7 +103,7 @@ jobs:
           fi
       - id: claude
         if: steps.gate.outputs.review == 'true'
-        uses: anthropics/claude-code-action@f3b070c88125d33dbae5653df5f143101d4ea9dc # v1.0.276
+        uses: anthropics/claude-code-action@cc98b3ae241b0fcfb6a42a2690751afffecb4452 # v1.0.278
         env:
           # The token below is long-lived, so keep it (and other Anthropic
           # credentials) out of the environment Claude's tools run in, where
