@@ -1,6 +1,6 @@
 # Dependabot merge candidate — Design
 
-Issue: [#](https://github.com/mureinik/cwe-visualizer/issues/). Changes
+Issue: [#392](https://github.com/mureinik/cwe-visualizer/issues/392). Changes
 the rebase requester of the
 [Dependabot PR reviewer](2026-10-10-dependabot-review-design.md).
 
