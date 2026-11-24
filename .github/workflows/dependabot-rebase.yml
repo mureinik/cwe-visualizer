@@ -52,12 +52,14 @@ jobs:
           # the PR that changes the most lines in package.json (added, then
           # removed), then in package-lock.json (likewise); the lowest number
           # breaks a tie. Being behind doesn't count: when the candidate needs
-          # no rebase, the next PR doesn't get one in its place.
+          # no rebase, the next PR doesn't get one in its place. gh lists PRs
+          # from GitHub's search index, which may still call the PR merged a
+          # moment ago open, so check the state too.
           candidate=$(gh pr list --author 'app/dependabot' --state open --base main --limit 100 \
-            --json number,headRefName,headRefOid,files --jq '
+            --json number,state,headRefName,headRefOid,files --jq '
               def lines(name; kind): [.files[] | select(.path == name) | kind] | add // 0;
               def security: .headRefName | test("^dependabot/[^/]+/security-updates-[0-9a-f]{10}$");
-              sort_by([
+              map(select(.state == "OPEN")) | sort_by([
                 (security | not),
                 -lines("package.json"; .additions), -lines("package.json"; .deletions),
                 -lines("package-lock.json"; .additions), -lines("package-lock.json"; .deletions),

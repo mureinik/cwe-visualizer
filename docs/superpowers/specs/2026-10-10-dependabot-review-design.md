@@ -254,7 +254,8 @@ No pushes and no merges; the owner still merges by hand.
   day old.
 - If the merge candidate can't be merged, the other PRs aren't rebased
   until it is fixed or closed, unless the owner comments
-  `@dependabot rebase` on one by hand.
+  `@dependabot rebase` on one by hand. Closing it doesn't start a run; the
+  next push or dispatch does.
 - A PR that changes workflow files is out of scope: the Claude App won't
   act on it, so the gate skips it and a comment on the PR asks the owner
   to review it by hand.

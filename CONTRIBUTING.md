@@ -792,7 +792,8 @@ open security fixes share one PR. A file the PR doesn't touch counts as 0,
 so GitHub Actions updates come last, security fixes aside. A candidate that is already up to date stays the candidate, and so
 does one that can't be merged (failing CI, say) until it is fixed or
 closed. To rebase another PR meanwhile, comment `@dependabot rebase` on it
-by hand. The workflow asks again if a request is still unanswered when it
+by hand. Closing the candidate doesn't start a run, so run the workflow by
+hand or wait for the next push to `main`. The workflow asks again if a request is still unanswered when it
 runs a day or more later.
 
 Dependabot only obeys users with push access, so the comment is posted
