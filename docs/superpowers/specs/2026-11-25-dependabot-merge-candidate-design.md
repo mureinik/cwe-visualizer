@@ -73,6 +73,13 @@ How to recognise a security fix:
 - **B. By GitHub's link from an alert to its PR.** It would keep the PRs
   separate, but needs access to alerts: `vulnerability-alerts: read`, which
   the pinned actionlint 1.7.12 rejects, or a wider owner token.
+- **C. By marking routine updates instead.** A catch-all version-update group
+  would leave security fixes as the only ungrouped PRs, each separate. It
+  would put the routine updates outside the other groups in one PR, and the
+  workflow would have to list every group's name. The owner kept A.
+- A security group can't mark its PRs without putting them in one: the name
+  comes only with membership, and `group-by: dependency-name` applies only to
+  version updates.
 - The PR's labels are the same as a routine update's, and the note about
   security fixes in its body disappears as Dependabot edits it, so neither
   works.
@@ -90,8 +97,14 @@ fetching each PR's files one by one would be more requests.
 security-updates`, pattern `*`) in both ecosystems. A PR is a security fix if
 its branch matches `^dependabot/[^/]+/security-updates-[0-9a-f]{10}$`, the
 group's name and the digest Dependabot appends. If that doesn't hold for a
-PR, it ranks by its size, like a routine update. The next security PR is the
-first chance to confirm the branch name.
+PR, it ranks by its size, like a routine update. Other public repositories
+with a group of this name and the root directory have branches of this shape;
+the next security PR is the first chance to confirm it here. A non-root
+directory or a `target-branch` would add a segment to the branch, which the
+pattern rejects.
+
+The list comes from GitHub's search index, which may lag behind a merge, so
+the filter also drops PRs whose own state isn't open.
 
 `gh pr list` prints at most one PR, the first by the keys above. With none,
 the run says so and ends. Otherwise the existing steps (compare with `main`,

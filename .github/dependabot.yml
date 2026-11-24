@@ -2,7 +2,7 @@
 # gets one PR covering its major, minor and patch bumps alike, so packages
 # that move together are reviewed together. Any npm package outside the
 # groups gets a PR of its own. Security updates are the exception: each
-# ecosystem's share one PR, which is merged first.
+# ecosystem's share one PR, which dependabot-rebase.yml puts first.
 #
 # Both ecosystems run daily, not weekly. PRs must be up to date with main,
 # so a weekly batch merges one at a time, and each merge has the next PR
@@ -54,9 +54,9 @@ updates:
         exclude-patterns:
           - "*lint*"
           - "*vite*"
-      # Security fixes, whatever they update, in one PR. The name ends up in
-      # the PR's branch, where dependabot-rebase.yml looks for it to put
-      # security fixes first, so change both together.
+      # Every security fix, so that dependabot-rebase.yml can put them first:
+      # it looks for this name in the PR's branch, so change both together.
+      # That they share one PR is a side effect.
       security-updates:
         applies-to: security-updates
         patterns: ["*"]

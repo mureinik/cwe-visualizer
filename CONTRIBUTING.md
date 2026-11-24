@@ -786,10 +786,11 @@ first by these, each only breaking ties in the ones before it:
 5. most lines removed from `package-lock.json`
 6. lowest PR number
 
-A security fix is a PR of the `security-updates` group in
-`.github/dependabot.yml`, recognised by its branch name, so each ecosystem's
-open security fixes share one PR. A file the PR doesn't touch counts as 0,
-so GitHub Actions updates come last, security fixes aside. A candidate that is already up to date stays the candidate, and so
+The `security-updates` groups in `.github/dependabot.yml` mark security
+fixes: Dependabot puts a group's name in its PR's branch, and the workflow
+looks for it there. As a side effect, each ecosystem's open security fixes
+share one PR. A file the PR doesn't touch counts as 0, so GitHub Actions
+updates come last, security fixes aside. A candidate that is already up to date stays the candidate, and so
 does one that can't be merged (failing CI, say) until it is fixed or
 closed. To rebase another PR meanwhile, comment `@dependabot rebase` on it
 by hand. Closing the candidate doesn't start a run, so run the workflow by
