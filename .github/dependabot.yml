@@ -4,9 +4,9 @@
 # groups gets a PR of its own.
 #
 # Both ecosystems run daily, not weekly. PRs must be up to date with main,
-# so a weekly batch merges one at a time, and each merge has every other PR
-# rebase and rerun CI. Daily runs spread updates out; the cooldowns below
-# keep them from arriving any sooner after release.
+# so a weekly batch merges one at a time, and each merge has the next PR
+# rebase and rerun CI before it can merge too. Daily runs spread updates out;
+# the cooldowns below keep them from arriving any sooner after release.
 version: 2
 updates:
   - package-ecosystem: npm
