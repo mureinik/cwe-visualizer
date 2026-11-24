@@ -1,12 +1,13 @@
 # Updates are grouped by what they belong to, not by semver level: each group
 # gets one PR covering its major, minor and patch bumps alike, so packages
 # that move together are reviewed together. Any npm package outside the
-# groups gets a PR of its own.
+# groups gets a PR of its own. Security updates are the exception: each
+# ecosystem's share one PR, which dependabot-rebase.yml puts first.
 #
 # Both ecosystems run daily, not weekly. PRs must be up to date with main,
-# so a weekly batch merges one at a time, and each merge has every other PR
-# rebase and rerun CI. Daily runs spread updates out; the cooldowns below
-# keep them from arriving any sooner after release.
+# so a weekly batch merges one at a time, and each merge has the next PR
+# rebase and rerun CI before it can merge too. Daily runs spread updates out;
+# the cooldowns below keep them from arriving any sooner after release.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -53,6 +54,12 @@ updates:
         exclude-patterns:
           - "*lint*"
           - "*vite*"
+      # Every security fix, so that dependabot-rebase.yml can put them first:
+      # it looks for this name in the PR's branch, so change both together.
+      # That they share one PR is a side effect.
+      security-updates:
+        applies-to: security-updates
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -63,4 +70,8 @@ updates:
       default-days: 7
     groups:
       ci:
+        patterns: ["*"]
+      # As above; both ecosystems use the same name.
+      security-updates:
+        applies-to: security-updates
         patterns: ["*"]

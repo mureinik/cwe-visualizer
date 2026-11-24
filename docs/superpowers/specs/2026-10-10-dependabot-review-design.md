@@ -14,8 +14,11 @@ human- and agent-authored PRs are still reviewed by hand.
 
 ## Requirements
 
-- When a Dependabot PR is behind `main`, ask Dependabot to rebase it by
-  commenting `@dependabot rebase`.
+- When the merge candidate, a security fix or else the Dependabot PR that
+  is the riskiest to rebase, is behind `main`, ask Dependabot to rebase it by commenting
+  `@dependabot rebase`. (Originally every PR that was behind; see the
+  [merge candidate design](2026-11-25-dependabot-merge-candidate-design.md),
+  [#392](https://github.com/mureinik/cwe-visualizer/issues/392).)
 - When all checks on an up-to-date Dependabot PR pass, review its release
   notes:
   - Open an issue for each new feature that looks useful for this app, and
@@ -43,8 +46,11 @@ Two workflows, both new files, plus one job added to `ci.yml`:
   plus `workflow_dispatch`.
 - **No LLM.** A shell step; the job's `GITHUB_TOKEN` (`contents: read`,
   `pull-requests: read`) does every lookup:
-  1. List open PRs authored by `dependabot[bot]` (up to 100).
-  2. For each, read `behind_by` from the compare API
+  1. List open PRs authored by `dependabot[bot]` (up to 100), and choose
+     the merge candidate: a security fix first, then the one that changes
+     the most lines in `package.json` (added, then removed), then in
+     `package-lock.json` (likewise), the lowest number breaking ties.
+  2. For that PR alone, read `behind_by` from the compare API
      (`main...<head sha>`), failing the run if it isn't a number.
   3. If `behind_by > 0`, comment `@dependabot rebase`, unless the last
      such request on the PR (ours or a manual one) is newer than the PR's
@@ -92,8 +98,8 @@ Two workflows, both new files, plus one job added to `ci.yml`:
 
 - **Step 1, shell gate.** Ends the job successfully, with a `::notice::`
   and no review, if:
-  - the PR is behind `main` (the rebase requester handles it, and CI
-    re-runs after the rebase);
+  - the PR is behind `main` (the rebase requester handles it once it is
+    the merge candidate, and CI re-runs after the rebase);
   - the PR changes anything under `.github/workflows/` (every GitHub
     Actions update, the `ci` group, does). The Claude App refuses to mint
     a token for such PRs, and the action would exit green without
@@ -246,6 +252,10 @@ No pushes and no merges; the owner still merges by hand.
 - If a rebase request is ignored, the PR stays behind; the requester
   asks again on the next push or dispatch once the previous request is a
   day old.
+- If the merge candidate can't be merged, the other PRs aren't rebased
+  until it is fixed or closed, unless the owner comments
+  `@dependabot rebase` on one by hand. Closing it doesn't start a run; the
+  next push or dispatch does.
 - A PR that changes workflow files is out of scope: the Claude App won't
   act on it, so the gate skips it and a comment on the PR asks the owner
   to review it by hand.
@@ -275,8 +285,8 @@ Dependabot-triggered run only picks up these workflows once they are on
   workflows and the `ci.yml` change.
 - The gate and rebase logic stay small enough for shellcheck and review;
   no unit-test harness for workflow shell.
-- End to end: the next Dependabot batch, checking that behind PRs get one
-  rebase request each, and green PRs get an approval, a summary, and
+- End to end: the next Dependabot batch, checking that only the merge
+  candidate gets a rebase request, and green PRs get an approval, a summary, and
   issues only where warranted.
 
 ## Documentation

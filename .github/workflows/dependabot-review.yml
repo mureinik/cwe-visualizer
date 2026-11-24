@@ -44,7 +44,7 @@ jobs:
           behind=$(gh api "$compare" --jq .behind_by)
           [[ $behind =~ ^[0-9]+$ ]] || { echo "::error::unexpected behind_by '$behind' for #$PR"; exit 1; }
           if [ "$behind" -gt 0 ]; then
-            skip "#$PR is $behind behind $BASE_REF; dependabot-rebase.yml will ask for a rebase, and CI re-runs after it."
+            skip "#$PR is $behind behind $BASE_REF; dependabot-rebase.yml asks for a rebase once it is the merge candidate, and CI re-runs after it."
           fi
           # The Claude App won't mint a token for a PR that changes workflow
           # files, and the action then exits green without reviewing. Every

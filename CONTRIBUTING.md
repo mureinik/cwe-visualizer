@@ -770,10 +770,33 @@ usage limits.
 ### Dependabot reviewer
 
 Two workflows look after Dependabot's PRs. `dependabot-rebase.yml` runs on
-every push to `main` and comments `@dependabot rebase` on each one that
-fell behind, since branch protection's strict status checks won't let a PR
-that is behind merge, and Dependabot rebases on its own only when there is
-a conflict. It asks again if a request is still unanswered a day later.
+every push to `main` and comments `@dependabot rebase` on one of them, the
+merge candidate, if it fell behind. Branch protection's strict status
+checks won't let a PR that is behind merge, and Dependabot rebases on its
+own only when there is a conflict. Only one PR can merge at a time, though,
+and the merge leaves the others behind again, so rebasing them all would be
+wasted. The candidate is a security fix if there is one, or else the
+riskiest PR to rebase, so that it merges as soon as possible. It ranks
+first by these, each only breaking ties in the ones before it:
+
+1. security fixes first
+2. most lines added to `package.json`
+3. most lines removed from `package.json`
+4. most lines added to `package-lock.json`
+5. most lines removed from `package-lock.json`
+6. lowest PR number
+
+The `security-updates` groups in `.github/dependabot.yml` mark security
+fixes: Dependabot puts a group's name in its PR's branch, and the workflow
+looks for it there. As a side effect, each ecosystem's open security fixes
+share one PR. A file the PR doesn't touch counts as 0, so GitHub Actions
+updates come last, security fixes aside. A candidate that is already up to date stays the candidate, and so
+does one that can't be merged (failing CI, say) until it is fixed or
+closed. To rebase another PR meanwhile, comment `@dependabot rebase` on it
+by hand. Closing the candidate doesn't start a run, so run the workflow by
+hand or wait for the next push to `main`. The workflow asks again if a request is still unanswered when it
+runs a day or more later.
+
 Dependabot only obeys users with push access, so the comment is posted
 with `DEPENDABOT_REBASE_TOKEN`, a secret of the `dependabot-rebase`
 environment (which only `main` may use) holding a fine-grained
